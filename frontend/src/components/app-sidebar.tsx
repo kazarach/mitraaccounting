@@ -1,0 +1,195 @@
+"use client";
+import { useState } from "react";
+import {
+  BarChart,
+  FileArchive,
+  ShoppingCart,
+  ChevronDown,
+  FileChartColumn,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+const Menus = [
+  {
+    title: "Transaksi",
+    icon: ShoppingCart,
+    subItems: [
+      {
+        title: "Pembelian",
+        subItems: [
+          { title: "Transaksi Pembelian", url: "/t/purchasing/transaction" },
+          { title: "Pesanan Pembelian", url: "/t/purchasing/order" },
+          { title: "Perubahan Harga Jual", url: "/t/purchasing/change" },
+          { title: "Retur Pembelian", url: "/t/purchasing/return" },
+        ],
+      },
+      {
+        title: "Penjualan",
+        subItems: [
+          { title: "Transaksi Penjualan", url: "#" },
+          { title: "Pesanan Penjualan", url: "#" },
+          { title: "Retur Penjualan", url: "#" },
+          { title: "Tukar Poin", url: "#" },
+        ],
+      },
+      {
+        title: "Persediaan",
+        subItems: [
+          { title: "Opname Persediaan", url: "#" },
+          { title: "Pemakaian Persediaan", url: "#" },
+        ],
+      },
+      { title: "Mutasi", url: "#" },
+      { title: "Kas/Bank", url: "#" },
+      { title: "Open Drawer", url: "#" },
+    ],
+  },
+  {
+    title: "Laporan",
+    icon: FileChartColumn,
+    subItems: [
+      { title: "Persediaan", url: "#" },
+      { title: "Pantauan Stock dan Pesanan Penjualan", url: "#" },
+      { title: "Pembelian", url: "#" },
+      { title: "Penjualan", url: "#" },
+      { title: "Penjualan per Item", url: "#" },
+      { title: "Laba Rugi", url: "#" },
+      { title: "Hutang", url: "#" },
+      { title: "Piutang", url: "#" },
+      { title: "Kas / Bank", url: "#" },
+      { title: "Pendapatan Jasa", url: "#" },
+      { title: "Kasir", url: "#" },
+      { title: "Poin Member", url: "#" },
+    ],
+  },
+  {
+    title: "Arsip",
+    icon: FileArchive,
+    subItems: [
+      { title: "Pesanan Pembelian", url: "#" },
+      { title: "Pembelian", url: "#" },
+      { title: "Retur Pembelian", url: "#" },
+      { title: "Pesanan Penjualan", url: "#" },
+      { title: "Penjualan", url: "#" },
+      { title: "Retur Penjualan", url: "#" },
+      { title: "Pemakaian Persediaan", url: "#" },
+      { title: "Mutasi", url: "#" },
+      { title: "Kas / Bank", url: "#" },
+      { title: "Open Drawer", url: "#" },
+    ],
+  },
+];
+
+export function AppSidebar() {
+  const [openMainMenus, setOpenMainMenus] = useState<string | null>(null);
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  const toggleMainMenu = (title: string) => {
+    setOpenMainMenus((prev) => (prev === title ? null : title));
+  };
+
+  const toggleSubMenu = (title: string) => {
+    setOpenSubMenus((prev) => ({
+      ...prev,
+      [title]: !prev[title],
+    }));
+  };
+
+  return (
+    <Sidebar className="bg-slate-800 h-screen">
+      <SidebarHeader>
+        <div className="flex items-center p-3 gap-1 bg-slate-800 justify-center">
+          <img src="/vercel.svg" alt="Logo" className="w-6 h-6" />
+          <h1 className="font-bold text-sm text-center text-white">
+            Mitra Accounting
+          </h1>
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="scroll-container h-screen overflow-y-auto">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {Menus.map((menu) => (
+                <div key={menu.title} className="group">
+                  <Collapsible
+                    open={openMainMenus === menu.title}
+                    onOpenChange={() => toggleMainMenu(menu.title)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="flex items-center justify-between w-full p-2 rounded-sm hover:bg-slate-700 transition">
+                        <div className="flex items-center gap-2">
+                          <menu.icon size={18} className="text-white" />
+                          <span className="text-white">{menu.title}</span>
+                        </div>
+                        <ChevronDown
+                          size={16}
+                          className={`text-white transition-transform duration-200 ${
+                            openMainMenus === menu.title ? "rotate-180" : ""
+                          }`}
+                        />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent>
+                      <div className="ml-4 border-l-2 border-gray-600 pl-3">
+                        {menu.subItems.map((subItem) =>
+                          subItem.subItems ? (
+                            <Collapsible
+                              key={subItem.title}
+                              open={openSubMenus[subItem.title] || false}
+                              onOpenChange={() => toggleSubMenu(subItem.title)}
+                            >
+                              <CollapsibleTrigger asChild>
+                                <SidebarMenuButton className="flex items-center justify-between w-full px-2 py-1.5 rounded-sm hover:bg-slate-700 transition">
+                                  <span className="text-white">{subItem.title}</span>
+                                  <ChevronDown
+                                    size={14}
+                                    className={`text-white transition-transform duration-200 ${
+                                      openSubMenus[subItem.title] ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                </SidebarMenuButton>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="ml-4 border-l-2 border-gray-500 pl-3">
+                                  {subItem.subItems.map((nestedSub) => (
+                                    <div key={nestedSub.title} className="hover:bg-slate-700 transition rounded-sm">
+                                      <a href={nestedSub.url} className="flex items-center px-2 py-1.5 text-white">
+                                        <span>{nestedSub.title}</span>
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ) : (
+                            <div key={subItem.title} className="hover:bg-slate-700 transition rounded-sm">
+                              <a href={subItem.url} className="flex items-center px-2 py-1.5 text-white">
+                                <span>{subItem.title}</span>
+                              </a>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
