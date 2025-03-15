@@ -36,8 +36,8 @@ const Menus = [
       {
         title: "Penjualan",
         subItems: [
-          { title: "Transaksi Penjualan", url: "#" },
-          { title: "Pesanan Penjualan", url: "#" },
+          { title: "Transaksi Penjualan", url: "/t/selling/transaction" },
+          { title: "Pesanan Penjualan", url: "/t/selling/order" },
           { title: "Retur Penjualan", url: "#" },
           { title: "Tukar Poin", url: "#" },
         ],
