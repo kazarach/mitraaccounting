@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+
 import {
   Table,
   TableBody,
@@ -10,13 +11,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -25,14 +19,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { setDate } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { CalendarIcon, Check, ChevronsUpDown, Search } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
+import { format } from 'date-fns';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
-const SellingTransaction = () => {
+const OrderSelling = () => {
   const [data, setData] = useState([
     {
       "id": 1,
@@ -73,63 +67,189 @@ const SellingTransaction = () => {
   ]
   );
 
-  const distributors = ["All", "Distributor A", "Distributor B", "Distributor C"];
-  const [selectedCustomer, setSelectedCustomer] = useState("All");
-  const [selectedDate, setSelectedDate] = useState("");
+  const distributors = [
+    {
+      value: "1",
+      label: "Distributor A",
+    },
+    {
+      value: "2",
+      label: "Distributor B",
+    },
+    {
+      value: "3",
+      label: "Distributor C",
+    },
+    {
+      value: "4",
+      label: "Distributor D",
+    },
+    {
+      value: "5",
+      label: "Distributor E",
+    },
+
+  ]
+
+  const [selectedDistributor, setSelectedDistributor] = useState("All");
   const [date, setDate] = React.useState<Date>()
+  const [open, setOpen] = React.useState(false)
+  const [value, setValue] = React.useState("")
+  const [open2, setOpen2] = React.useState(false)
+  const [value2, setValue2] = React.useState("")
 
   return (
-    <div className="flex justify-center w-full pt-4">
+    <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Transaksi Penjualan</CardTitle>
+          <CardTitle>Pesanan Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Sales</Label>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[200px] justify-between font-normal"
+                      >
+                        {value
+                          ? distributors.find((d) => d.value === value)?.label
+                          : "Pilih Sales"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue(selectedDistributor.value);
+                                  } else {
+                                    setValue("");
+                                  }
+                                  setOpen(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Pelanggan</Label>
+                  <Popover open={open2} onOpenChange={setOpen2}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[200px] justify-between font-normal"
+                      >
+                        {value
+                          ? distributors.find((d) => d.value === value2)?.label
+                          : "Pilih Pelanggan"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue2(selectedDistributor.value);
+                                  } else {
+                                    setValue2("");
+                                  }
+                                  setOpen2(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Customer</Label>
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select Distributor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {distributors.map((distributor) => (
-                        <SelectItem key={distributor} value={distributor}>
-                          {distributor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="date">Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <div>
-                <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={"outline"}
-          className={cn(
-            "w-[280px] justify-start text-left font-normal",
-            !date && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
+                <div className={cn(
+                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                      )}>
+                  <Search size={20} style={{ marginRight: '10px' }} />
+                  <input type="text" placeholder="No. Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
                 </div>
+                
               </div>
-              <div className='flex items-end'>
-                <Button>Tambah Transaksi +</Button>
+              <div className='flex items-end gap-2'>
+                {/* <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button> */}
+                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
               </div>
             </div>
 
@@ -137,40 +257,31 @@ const SellingTransaction = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Produk</TableHead>
-                    {/* <TableHead className="text-right">Jumlah Pesanan</TableHead> */}
-                    <TableHead className="text-right">Quantity</TableHead>
-                    {/* <TableHead className="text-right">Isi Packing</TableHead>
-                    <TableHead className="text-right">Satuan</TableHead>
-                    <TableHead className="text-right">Harga Beli</TableHead> */}
-                    <TableHead className="text-right">Diskon (%)</TableHead>
-                    {/* <TableHead className="text-right">Diskon (Rp)</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead> */}
+                    <TableHead>No. Faktur</TableHead>
+                    <TableHead className="text-left">Pelanggan</TableHead>
+                    <TableHead className="text-left">Sales</TableHead>
+                    <TableHead className="text-left">Subtotal</TableHead>
+                    <TableHead className="text-left">Jumlah Barang</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
-                      {/* <TableCell className="text-right">{item.jumlah_pesanan}</TableCell> */}
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='1' /></TableCell>
-                      {/* <TableCell className="text-right">{item.isi_packing}</TableCell>
-                      <TableCell className="text-right">{item.satuan}</TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='Rp5.000' /></TableCell> */}
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='5%'/></TableCell>
-                      {/* <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='Rp5.000'/></TableCell>
-                      <TableCell className="text-right">{item.subtotal}</TableCell> */}
+                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                      <TableCell className="text-left">{item.isi_packing}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>           
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
-            <div className='flex items-end gap-2 '>
-                <Button className='bg-green-500 hover:bg-gray-400'>Tambah Barang</Button>
-                <Button className='bg-red-500 hover:bg-gray-400'>Hapus Barang</Button>
-                <Button className='bg-blue-500 hover:bg-gray-400'>Sell</Button>
-                <Button className='bg-blue-500 hover:bg-gray-400'>Save</Button>
-              </div>
+          <div className='flex gap-2 justify-end '>
+            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
+            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Save</Button>
+          </div>
           </div>
         </CardContent>
       </Card>
@@ -178,4 +289,4 @@ const SellingTransaction = () => {
   );
 };
 
-export default SellingTransaction; 
+export default OrderSelling; 

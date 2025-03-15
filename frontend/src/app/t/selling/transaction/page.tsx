@@ -97,8 +97,9 @@ const SellingTransaction = () => {
                   </Select>
                 </div>
               </div>
-              <div className='flex items-end'>
-                <Button>Tambah Transaksi +</Button>
+              <div className='flex items-end gap-2'>
+                <Button className='bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
               </div>
             </div>
 
@@ -107,14 +108,8 @@ const SellingTransaction = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produk</TableHead>
-                    {/* <TableHead className="text-right">Jumlah Pesanan</TableHead> */}
-                    <TableHead className="text-right">Quantity</TableHead>
-                    {/* <TableHead className="text-right">Isi Packing</TableHead>
-                    <TableHead className="text-right">Satuan</TableHead>
-                    <TableHead className="text-right">Harga Beli</TableHead> */}
+                    <TableHead className="text-right">Jumlah</TableHead>
                     <TableHead className="text-right">Diskon (%)</TableHead>
-                    {/* <TableHead className="text-right">Diskon (Rp)</TableHead>
-                    <TableHead className="text-right">Subtotal</TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -134,11 +129,8 @@ const SellingTransaction = () => {
                 </TableBody>
               </Table>
             </div>
-            <div className='flex items-end gap-2 '>
-                <Button className='bg-green-500 hover:bg-gray-400'>Tambah Barang</Button>
-                <Button className='bg-red-500 hover:bg-gray-400'>Hapus Barang</Button>
-                <Button className='bg-blue-500 hover:bg-gray-400'>Sell</Button>
-                <Button className='bg-blue-500 hover:bg-gray-400'>Save</Button>
+            <div className='flex gap-2 justify-end '>
+                <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
               </div>
           </div>
         </CardContent>
