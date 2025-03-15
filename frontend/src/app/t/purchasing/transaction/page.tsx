@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+
 import {
   Table,
   TableBody,
@@ -25,6 +26,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from "@/components/ui/calendar"
+import { format } from 'date-fns';
 
 const TransactionPurchase = () => {
   const [data, setData] = useState([
@@ -69,7 +75,7 @@ const TransactionPurchase = () => {
 
   const distributors = ["All", "Distributor A", "Distributor B", "Distributor C"];
   const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [date, setDate] = React.useState<Date>()
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -83,13 +89,28 @@ const TransactionPurchase = () => {
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex flex-col space-y-2">
                   <Label htmlFor="date">Date</Label>
-                  <Input
-                    type="date"
-                    id="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-40"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[160px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
@@ -136,8 +157,8 @@ const TransactionPurchase = () => {
                       <TableCell className="text-right">{item.isi_packing}</TableCell>
                       <TableCell className="text-right">{item.satuan}</TableCell>
                       <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='Rp5.000' /></TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='5%'/></TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='Rp5.000'/></TableCell>
+                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='5%' /></TableCell>
+                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='Rp5.000' /></TableCell>
                       <TableCell className="text-right">{item.subtotal}</TableCell>
                     </TableRow>
                   ))}
