@@ -11,13 +11,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -28,9 +21,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const TransactionPurchase = () => {
   const [data, setData] = useState([
@@ -73,9 +67,34 @@ const TransactionPurchase = () => {
   ]
   );
 
-  const distributors = ["All", "Distributor A", "Distributor B", "Distributor C"];
+  const distributors = [
+    {
+      value: "1",
+      label: "Distributor A",
+    },
+    {
+      value: "2",
+      label: "Distributor B",
+    },
+    {
+      value: "3",
+      label: "Distributor C",
+    },
+    {
+      value: "4",
+      label: "Distributor D",
+    },
+    {
+      value: "5",
+      label: "Distributor E",
+    },
+
+  ]
+
   const [selectedDistributor, setSelectedDistributor] = useState("All");
   const [date, setDate] = React.useState<Date>()
+  const [open, setOpen] = React.useState(false)
+  const [value, setValue] = React.useState("")
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -94,8 +113,8 @@ const TransactionPurchase = () => {
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-[160px] justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
+                          "w-[200px] justify-start text-left font-normal",
+                          
                         )}
                       >
                         <CalendarIcon />
@@ -114,22 +133,60 @@ const TransactionPurchase = () => {
                 </div>
                 <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
-                  <Select value={selectedDistributor} onValueChange={setSelectedDistributor}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select Distributor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {distributors.map((distributor) => (
-                        <SelectItem key={distributor} value={distributor}>
-                          {distributor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[200px] justify-between font-normal"
+                      >
+                        {value
+                          ? distributors.find((d) => d.value === value)?.label
+                          : "Select Distributor"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue(selectedDistributor.value);
+                                  } else {
+                                    setValue("");
+                                  }
+                                  setOpen(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
-              <div className='flex items-end'>
-                <Button>Tambah Produk</Button>
+              <div className='flex items-end gap-2'>
+                <Button className='font-medium'>Pesanan</Button>
+                <Button className='font-medium'>Tambah Produk</Button>
               </div>
             </div>
 
@@ -166,6 +223,10 @@ const TransactionPurchase = () => {
               </Table>
             </div>
           </div>
+          <div className='flex items-end gap-2'>
+                <Button className='font-medium'>Pesanan</Button>
+                <Button className='font-medium'>Tambah Produk</Button>
+              </div>
         </CardContent>
       </Card>
     </div>
