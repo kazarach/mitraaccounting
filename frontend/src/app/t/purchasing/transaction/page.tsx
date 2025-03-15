@@ -186,8 +186,9 @@ const TransactionPurchase = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
+              <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                 <Button className='font-medium bg-blue-500 hover:bg-blue-600 '>Tambah Produk</Button>
+                <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
@@ -196,29 +197,31 @@ const TransactionPurchase = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produk</TableHead>
-                    <TableHead className="text-right">Jumlah Pesanan</TableHead>
-                    <TableHead className="text-right">Jumlah barang</TableHead>
-                    <TableHead className="text-right">Isi Packing</TableHead>
-                    <TableHead className="text-right">Satuan</TableHead>
-                    <TableHead className="text-right">Harga Beli</TableHead>
-                    <TableHead className="text-right">Diskon (%)</TableHead>
-                    <TableHead className="text-right">Diskon (Rp)</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-left">Jumlah Pesanan</TableHead>
+                    <TableHead className="text-left">Jumlah barang</TableHead>
+                    <TableHead className="text-left">Isi Packing</TableHead>
+                    <TableHead className="text-left">Satuan</TableHead>
+                    <TableHead className="text-left">Harga Beli</TableHead>
+                    <TableHead className="text-left">Diskon (%)</TableHead>
+                    <TableHead className="text-left">Diskon (Rp)</TableHead>
+                    <TableHead className="text-left">Total</TableHead>
+                    <TableHead className="text-left">Inc. PPN</TableHead>
+                    <TableHead className="text-left">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-right">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-right">{item.isi_packing}</TableCell>
-                      <TableCell className="text-right">{item.satuan}</TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                      <TableCell className="text-right">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
+                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                      <TableCell className="text-left">{item.isi_packing}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                      <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
+                      <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-right">
                         <Button className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
@@ -229,15 +232,17 @@ const TransactionPurchase = () => {
                 </TableBody>
                 <TableFooter>
                   <TableRow className='bg-white'>
-                    <TableCell colSpan={8} className="text-right font-bold">Total:</TableCell>
-                    <TableCell className="text-right font-bold">Rp{data.reduce((acc, item) => acc + item.subtotal, 0).toLocaleString('id-ID')}</TableCell>
+                    <TableCell colSpan={9} className="text-right font-bold">Total:</TableCell>
+                    <TableCell className="text-left font-bold">Rp{data.reduce((acc, item) => (acc + item.subtotal) * 1.11 , 0).toLocaleString('id-ID')}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
             </div>
           </div>
           <div className='flex justify-end gap-2 mt-4 '>
+            
             <Button className='font-medium bg-blue-500 hover:bg-blue-600  '>Tambah Transaksi</Button>
+            
           </div>
         </CardContent>
       </Card>
