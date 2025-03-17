@@ -75,42 +75,30 @@ const SellingTransaction = () => {
   return (
     <div className="flex justify-center w-full pt-4">
       <Card className="w-full mx-4">
+        <div className='flex justify-between'>
         <CardHeader>
-          <CardTitle>Transaksi Penjualan</CardTitle>
+          <CardTitle>Tukar Poin</CardTitle>
         </CardHeader>
+        <div className='flex items-end gap-2 mx-4'>
+          <Button className='bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+          <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
+        </div>
+        </div>
         <CardContent>
           <div className="flex flex-col space-y-4">
-            <div className="flex justify-between gap-4 mb-4">
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Customer</Label>
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select Distributor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {distributors.map((distributor) => (
-                        <SelectItem key={distributor} value={distributor}>
-                          {distributor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className='flex items-end gap-2'>
-                <Button className='bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-                <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
-              </div>
-            </div>
 
             <div className="rounded-md border overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produk</TableHead>
-                    <TableHead className="text-right">Jumlah</TableHead>
-                    <TableHead className="text-right">Diskon (%)</TableHead>
+                    <TableHead className="text-left">Pelanggan</TableHead>
+                    <TableHead className="text-left">Jumlah Poin</TableHead>
+                    <TableHead className="text-left">Tipe Tukar Poin</TableHead>
+                    <TableHead className="text-left">Nominal Tukar</TableHead>
+                    <TableHead className="text-left">Voucher Belanja</TableHead>
+                    <TableHead className="text-left">Kadaluarsa</TableHead>
+                    <TableHead className="text-center">Sisa Poin</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -118,8 +106,13 @@ const SellingTransaction = () => {
                   {data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='1' /></TableCell>
-                      <TableCell className="text-right"><input type="number" className='text-right w-28' placeholder='5%'/></TableCell>
+                      <TableCell className="font-medium">{item.jumlah_barang}</TableCell>
+                      <TableCell className="font-medium">{item.jumlah_pesanan}</TableCell>
+                      <TableCell className="font-medium">{item.satuan}</TableCell>
+                      <TableCell className="font-medium">{item.harga_beli}</TableCell>
+                      <TableCell className="font-medium">{item.diskon_rupiah}</TableCell>
+                      <TableCell className="font-medium">{item.produk}</TableCell>
+                      <TableCell className="text-left"><input type="number" className='text-right w-28' placeholder='1' /></TableCell>
                       <TableCell className="text-right">
                         <Button className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>

@@ -39,14 +39,14 @@ const Menus = [
         subItems: [
           { title: "Transaksi Penjualan", url: "/t/selling/transaction" },
           { title: "Pesanan Penjualan", url: "/t/selling/order" },
-          { title: "Retur Penjualan", url: "#" },
-          { title: "Tukar Poin", url: "#" },
+          { title: "Retur Penjualan", url: "/t/selling/return" },
+          { title: "Tukar Poin", url: "/t/selling/point" },
         ],
       },
       {
         title: "Persediaan",
         subItems: [
-          { title: "Opname Persediaan", url: "#" },
+          { title: "Opname Persediaan", url: "/t/stock/opname" },
           { title: "Pemakaian Persediaan", url: "#" },
         ],
       },
