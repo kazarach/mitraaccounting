@@ -22,10 +22,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown,Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
+import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { toast } from 'sonner';
 
 const TransactionPurchase = () => {
   const [data, setData] = useState([
@@ -96,6 +100,7 @@ const TransactionPurchase = () => {
   const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
+
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -186,9 +191,23 @@ const TransactionPurchase = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-              <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
-                <Button className='font-medium bg-blue-500 hover:bg-blue-600 '>Tambah Produk</Button>
-                <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <TpModal/>
+                  </DialogContent>
+                </Dialog>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <TambahProdukModal/>
+                  </DialogContent>
+                </Dialog>
+                <Button  variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
@@ -214,12 +233,12 @@ const TransactionPurchase = () => {
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
                       <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
+                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
                       <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-right">
@@ -233,16 +252,16 @@ const TransactionPurchase = () => {
                 <TableFooter>
                   <TableRow className='bg-white'>
                     <TableCell colSpan={9} className="text-right font-bold">Total:</TableCell>
-                    <TableCell className="text-left font-bold">Rp{data.reduce((acc, item) => (acc + item.subtotal) * 1.11 , 0).toLocaleString('id-ID')}</TableCell>
+                    <TableCell className="text-left font-bold">Rp{data.reduce((acc, item) => (acc + item.subtotal) * 1.11, 0).toLocaleString('id-ID')}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
             </div>
           </div>
           <div className='flex justify-end gap-2 mt-4 '>
-            
-            <Button className='font-medium bg-blue-500 hover:bg-blue-600  '>Tambah Transaksi</Button>
-            
+
+            <Button onClick={() => toast.success("Transaksi Berhasil Ditambahkan  ")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Tambah Transaksi</Button>
+
           </div>
         </CardContent>
       </Card>

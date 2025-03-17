@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   ChevronDown,
   FileChartColumn,
+  House,
 } from "lucide-react";
 
 import {
@@ -120,6 +121,14 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+            
+            <SidebarMenuButton className="flex items-center gap-2 w-full p-2 rounded-sm hover:bg-slate-700 transition hover:text-white">
+                <a href="/" className="flex items-center gap-2 w-full text-white">
+                  <House size={18} className="text-white" />
+                  <span>Home</span>
+                </a>
+              </SidebarMenuButton>
+
               {Menus.map((menu) => (
                 <div key={menu.title} className="group">
                   <Collapsible
