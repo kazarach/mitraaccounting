@@ -25,6 +25,8 @@ import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 
 const OrderSelling = () => {
   const [data, setData] = useState([
@@ -184,7 +186,14 @@ const OrderSelling = () => {
                 </div>                
               </div>
               <div className='flex items-end gap-2'>
-                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <TambahProdukModal/>
+                    </DialogContent>
+                </Dialog>
                 <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
               </div>
             </div>

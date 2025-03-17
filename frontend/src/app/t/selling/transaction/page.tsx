@@ -26,6 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Trash } from 'lucide-react';
+import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
 
 const SellingTransaction = () => {
   const [data, setData] = useState([
@@ -99,8 +102,15 @@ const SellingTransaction = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-                <Button className='bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-                <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <TambahProdukModal/>
+                  </DialogContent>
+                </Dialog>
+                <Button  variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 

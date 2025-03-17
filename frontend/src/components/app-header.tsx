@@ -20,18 +20,21 @@
         <SidebarTrigger  className=" mr-3"/>
             </div>
 
-        <nav className="flex items-center space-x-2 text-sm">
-            <Link href="/" className="">
-            Home
-            </Link>
-            {breadcrumb.map((item) => (
-            <div key={item.href} className="flex items-center space-x-2">
-                <span className="mr-2">/</span>
-                 
-                {item.name}
-            </div>
-            ))}
-        </nav>
+            <nav className="flex items-center space-x-2 text-sm">
+        <Link href="/" className="text-gray-500">
+          Home
+        </Link>
+        {breadcrumb.map((item, index) => (
+          <div key={item.href} className="flex items-center space-x-2">
+            <span className="mr-2 text-gray-500">/</span>
+            {index === breadcrumb.length - 1 ? (
+              <strong style={{ color: 'black' }}>{item.name}</strong>
+            ) : (
+              <span style={{ color: 'gray' }}>{item.name}</span>
+            )}
+          </div>
+        ))}
+      </nav>
         </header>
     );
     }
