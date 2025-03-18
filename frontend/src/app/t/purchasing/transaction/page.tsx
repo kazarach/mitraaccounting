@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   Table,
@@ -30,47 +30,11 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
 import { toast } from 'sonner';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
+import { addRow, deleteRow, setTableData } from '@/store/features/tableSlicer';
 
 const TransactionPurchase = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
-    }
-  ]
-  );
 
   const distributors = [
     {
@@ -100,6 +64,57 @@ const TransactionPurchase = () => {
   const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
+
+  const dispatch = useDispatch();
+  const data = useSelector((state: RootState) => state.table["transaksi"] || []);
+
+  useEffect(() => {
+    // Set data awal ke Redux jika belum ada
+    if (data.length === 0) {
+      dispatch(
+        setTableData({
+          tableName: "transaksi",
+          data: [
+            {
+              id: 1,
+              produk: "Susu Coklat Bubuk",
+              jumlah_pesanan: 10,
+              jumlah_barang: 10,
+              isi_packing: 24,
+              satuan: "Kardus",
+              harga_beli: 150000,
+              diskon_persen: 5,
+              diskon_rupiah: 7500,
+              subtotal: 142500,
+            },
+          ],
+        })
+      );
+    }
+  }, [dispatch, data]);
+
+  const handleDelete = (id: number) => {
+    dispatch(deleteRow({ tableName: "transaksi", id }));
+    toast.error("Produk berhasil dihapus!");
+  };
+
+  const handleAdd = () => {
+    const newItem = {
+      id: data.length + 1,
+      produk: "Produk Baru",
+      jumlah_pesanan: 1,
+      jumlah_barang: 1,
+      isi_packing: 10,
+      satuan: "Pcs",
+      harga_beli: 50000,
+      diskon_persen: 0,
+      diskon_rupiah: 0,
+      subtotal: 50000,
+    };
+    dispatch(addRow({ tableName: "transaksi", row: newItem }));
+    toast.success("Produk berhasil ditambahkan!");
+  };
+
 
 
   return (
@@ -196,18 +211,22 @@ const TransactionPurchase = () => {
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md">
-                    <TpModal/>
+                    <TpModal />
                   </DialogContent>
                 </Dialog>
-                <Dialog>
+                {/* <Dialog>
                   <DialogTrigger asChild>
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md">
                     <TambahProdukModal/>
                   </DialogContent>
-                </Dialog>
-                <Button  variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                </Dialog> */}
+                <Button onClick={handleAdd} className="font-medium bg-blue-500 hover:bg-blue-600">
+                  Tambah Produk
+                </Button>
+
+                <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
@@ -242,7 +261,7 @@ const TransactionPurchase = () => {
                       <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
+                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
                         </Button>
                       </TableCell>

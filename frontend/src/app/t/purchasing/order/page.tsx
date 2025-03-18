@@ -26,6 +26,8 @@ import { CalendarIcon, Check, ChevronsUpDown, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
 
 const TransactionPurchase = () => {
   const [data, setData] = useState([
@@ -186,15 +188,21 @@ const TransactionPurchase = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-                
-                <Button className='font-medium bg-blue-500 hover:bg-blue-600 '>Tambah Produk</Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <TambahProdukModal />
+                  </DialogContent>
+                </Dialog>
                 <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
             <div className="rounded-md border overflow-auto">
               <Table>
-              <TableHeader>
+                <TableHeader>
                   <TableRow>
                     <TableHead>Produk</TableHead>
                     <TableHead className="text-left">Jumlah Pesanan</TableHead>
@@ -233,7 +241,7 @@ const TransactionPurchase = () => {
                 <TableFooter>
                   <TableRow className='bg-white'>
                     <TableCell colSpan={9} className="text-right font-bold">Total:</TableCell>
-                    <TableCell className="text-Left font-bold">Rp{data.reduce((acc, item) => (acc + item.subtotal) * 1.11 , 0).toLocaleString('id-ID')}</TableCell>
+                    <TableCell className="text-Left font-bold">Rp{data.reduce((acc, item) => (acc + item.subtotal) * 1.11, 0).toLocaleString('id-ID')}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
