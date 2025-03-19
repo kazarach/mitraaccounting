@@ -12,6 +12,7 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -19,6 +20,10 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const Menus = [
   {
@@ -199,6 +204,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+    <SidebarFooter>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Login</Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60">
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none text-center">Admin</h4>
+            <p className="text-sm text-muted-foreground">
+              Set the dimensions for the layer.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Button>
+              <a href="#">Admin Page</a>
+            </Button>
+            <Button className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white">
+              <a href="/login">Logout</a>
+            </Button>          
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+    </SidebarFooter>
     </Sidebar>
   );
 }
