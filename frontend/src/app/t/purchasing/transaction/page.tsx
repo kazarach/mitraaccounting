@@ -69,7 +69,6 @@ const TransactionPurchase = () => {
   const data = useSelector((state: RootState) => state.table["transaksi"] || []);
 
   useEffect(() => {
-    // Set data awal ke Redux jika belum ada
     if (data.length === 0) {
       dispatch(
         setTableData({
@@ -214,17 +213,14 @@ const TransactionPurchase = () => {
                     <TpModal />
                   </DialogContent>
                 </Dialog>
-                {/* <Dialog>
+                <Dialog>
                   <DialogTrigger asChild>
-                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                    <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <TambahProdukModal/>
+                  <DialogContent className="w-[75vw] max-h-[90vh]">
+                    <TambahProdukModal />
                   </DialogContent>
-                </Dialog> */}
-                <Button onClick={handleAdd} className="font-medium bg-blue-500 hover:bg-blue-600">
-                  Tambah Produk
-                </Button>
+                </Dialog>
 
                 <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
@@ -244,7 +240,7 @@ const TransactionPurchase = () => {
                     <TableHead className="text-left">Diskon (Rp)</TableHead>
                     <TableHead className="text-left">Total</TableHead>
                     <TableHead className="text-left">Inc. PPN</TableHead>
-                    <TableHead className="text-left">Action</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -260,7 +256,7 @@ const TransactionPurchase = () => {
                       <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
                       <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
                         </Button>

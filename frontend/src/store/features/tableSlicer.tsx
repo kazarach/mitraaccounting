@@ -1,12 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface TableState {
-  [tableName: string]: any[]; // Menyimpan banyak tabel berdasarkan nama
+  [tableName: string]: any[];
 }
 
 const initialState: TableState = {
-  transaksi: [], // Data transaksi pembelian
-  pesanan: [], // Data pesanan
+  transaksi: [],
+  pesanan: [], 
 };
 
 export const tableSlice = createSlice({
