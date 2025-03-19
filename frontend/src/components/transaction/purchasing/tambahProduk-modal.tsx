@@ -51,7 +51,7 @@ const TambahProdukModal = () => {
       {
         accessorKey: "purchasePrice",
         header: "Harga Beli",
-        cell: (info : any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
+        cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
       },
       {
         accessorKey: "price",
@@ -94,7 +94,6 @@ const TambahProdukModal = () => {
         <DialogTitle>Tambah Produk</DialogTitle>
       </DialogHeader>
 
-      {/* Input Search */}
       <div className="my-2 relative w-1/4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
@@ -105,8 +104,7 @@ const TambahProdukModal = () => {
         />
       </div>
 
-      {/* Tabel dengan Scroll Horizontal dan Sticky Action Column */}
-      <div className="rounded-md border overflow-x-auto overflow-y-auto max-h-[60vh] bg-white relative">
+      <div className="rounded-md border overflow-x-auto max-h-[75vh] min-h-[75vh] bg-white relative">
         <Table className="w-full min-w-[1000px] bg-white">
           <TableHeader className="sticky top-0 bg-gray-100 z-20">
             {table.getHeaderGroups().map((headerGroup) => (
