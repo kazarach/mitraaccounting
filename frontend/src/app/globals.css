@@ -227,3 +227,17 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+.table-header {
+  position: sticky;
+  top: 0;
+  background: white; /* or your desired background color */
+  z-index: 10; /* Ensure it stays above other content */
+}
+
+.table-cell {
+  position: sticky;
+  right: 0;
+  background: white; /* or your desired background color */
+  z-index: 10; /* Ensure it stays above other content */
+}

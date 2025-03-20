@@ -15,7 +15,7 @@
         }));
 
     return (
-        <header className="flex items-center gap-4 px-4 py-2 bg-white text-slate-900 font-medium shadow-sm">
+        <header className="flex items-center gap-4 px-4 py-2 bg-white text-slate-900 shadow-sm">
             <div className="border-r border-slate-300 ">
         <SidebarTrigger  className=" mr-3"/>
             </div>

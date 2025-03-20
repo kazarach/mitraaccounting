@@ -25,8 +25,11 @@ export const tableSlice = createSlice({
     deleteRow: (state, action: PayloadAction<{ tableName: string; id: number }>) => {
       state[action.payload.tableName] = state[action.payload.tableName].filter((row) => row.id !== action.payload.id);
     },
+    clearTable: (state, action: PayloadAction<{ tableName: string }>) => {
+      state[action.payload.tableName] = [];
+    },
   },
 });
 
-export const { setTableData, addRow, updateRow, deleteRow } = tableSlice.actions;
+export const { setTableData, addRow, updateRow, deleteRow,clearTable } = tableSlice.actions;
 export const tableReducer = tableSlice.reducer;

@@ -188,11 +188,11 @@ const TransactionPurchase = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-                <Dialog>
+              <Dialog>
                   <DialogTrigger asChild>
-                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+                    <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="w-[80vw] max-h-[90vh]">
                     <TambahProdukModal />
                   </DialogContent>
                 </Dialog>

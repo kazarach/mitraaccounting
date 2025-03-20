@@ -32,7 +32,7 @@ import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { addRow, deleteRow, setTableData } from '@/store/features/tableSlicer';
+import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 
 const TransactionPurchase = () => {
 
@@ -73,48 +73,21 @@ const TransactionPurchase = () => {
       dispatch(
         setTableData({
           tableName: "transaksi",
-          data: [
-            {
-              id: 1,
-              produk: "Susu Coklat Bubuk",
-              jumlah_pesanan: 10,
-              jumlah_barang: 10,
-              isi_packing: 24,
-              satuan: "Kardus",
-              harga_beli: 150000,
-              diskon_persen: 5,
-              diskon_rupiah: 7500,
-              subtotal: 142500,
-            },
-          ],
+          data: [],
         })
       );
     }
-  }, [dispatch, data]);
+  }, [dispatch]);
 
   const handleDelete = (id: number) => {
     dispatch(deleteRow({ tableName: "transaksi", id }));
     toast.error("Produk berhasil dihapus!");
   };
 
-  const handleAdd = () => {
-    const newItem = {
-      id: data.length + 1,
-      produk: "Produk Baru",
-      jumlah_pesanan: 1,
-      jumlah_barang: 1,
-      isi_packing: 10,
-      satuan: "Pcs",
-      harga_beli: 50000,
-      diskon_persen: 0,
-      diskon_rupiah: 0,
-      subtotal: 50000,
-    };
-    dispatch(addRow({ tableName: "transaksi", row: newItem }));
-    toast.success("Produk berhasil ditambahkan!");
+  const handleClear = () => {
+    dispatch(clearTable({ tableName: "transaksi" }));
+    toast.error("Table berhasil dihapus!");
   };
-
-
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -209,7 +182,7 @@ const TransactionPurchase = () => {
                   <DialogTrigger asChild>
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent className="w-[80vw] max-h-[90vh]">
                     <TpModal />
                   </DialogContent>
                 </Dialog>
@@ -217,12 +190,12 @@ const TransactionPurchase = () => {
                   <DialogTrigger asChild>
                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
-                  <DialogContent className="w-[75vw] max-h-[90vh]">
+                  <DialogContent className="w-[80vw] max-h-[90vh]">
                     <TambahProdukModal />
                   </DialogContent>
                 </Dialog>
 
-                <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
@@ -244,26 +217,35 @@ const TransactionPurchase = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
-                      <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                      <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="text-center">
-                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
+                  {data.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center text-gray-400 bg-gray-200">
+                        Belum menambahkan produk
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    data.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.produk}</TableCell>
+                        <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                        <TableCell className="text-left">{item.isi_packing}</TableCell>
+                        <TableCell className="text-left">{item.satuan}</TableCell>
+                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
+                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                        <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
+                        <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
+                        <TableCell className="text-center">
+                          <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
+                            <Trash></Trash>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
+
                 <TableFooter>
                   <TableRow className='bg-white'>
                     <TableCell colSpan={9} className="text-right font-bold">Total:</TableCell>
