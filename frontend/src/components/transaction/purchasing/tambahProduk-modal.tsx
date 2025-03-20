@@ -1,17 +1,12 @@
+// TambahProdukModal.js
 "use client";
 
 import React, { useState, useMemo } from "react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  flexRender,
-  SortingState,
-} from "@tanstack/react-table";
+import { useDispatch } from "react-redux";
+import { addRow } from "@/store/features/tableSlicer";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, ArrowUp, ArrowDown, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { products } from "@/data/product";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,10 +17,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  flexRender,
+  SortingState,
+  Row,
+} from "@tanstack/react-table";
+import { toast } from "sonner";
 
 const TambahProdukModal = () => {
+  const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
+
+  const handleAddProduct = (product : any) => {
+    const newItem = {
+      id: Date.now(),
+      produk: product.name,
+      jumlah_pesanan: 0,
+      harga_beli: product.purchasePrice,
+      subtotal: product.purchasePrice,
+    };
+    toast.success(product.name + " Berhasil Ditambahkan")
+    dispatch(addRow({ tableName: "transaksi", row: newItem }));
+  };
 
   const columns = useMemo(
     () => [
@@ -45,29 +63,19 @@ const TambahProdukModal = () => {
       { accessorKey: "barcode", header: "Barcode" },
       { accessorKey: "quantityOutput", header: "Jumlah Stok" },
       { accessorKey: "boughtLast7Days", header: "Terbeli (7H)" },
-      { accessorKey: "soldLast7Days", header: "Terjual (7H)" },
       { accessorKey: "boughtLast30Days", header: "Terbeli (30H)" },
+      { accessorKey: "soldLast7Days", header: "Terjual (7H)" },
       { accessorKey: "soldLast30Days", header: "Terjual (30H)" },
       {
         accessorKey: "purchasePrice",
         header: "Harga Beli",
-        cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
-      },
-      {
-        accessorKey: "price",
-        header: "Harga Retail",
-        cell: (info) => `Rp${info.getValue().toLocaleString("id-ID")}`,
-      },
-      {
-        accessorKey: "price2",
-        header: "Harga Grosir",
-        cell: (info) => `Rp${info.getValue().toLocaleString("id-ID")}`,
+        cell: (info : any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
       },
       {
         accessorKey: "action",
         header: "Action",
-        cell: () => (
-          <Button className="bg-blue-500 hover:bg-blue-600 size-7">
+        cell: ({ row }: { row: Row<any> }) => (
+          <Button onClick={() => handleAddProduct(row.original)} className="bg-blue-500 hover:bg-blue-600 size-7">
             <Plus />
           </Button>
         ),
@@ -93,7 +101,6 @@ const TambahProdukModal = () => {
       <DialogHeader>
         <DialogTitle>Tambah Produk</DialogTitle>
       </DialogHeader>
-
       <div className="my-2 relative w-1/4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
@@ -103,17 +110,13 @@ const TambahProdukModal = () => {
           className="w-full pl-10"
         />
       </div>
-
-      <div className="rounded-md border overflow-x-auto max-h-[75vh] min-h-[75vh] bg-white relative">
+      <div className="rounded-md border overflow-x-auto max-h-[70vh] min-h-[68vh] bg-white relative">
         <Table className="w-full min-w-[1000px] bg-white">
           <TableHeader className="sticky top-0 bg-gray-100 z-20">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={`text-left ${header.column.id === "action" ? "sticky right-0 bg-gray-100 z-10" : ""}`}
-                  >
+                  <TableHead key={header.id} className="text-left">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
@@ -124,10 +127,7 @@ const TambahProdukModal = () => {
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} className="bg-white">
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    className={`text-left ${cell.column.id === "action" ? "sticky right-0 bg-white z-10" : ""}`}
-                  >
+                  <TableCell key={cell.id} className="text-left">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
