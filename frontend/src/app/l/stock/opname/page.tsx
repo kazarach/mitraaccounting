@@ -104,14 +104,39 @@ const OrderSelling = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Pesanan Penjualan</CardTitle>
+          <CardTitle>Opname Persediaan</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
+                  <Label htmlFor="date">Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Selisih</Label>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -122,7 +147,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Sales"}
+                          : "Pilih Selisih"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -163,7 +188,7 @@ const OrderSelling = () => {
                   </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Pelanggan</Label>
+                  <Label htmlFor="distributor">Operator</Label>
                   <Popover open={open2} onOpenChange={setOpen2}>
                     <PopoverTrigger asChild>
                       <Button
@@ -174,7 +199,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Pelanggan"}
+                          : "Pilih Operator"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -213,64 +238,29 @@ const OrderSelling = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
-                      >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className={cn(
-                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                      )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="No. Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
-                </div>
-                
+                </div>                
               </div>
               <div className='flex items-end gap-2'>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-[75vw] max-h-[90vh]">
-                    <TambahProdukModal/>
-                  </DialogContent>
-                </Dialog>
-                <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
-              </div>
+                <div className={cn(
+                            "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                            "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                        )}>
+                    <Search size={20} style={{ marginRight: '10px' }} />
+                    <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                    </div>
+                </div>
             </div>
 
             <div className="rounded-md border overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No. Faktur</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
-                    <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Subtotal</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead className="text-left">No. Faktur</TableHead>
+                    <TableHead className="text-left">Kerugian</TableHead>
+                    <TableHead className="text-left">Keuntungan</TableHead>
+                    <TableHead className="text-left">Operator</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -293,9 +283,7 @@ const OrderSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
-            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
-            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
         </CardContent>

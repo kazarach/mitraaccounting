@@ -99,30 +99,57 @@ const OrderSelling = () => {
   const [value, setValue] = React.useState("")
   const [open2, setOpen2] = React.useState(false)
   const [value2, setValue2] = React.useState("")
+  const [open3, setOpen3] = React.useState(false)
+  const [value3, setValue3] = React.useState("")
 
   return (
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Pesanan Penjualan</CardTitle>
+          <CardTitle>Stok per Jenis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
+                  <Label htmlFor="date">Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Distributor</Label>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-[150px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Sales"}
+                          : "Pilih Distributor"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -163,18 +190,18 @@ const OrderSelling = () => {
                   </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Pelanggan</Label>
+                  <Label htmlFor="distributor">Kategori</Label>
                   <Popover open={open2} onOpenChange={setOpen2}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-[150px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Pelanggan"}
+                          : "Pilih Kategori"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -213,52 +240,71 @@ const OrderSelling = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
+                </div>                
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Sub Kategori</Label>
+                  <Popover open={open3} onOpenChange={setOpen3}>
                     <PopoverTrigger asChild>
                       <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[150px] justify-between font-normal"
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        {value
+                          ? distributors.find((d) => d.value === value2)?.label
+                          : "Pilih Kategori"}
+                        <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue3(selectedDistributor.value);
+                                  } else {
+                                    setValue3("");
+                                  }
+                                  setOpen3(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className={cn(
+                </div>                
+                
+                
+              </div>
+              <div className='flex items-end gap-2'>
+              <div className={cn(
                         "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                       )}>
                   <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="No. Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
                 </div>
-                
-              </div>
-              <div className='flex items-end gap-2'>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-[75vw] max-h-[90vh]">
-                    <TambahProdukModal/>
-                  </DialogContent>
-                </Dialog>
-                <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
               </div>
             </div>
 
@@ -266,11 +312,13 @@ const OrderSelling = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No. Faktur</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
-                    <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Subtotal</TableHead>
+                    <TableHead>Barcode</TableHead>
+                    <TableHead className="text-left">Code</TableHead>
+                    <TableHead className="text-left">Nama Barang</TableHead>
                     <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead className="text-left">Satuan</TableHead>
+                    <TableHead className="text-left">HB Terakhir</TableHead>
+                    <TableHead className="text-left">Keterangan</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -281,6 +329,8 @@ const OrderSelling = () => {
                       <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
                       <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.harga_beli}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-right">
                         <Button className='bg-red-500 hover:bg-red-600 size-7'>
@@ -293,9 +343,7 @@ const OrderSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
-            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
-            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
         </CardContent>

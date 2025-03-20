@@ -64,7 +64,15 @@ const Menus = [
     title: "Laporan",
     icon: FileChartColumn,
     subItems: [
-      { title: "Persediaan", url: "#" },
+      {
+        title: "Persediaan",
+        subItems: [
+          { title: "Fast Moving", url: "/l/stock/fastmoving" },
+          { title: "Stok per Jenis", url: "/l/stock/stocktype" },
+          { title: "Nilai Stok Persediaan", url: "/l/stock/stockvalue" },
+          { title: "Opname Persediaan", url: "/l/stock/opname" },
+        ],
+      },
       { title: "Pantauan Stock dan Pesanan Penjualan", url: "#" },
       { title: "Pembelian", url: "#" },
       { title: "Penjualan", url: "#" },
@@ -207,14 +215,14 @@ export function AppSidebar() {
     <SidebarFooter>
     <Popover>
       <PopoverTrigger asChild>
-        <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Login</Button>
+        <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Admin</Button>
       </PopoverTrigger>
       <PopoverContent className="w-60">
         <div className="grid gap-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none text-center">Admin</h4>
-            <p className="text-sm text-muted-foreground">
-              Set the dimensions for the layer.
+            <p className="text-sm text-center text-muted-foreground">
+              Welcome to MitraAccounting.
             </p>
           </div>
           <div className="grid gap-2">

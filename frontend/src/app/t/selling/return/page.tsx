@@ -190,7 +190,7 @@ const OrderSelling = () => {
                     <DialogTrigger asChild>
                         <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="w-[75vw] max-h-[90vh]">
                         <TambahProdukModal/>
                     </DialogContent>
                 </Dialog>

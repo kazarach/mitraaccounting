@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Trash } from 'lucide-react';
+import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 
 const SellingTransaction = () => {
   const [data, setData] = useState([
@@ -79,8 +81,15 @@ const SellingTransaction = () => {
         <CardHeader>
           <CardTitle>Tukar Poin</CardTitle>
         </CardHeader>
-        <div className='flex items-end gap-2 mx-4'>
-          <Button className='bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+        <div className='flex items-end gap-2'>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
+            </DialogTrigger>
+            <DialogContent className="w-[75vw] max-h-[90vh]">
+              <TambahProdukModal/>
+            </DialogContent>
+          </Dialog>
           <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
         </div>
         </div>
