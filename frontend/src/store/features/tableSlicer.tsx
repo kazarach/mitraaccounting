@@ -6,7 +6,8 @@ interface TableState {
 
 const initialState: TableState = {
   transaksi: [],
-  pesanan: [], 
+  pesanan: [],
+  return: [], 
 };
 
 export const tableSlice = createSlice({

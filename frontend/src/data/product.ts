@@ -141,3 +141,54 @@ export const pesananList = [
             },
 ]
 
+export const distributors = [
+  {
+    value: "1",
+    label: "Distributor A",
+  },
+  {
+    value: "2",
+    label: "Distributor B",
+  },
+  {
+    value: "3",
+    label: "Distributor C",
+  },
+  {
+    value: "4",
+    label: "Distributor D",
+  },
+  {
+    value: "5",
+    label: "Distributor E",
+  },
+
+]
+export const operators = [
+  {
+    id: "1",
+    name: "Edwin",
+    role: "admin"
+  },
+  {
+    id: "2",
+    name: "Juan",
+    role: "admin"
+  },
+  {
+    id: "3",
+    name: "Rizky",
+    role: "admin"
+  },
+  {
+    id: "4",
+    name: "Sugeng",
+    role: "staff"
+  },
+  {
+    id: "5",
+    name: "Tresno",
+    role: "staff"
+  },
+  
+]

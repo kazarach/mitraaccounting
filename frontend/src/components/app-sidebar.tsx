@@ -35,7 +35,6 @@ const Menus = [
         subItems: [
           { title: "Transaksi Pembelian", url: "/t/purchasing/transaction" },
           { title: "Pesanan Pembelian", url: "/t/purchasing/order" },
-          { title: "Perubahan Harga Jual", url: "/t/purchasing/change" },
           { title: "Retur Pembelian", url: "/t/purchasing/return" },
         ],
       },

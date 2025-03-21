@@ -28,12 +28,16 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 
-const TambahProdukModal = () => {
+interface TambahProdukModalProps {
+  tableName: string;
+}
+
+const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
 
-  const handleAddProduct = (product : any) => {
+  const handleAddProduct = (product: any) => {
     const newItem = {
       id: Date.now(),
       produk: product.name,
@@ -41,8 +45,8 @@ const TambahProdukModal = () => {
       harga_beli: product.purchasePrice,
       subtotal: product.purchasePrice,
     };
-    toast.success(product.name + " Berhasil Ditambahkan")
-    dispatch(addRow({ tableName: "transaksi", row: newItem }));
+    toast.success(product.name + " Berhasil Ditambahkan");
+    dispatch(addRow({ tableName, row: newItem }));
   };
 
   const columns = useMemo(

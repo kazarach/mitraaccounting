@@ -33,32 +33,11 @@ import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
+import { distributors } from '@/data/product';
 
 const TransactionPurchase = () => {
 
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
 
-  ]
 
   const [selectedDistributor, setSelectedDistributor] = useState("All");
   const [date, setDate] = React.useState<Date>()
@@ -191,7 +170,7 @@ const TransactionPurchase = () => {
                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="w-[80vw] max-h-[90vh]">
-                    <TambahProdukModal />
+                    <TambahProdukModal tableName='transaksi'/>
                   </DialogContent>
                 </Dialog>
 
