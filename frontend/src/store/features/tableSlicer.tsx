@@ -8,6 +8,11 @@ const initialState: TableState = {
   transaksi: [],
   pesanan: [],
   return: [], 
+  s_transaksi: [], 
+  s_pesanan: [], 
+  s_return: [], 
+  s_poin: [], 
+  opname: [], 
 };
 
 export const tableSlice = createSlice({

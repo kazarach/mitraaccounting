@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -28,51 +28,36 @@ import { Button } from '@/components/ui/button';
 import { Trash } from 'lucide-react';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { useDispatch, useSelector } from 'react-redux';
+import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
+import { RootState } from '@/store/store';
+import { toast } from 'sonner';
 
-const SellingTransaction = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
+const SellingPoint = () => {
+
+  const dispatch = useDispatch();
+  const data = useSelector((state: RootState) => state.table["s_poin"] || []);
+
+  useEffect(() => {
+    if (data.length === 0) {
+      dispatch(
+        setTableData({
+          tableName: "s_poin",
+          data: [],
+        })
+      );
     }
-  ]
-  );
+  }, [dispatch]);
 
-  const distributors = ["All", "Distributor A", "Distributor B", "Distributor C"];
-  const [selectedCustomer, setSelectedCustomer] = useState("All");
-  const [selectedDate, setSelectedDate] = useState("");
+  const handleDelete = (id: number) => {
+    dispatch(deleteRow({ tableName: "s_poin", id }));
+    toast.error("Produk berhasil dihapus!");
+  };
+
+  const handleClear = () => {
+    dispatch(clearTable({ tableName: "s_poin" }));
+    toast.error("Table berhasil dihapus!");
+  };
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -87,10 +72,10 @@ const SellingTransaction = () => {
               <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
             </DialogTrigger>
             <DialogContent className="w-[75vw] max-h-[90vh]">
-              <TambahProdukModal/>
+              <TambahProdukModal tableName='s_poin'/>
             </DialogContent>
           </Dialog>
-          <Button className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
+          <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
         </div>
         </div>
         <CardContent>
@@ -112,7 +97,14 @@ const SellingTransaction = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((item) => (
+                  {data.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center text-gray-400 bg-gray-200">
+                        Belum menambahkan produk
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
                       <TableCell className="font-medium">{item.jumlah_barang}</TableCell>
@@ -123,12 +115,13 @@ const SellingTransaction = () => {
                       <TableCell className="font-medium">{item.produk}</TableCell>
                       <TableCell className="text-left"><input type="number" className='text-right w-28' placeholder='1' /></TableCell>
                       <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
+                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                )}
                 </TableBody>
               </Table>
             </div>
@@ -142,4 +135,4 @@ const SellingTransaction = () => {
   );
 };
 
-export default SellingTransaction; 
+export default SellingPoint; 
