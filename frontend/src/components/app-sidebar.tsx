@@ -1,14 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
-  BarChart,
   FileArchive,
   ShoppingCart,
   ChevronDown,
   FileChartColumn,
   House,
 } from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -21,10 +20,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
+// Pindahkan data menu ke atas
 const Menus = [
   {
     title: "Transaksi",
@@ -47,11 +45,10 @@ const Menus = [
           { title: "Tukar Poin", url: "/t/selling/point" },
         ],
       },
-      {  
+      {
         title: "Persediaan",
         subItems: [
           { title: "Opname Persediaan", url: "/t/stock/opname" },
-          { title: "Pemakaian Persediaan", url: "/t/stock/use" },
           { title: "Pemakaian Persediaan", url: "/t/stock/use" },
         ],
       },
@@ -84,8 +81,6 @@ const Menus = [
       { title: "Pendapatan Jasa", url: "#" },
       { title: "Kasir", url: "/l/kasir" },
       { title: "Poin Member", url: "/l/poinmember" },
-      { title: "Kasir", url: "/l/kasir" },
-      { title: "Poin Member", url: "/l/poinmember" },
     ],
   },
   {
@@ -107,8 +102,31 @@ const Menus = [
 ];
 
 export function AppSidebar() {
+  const pathname = usePathname();
   const [openMainMenus, setOpenMainMenus] = useState<string | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  // Buka menu sesuai path saat load
+  useEffect(() => {
+    Menus.forEach((menu) => {
+      const found = menu.subItems.find((sub) => {
+        if (sub.subItems) {
+          return sub.subItems.some((item) => item.url === pathname);
+        }
+        return sub.url === pathname;
+      });
+
+      if (found) {
+        setOpenMainMenus(menu.title);
+        if (found.subItems) {
+          setOpenSubMenus((prev) => ({
+            ...prev,
+            [found.title]: true,
+          }));
+        }
+      }
+    });
+  }, [pathname]);
 
   const toggleMainMenu = (title: string) => {
     setOpenMainMenus((prev) => (prev === title ? null : title));
@@ -189,9 +207,15 @@ export function AppSidebar() {
                                 <div className="ml-4 border-l-2 border-gray-500 pl-3">
                                   {subItem.subItems.map((nestedSub) => (
                                     <div key={nestedSub.title} className="hover:bg-slate-700 transition rounded-sm">
-                                      <a href={nestedSub.url} className="flex items-center px-2 py-1.5 text-white">
+                                      <a
+                                        href={nestedSub.url}
+                                        className={`flex items-center px-2 py-1.5 text-white ${
+                                          pathname === nestedSub.url ? "bg-slate-700 font-semibold" : ""
+                                        }`}
+                                      >
                                         <span>{nestedSub.title}</span>
                                       </a>
+
                                     </div>
                                   ))}
                                 </div>
@@ -199,9 +223,15 @@ export function AppSidebar() {
                             </Collapsible>
                           ) : (
                             <div key={subItem.title} className="hover:bg-slate-700 transition rounded-sm">
-                              <a href={subItem.url} className="flex items-center px-2 py-1.5 text-white">
-                                <span>{subItem.title}</span>
-                              </a>
+                              <a
+  href={subItem.url}
+  className={`flex items-center px-2 py-1.5 text-white ${
+    pathname === subItem.url ? "bg-slate-700 font-semibold" : ""
+  }`}
+>
+  <span>{subItem.title}</span>
+</a>
+
                             </div>
                           )
                         )}
@@ -242,3 +272,11 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+function setOpenMainMenus(title: string) {
+  throw new Error("Function not implemented.");
+}
+
+function setOpenSubMenus(arg0: (prev: any) => any) {
+  throw new Error("Function not implemented.");
+}
+
