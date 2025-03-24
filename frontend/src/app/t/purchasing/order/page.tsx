@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   Table,
@@ -28,14 +28,42 @@ import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { useDispatch, useSelector } from 'react-redux';
+import { distributors } from '@/data/product';
+import { clearTable, deleteRow, setTableData } from '@/store/features/tableSlicer';
+import { RootState } from '@/store/store';
+import { toast } from 'sonner';
 
 const TransactionPurchase = () => {
-  
-  
+
+  const dispatch = useDispatch();
+  const data = useSelector((state: RootState) => state.table["pesanan"] || []);
+
+  useEffect(() => {
+    if (data.length === 0) {
+      dispatch(
+        setTableData({
+          tableName: "pesanan",
+          data: [],
+        })
+      );
+    }
+  }, [dispatch]);
+
   const [selectedDistributor, setSelectedDistributor] = useState("All");
   const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
+
+  const handleDelete = (id: number) => {
+    dispatch(deleteRow({ tableName: "pesanan", id }));
+    toast.error("Produk berhasil dihapus!");
+  };
+
+  const handleClear = () => {
+    dispatch(clearTable({ tableName: "pesanan" }));
+    toast.error("Table berhasil dihapus!");
+  };
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -126,15 +154,15 @@ const TransactionPurchase = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-              <Dialog>
+                <Dialog>
                   <DialogTrigger asChild>
                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="w-[80vw] max-h-[90vh]">
-                    <TambahProdukModal />
+                    <TambahProdukModal tableName='pesanan' />
                   </DialogContent>
                 </Dialog>
-                <Button variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
               </div>
             </div>
 
@@ -169,7 +197,7 @@ const TransactionPurchase = () => {
                       <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
                       <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
+                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
                         </Button>
                       </TableCell>

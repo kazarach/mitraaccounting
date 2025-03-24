@@ -192,3 +192,260 @@ export const operators = [
   },
   
 ]
+
+export const HutangData = [
+  {
+    id: 1,
+    kodePemasok: "SUP123",
+    namaPemasok: "Pemasok A",
+    totalHutang: 1000000,
+    detail: "Pembelian barang A",
+    tanggal: "2025-03-01",
+    noFaktur: "Faktur001",
+    tipeBayar: "Tunai",
+    kas: "Kas 1",
+    jatuhTempo: "2025-03-15",
+    notaRetur: "Retur001",
+    jumlahHutang: 800000,
+    diskon: 5,  // Diskon dalam persen
+    totalHutangSetelahDiskon: 760000, // Total hutang setelah diskon
+    pembayaran: 300000,
+    sisaHutang: 460000, // Sisa hutang setelah pembayaran
+  },
+  {
+    id: 2,
+    kodePemasok: "SUP124",
+    namaPemasok: "Pemasok B",
+    totalHutang: 500000,
+    detail: "Pembelian barang B",
+    tanggal: "2025-02-15",
+    noFaktur: "Faktur002",
+    tipeBayar: "Kredit",
+    kas: "Kas 2",
+    jatuhTempo: "2025-03-01",
+    notaRetur: "Retur002",
+    jumlahHutang: 500000,
+    diskon: 10, // Diskon dalam persen
+    totalHutangSetelahDiskon: 450000, // Total hutang setelah diskon
+    pembayaran: 150000,
+    sisaHutang: 300000, // Sisa hutang setelah pembayaran
+  },
+  {
+    id: 3,
+    kodePemasok: "SUP125",
+    namaPemasok: "Pemasok C",
+    totalHutang: 2000000,
+    detail: "Pembelian barang C",
+    tanggal: "2025-03-05",
+    noFaktur: "Faktur003",
+    tipeBayar: "Tunai",
+    kas: "Kas 1",
+    jatuhTempo: "2025-03-20",
+    notaRetur: "Retur003",
+    jumlahHutang: 2000000,
+    diskon: 0, // Diskon tidak ada
+    totalHutangSetelahDiskon: 2000000, // Total hutang tetap
+    pembayaran: 500000,
+    sisaHutang: 1500000, // Sisa hutang setelah pembayaran
+  }
+];
+
+export const poinMemberPelanggan = [
+  {
+    id: 1,
+    kodePelanggan: "CUST001",
+    namaPelanggan: "Ahmad Setiawan",
+    alamat: "Jl. Melati No.12, Bandung",
+    telepon: "081234567890",
+    poin: 120,
+    riwayatPoin: [
+      {
+        id: 1,
+        tanggal: "2025-03-01",
+        keterangan: "Pembelian senilai 500rb",
+        penambahan: 50,
+        pengurangan: 0,
+        total: 50
+      },
+      {
+        id: 2,
+        tanggal: "2025-03-05",
+        keterangan: "Penukaran voucher",
+        penambahan: 0,
+        pengurangan: 20,
+        total: 30
+      },
+      {
+        id: 3,
+        tanggal: "2025-03-10",
+        keterangan: "Promo Maret",
+        penambahan: 40,
+        pengurangan: 0,
+        total: 70
+      },
+      {
+        id: 4,
+        tanggal: "2025-03-15",
+        keterangan: "Pembelian ulang",
+        penambahan: 50,
+        pengurangan: 0,
+        total: 120
+      }
+    ]
+  },
+  {
+    id: 2,
+    kodePelanggan: "CUST002",
+    namaPelanggan: "Rina Marlina",
+    alamat: "Jl. Merdeka No.88, Jakarta",
+    telepon: "082112233445",
+    poin: 90,
+    riwayatPoin: [
+      {
+        id: 1,
+        tanggal: "2025-03-03",
+        keterangan: "Pembelian produk baru",
+        penambahan: 40,
+        pengurangan: 0,
+        total: 40
+      },
+      {
+        id: 2,
+        tanggal: "2025-03-08",
+        keterangan: "Promo cashback",
+        penambahan: 30,
+        pengurangan: 0,
+        total: 70
+      },
+      {
+        id: 3,
+        tanggal: "2025-03-12",
+        keterangan: "Penukaran merchandise",
+        penambahan: 0,
+        pengurangan: 20,
+        total: 50
+      },
+      {
+        id: 4,
+        tanggal: "2025-03-18",
+        keterangan: "Pembelian ulang",
+        penambahan: 40,
+        pengurangan: 0,
+        total: 90
+      }
+    ]
+  },
+  {
+    id: 3,
+    kodePelanggan: "CUST003",
+    namaPelanggan: "Budi Santoso",
+    alamat: "Jl. Mawar No.5, Surabaya",
+    telepon: "085643211789",
+    poin: 150,
+    riwayatPoin: [
+      {
+        id: 1,
+        tanggal: "2025-03-01",
+        keterangan: "Pembelian besar",
+        penambahan: 100,
+        pengurangan: 0,
+        total: 100
+      },
+      {
+        id: 2,
+        tanggal: "2025-03-09",
+        keterangan: "Promo spesial",
+        penambahan: 50,
+        pengurangan: 0,
+        total: 150
+      }
+    ]
+  },
+  {
+    id: 4,
+    kodePelanggan: "CUST004",
+    namaPelanggan: "Sari Dewi",
+    alamat: "Jl. Kamboja No.3, Medan",
+    telepon: "087712345678",
+    poin: 70,
+    riwayatPoin: [
+      {
+        id: 1,
+        tanggal: "2025-03-02",
+        keterangan: "Pembelian awal bulan",
+        penambahan: 70,
+        pengurangan: 0,
+        total: 70
+      }
+    ]
+  }
+];
+
+ export const laporanKas = [
+  {
+    tanggal: "2025-03-01",
+    noFaktur: "FK001",
+    keterangan: "Penjualan tunai",
+    masuk: 1000000,
+    keluar: 0,
+    total: 1000000,
+    tipe: "Masuk",
+    operator: "admin",
+    kasBank: "Kas Utama"
+  },
+  {
+    tanggal: "2025-03-02",
+    noFaktur: "FK002",
+    keterangan: "Pembayaran piutang CUST001",
+    masuk: 500000,
+    keluar: 0,
+    total: 500000,
+    tipe: "Masuk",
+    operator: "kasir 1",
+    kasBank: "Bank BCA"
+  },
+  {
+    tanggal: "2025-03-03",
+    noFaktur: "FK003",
+    keterangan: "Pembayaran sewa tempat",
+    masuk: 0,
+    keluar: 250000,
+    total: 250000,
+    tipe: "Keluar",
+    operator: "admin",
+    kasBank: "Bank Mandiri"
+  },
+  {
+    tanggal: "2025-03-04",
+    noFaktur: "FK004",
+    keterangan: "Pembelian alat tulis",
+    masuk: 0,
+    keluar: 100000,
+    total: 100000,
+    tipe: "Keluar",
+    operator: "kasir 2",
+    kasBank: "Kas Utama"
+  },
+  {
+    tanggal: "2025-03-05",
+    noFaktur: "FK005",
+    keterangan: "Penjualan via transfer BCA",
+    masuk: 750000,
+    keluar: 0,
+    total: 750000,
+    tipe: "Masuk",
+    operator: "kasir 1",
+    kasBank: "Bank BCA"
+  },
+  {
+    tanggal: "2025-03-06",
+    noFaktur: "FK006",
+    keterangan: "Pembayaran gaji bulanan",
+    masuk: 0,
+    keluar: 3000000,
+    total: 3000000,
+    tipe: "Keluar",
+    operator: "admin",
+    kasBank: "Bank Mandiri"
+  }
+];
