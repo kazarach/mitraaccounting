@@ -47,10 +47,11 @@ const Menus = [
           { title: "Tukar Poin", url: "/t/selling/point" },
         ],
       },
-      { 
+      {  
         title: "Persediaan",
         subItems: [
           { title: "Opname Persediaan", url: "/t/stock/opname" },
+          { title: "Pemakaian Persediaan", url: "/t/stock/use" },
           { title: "Pemakaian Persediaan", url: "/t/stock/use" },
         ],
       },
@@ -81,6 +82,8 @@ const Menus = [
       { title: "Piutang", url: "/l/piutang" },
       { title: "Kas / Bank", url: "/l/kasbank" },
       { title: "Pendapatan Jasa", url: "#" },
+      { title: "Kasir", url: "/l/kasir" },
+      { title: "Poin Member", url: "/l/poinmember" },
       { title: "Kasir", url: "/l/kasir" },
       { title: "Poin Member", url: "/l/poinmember" },
     ],
