@@ -32,7 +32,7 @@ import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlice
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
 
-const OrderSelling = () => {
+const PurchaseReturnArchive = () => {
 
   const distributors = [
     {
@@ -93,14 +93,39 @@ const OrderSelling = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Pesanan Penjualan</CardTitle>
+          <CardTitle>Arsip Retur Pembelian</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
+                  <Label htmlFor="date">Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Operator</Label>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -111,7 +136,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Sales"}
+                          : "Pilih Operator"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -152,7 +177,7 @@ const OrderSelling = () => {
                   </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Pelanggan</Label>
+                  <Label htmlFor="distributor">Distributor</Label>
                   <Popover open={open2} onOpenChange={setOpen2}>
                     <PopoverTrigger asChild>
                       <Button
@@ -163,7 +188,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Pelanggan"}
+                          : "Pilih Distributor"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -202,34 +227,10 @@ const OrderSelling = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
-                      >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                </div>               
                 
               </div>
+              
               <div className='flex flex-col gap-2'>
               <div className='flex items-end gap-2'>
                 <Dialog>
@@ -248,20 +249,25 @@ const OrderSelling = () => {
                         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                       )}>
                   <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="No. Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
                 </div>
                 </div>
+              
             </div>
 
             <div className="rounded-md border overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No. Faktur</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
-                    <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Subtotal</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead>No.</TableHead>
+                    <TableHead className="text-left">Tanggal</TableHead>
+                    <TableHead className="text-left">No. Retur</TableHead>
+                    <TableHead className="text-left">Tipe Bayar</TableHead>
+                    <TableHead className="text-left">Total</TableHead>
+                    <TableHead className="text-left">Distributor</TableHead>
+                    <TableHead className="text-left">Faktur Pembelian</TableHead>
+                    <TableHead className="text-left">Operator</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -280,6 +286,10 @@ const OrderSelling = () => {
                       <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-right">
                         <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
@@ -292,9 +302,7 @@ const OrderSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
-            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
-            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
         </CardContent>
@@ -303,4 +311,4 @@ const OrderSelling = () => {
   );
 };
 
-export default OrderSelling; 
+export default PurchaseReturnArchive; 

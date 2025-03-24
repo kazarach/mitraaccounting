@@ -32,7 +32,7 @@ import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlice
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
 
-const OrderSelling = () => {
+const SellingOrderArchive = () => {
 
   const distributors = [
     {
@@ -64,6 +64,12 @@ const OrderSelling = () => {
   const [value, setValue] = React.useState("")
   const [open2, setOpen2] = React.useState(false)
   const [value2, setValue2] = React.useState("")
+  const [open3, setOpen3] = React.useState(false)
+  const [value3, setValue3] = React.useState("")
+  const [open4, setOpen4] = React.useState(false)
+  const [value4, setValue4] = React.useState("")
+  const [open5, setOpen5] = React.useState(false)
+  const [value5, setValue5] = React.useState("")
 
   const dispatch = useDispatch();
   const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
@@ -93,14 +99,39 @@ const OrderSelling = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Pesanan Penjualan</CardTitle>
+          <CardTitle>Arsip Pesanan Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
+                  <Label htmlFor="date">Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[200px] justify-start text-left font-normal",
+                          
+                        )}
+                      >
+                        <CalendarIcon />
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Operator</Label>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -111,7 +142,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Sales"}
+                          : "Pilih Operator"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -203,34 +234,114 @@ const OrderSelling = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Status</Label>
+                  <Popover open={open3} onOpenChange={setOpen3}>
                     <PopoverTrigger asChild>
                       <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[200px] justify-between font-normal"
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        {value
+                          ? distributors.find((d) => d.value === value3)?.label
+                          : "Pilih Status"}
+                        <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue3(selectedDistributor.value);
+                                  } else {
+                                    setValue3("");
+                                  }
+                                  setOpen3(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
                     </PopoverContent>
                   </Popover>
                 </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Sales</Label>
+                  <Popover open={open4} onOpenChange={setOpen4}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-[200px] justify-between font-normal"
+                      >
+                        {value
+                          ? distributors.find((d) => d.value === value4)?.label
+                          : "Pilih Sales"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search Distributor" />
+                        <CommandList>
+                          <CommandEmpty>No Distributor found.</CommandEmpty>
+                          <CommandGroup>
+                            {distributors.map((d) => (
+                              <CommandItem
+                                key={d.value}
+                                value={d.label} 
+                                data-value={d.value} 
+                                onSelect={(currentLabel: string) => {
+                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                  if (selectedDistributor) {
+                                    setValue4(selectedDistributor.value);
+                                  } else {
+                                    setValue4("");
+                                  }
+                                  setOpen4(false);
+                                }}
+                              >
+                                {d.label}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    value === d.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>                
                 
               </div>
-              <div className='flex flex-col gap-2'>
+              
+              <div className='relative flex flex-col gap-2 top-[55px]'>
               <div className='flex items-end gap-2'>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -248,20 +359,25 @@ const OrderSelling = () => {
                         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                       )}>
                   <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="No. Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
                 </div>
                 </div>
+              
             </div>
 
             <div className="rounded-md border overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>No. Faktur</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead className="text-left">No. Faktur</TableHead>
+                    <TableHead className="text-left">Total</TableHead>
+                    <TableHead className="text-left">Tipe DP</TableHead>
+                    <TableHead className="text-left">DP</TableHead>
                     <TableHead className="text-left">Pelanggan</TableHead>
                     <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Subtotal</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead className="text-left">Keterangan</TableHead>
+                    <TableHead className="text-left">Operator</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -280,6 +396,10 @@ const OrderSelling = () => {
                       <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-right">
                         <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
@@ -292,9 +412,8 @@ const OrderSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
-            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
-            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+            <Button className='bg-green-500 hover:bg-green-600'>Buat Faktur</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
         </CardContent>
@@ -303,4 +422,4 @@ const OrderSelling = () => {
   );
 };
 
-export default OrderSelling; 
+export default SellingOrderArchive; 

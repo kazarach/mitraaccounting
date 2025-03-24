@@ -66,7 +66,7 @@ const SellingPoint = () => {
         <CardHeader>
           <CardTitle>Tukar Poin</CardTitle>
         </CardHeader>
-        <div className='flex items-end gap-2'>
+        <div className='flex items-end gap-2 mx-4'>
           <Dialog>
             <DialogTrigger asChild>
               <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
