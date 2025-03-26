@@ -8,5 +8,6 @@ router.register(r'stock', StockViewSet, basename='stock')
 
 
 urlpatterns = [
-    path('', include(router.urls)),  # API root will now be available at /api/
+    path('', include(router.urls)),
+    #/low_stock, /update_margin
 ]
