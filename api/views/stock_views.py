@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -8,11 +8,13 @@ from ..serializers import StockSerializer, StockDetailSerializer
 class StockViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing stock items.
+    Requires authentication for all operations.
     """
     queryset = Stock.objects.all().select_related(
         'supplier', 'warehouse', 'category', 'rack', 'default_unit'
     )
     serializer_class = StockSerializer
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active', 'is_online', 'category', 'supplier', 'warehouse', 'rack']
     search_fields = ['code', 'barcode', 'name']
@@ -28,6 +30,7 @@ class StockViewSet(viewsets.ModelViewSet):
     def low_stock(self, request):
         """
         Return all stock items that are below their minimum stock level.
+        Requires authentication.
         """
         low_stock_items = [item for item in self.get_queryset() if item.is_low_stock()]
         serializer = self.get_serializer(low_stock_items, many=True)
@@ -37,6 +40,7 @@ class StockViewSet(viewsets.ModelViewSet):
     def update_margin(self, request, pk=None):
         """
         Update the margin based on a provided sell price.
+        Requires authentication.
         """
         stock = self.get_object()
         sell_price = request.data.get('sell_price')

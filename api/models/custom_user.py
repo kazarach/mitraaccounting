@@ -24,7 +24,7 @@ class UserAccountManager(BaseUserManager):
         superuser_role, _ = UserRole.objects.get_or_create(name="superuser")  # Ensure it's an instance
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        return self.create_user(username, password, role=superuser_role, **extra_fields)  # ✅ Correct
+        return self.create_user(username, password, role=superuser_role, **extra_fields)
 
 
 # Custom User Model

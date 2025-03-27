@@ -4,7 +4,7 @@ from .bank import Bank
 from .member_type import MemberType
 from .customer import Customer
 from .log_drawer import LogDrawer
-from .custom_user import UserAccount, UserAccountManager
+from .custom_user import UserAccount, UserAccountManager, UserRole
 from .my_index import MyIndex
 from .unit import Unit
 from .rack import Rack
