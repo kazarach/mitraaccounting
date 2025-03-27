@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Copy, DollarSign, Eye, Printer, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Copy, DollarSign, Eye, Pencil, Printer, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -79,7 +79,7 @@ const mutation = () => {
         <div className="flex justify-center w-full pt-4">
             <Card className="w-full mx-4">
                 <CardHeader>
-                    <CardTitle>Kas / Bank</CardTitle>
+                    <CardTitle>Mutasi</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col space-y-4">
@@ -90,7 +90,7 @@ const mutation = () => {
                                     <div className=" relative w-[200px]">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                                         <Input
-                                            placeholder="Cari Pelanggan"
+                                            placeholder="Cari Faktur"
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
                                             className="w-full pl-10"
@@ -187,15 +187,6 @@ const mutation = () => {
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div className="flex  gap-2 items-center pb-2">
-                                    <Checkbox id="terms" className='size-5 items-center'/>
-                                    <label
-                                        htmlFor="terms"
-                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                        Termasuk Piutang
-                                    </label>
-                                </div>
                             </div>
                         </div>
 
@@ -205,13 +196,10 @@ const mutation = () => {
                                     <TableRow>
                                         <TableHead className="text-left">No Faktur</TableHead>
                                         <TableHead className="text-left">Tanggal</TableHead>
+                                        <TableHead>Total</TableHead>
                                         <TableHead className="text-left">Keterangan</TableHead>
-                                        <TableHead className="text-right">Masuk</TableHead>
-                                        <TableHead className="text-right">Keluar</TableHead>
-                                        <TableHead className="text-right">Total</TableHead>
-                                        <TableHead className="text-left">Tipe</TableHead>
                                         <TableHead className="text-left">Operator</TableHead>
-                                        <TableHead>Action</TableHead>
+                                        <TableHead className='text-center'>Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -226,15 +214,21 @@ const mutation = () => {
                                             <TableRow key={item.id}>
                                                 <TableCell>{item.noFaktur}</TableCell>
                                                 <TableCell>{item.tanggal}</TableCell>
+                                                <TableCell>{item.total.toLocaleString()}</TableCell>
                                                 <TableCell>{item.keterangan}</TableCell>
-                                                <TableCell className="text-right">{item.masuk.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right">{item.keluar.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right">{item.total.toLocaleString()}</TableCell>
-                                                <TableCell>{item.tipe}</TableCell>
                                                 <TableCell>{item.operator}</TableCell>
-                                                <TableCell>
-                                                    <Button className="bg-blue-500 hover:bg-blue-600 size-7">
-                                                        <Printer />
+                                                <TableCell className='text-center'>
+                                                <Button className='bg-blue-500 hover:bg-blue-600 size-7 mr-1'>
+                                                        <Eye/>
+                                                    </Button>
+                                                    <Button className='bg-yellow-500 hover:bg-yellow-600 size-7 mr-1'>
+                                                        <Pencil/>
+                                                    </Button>
+                                                    <Button className='bg-blue-500 hover:bg-blue-600 size-7 mr-1'>
+                                                        <Printer/>
+                                                    </Button>
+                                                    <Button className='bg-red-500 hover:bg-red-600 size-7 mr-1' >
+                                                        <Trash/>
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
