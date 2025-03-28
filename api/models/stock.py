@@ -9,16 +9,18 @@ class Stock(models.Model):
     code = models.CharField(max_length=50, unique=True)
     barcode = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     name = models.CharField(max_length=255)
+    
     quantity = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    margin = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    hpp = models.DecimalField(max_digits=15, decimal_places=2, default=0)  # Cost price
     price_buy = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    margin = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    hpp = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     min_stock = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     max_stock = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
     warehouse = models.ForeignKey(Warehouse, on_delete=models.SET_NULL, blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True)
     rack = models.ForeignKey(Rack, on_delete=models.SET_NULL, blank=True, null=True)
+
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     is_online = models.BooleanField(default=False)

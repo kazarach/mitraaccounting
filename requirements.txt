@@ -2,3 +2,8 @@ djangorestframework-simplejwt
 django-cors-headers
 django
 djangorestframework
+django-filter
+djangorestframework-recursive
+psycopg2
+django-mptt
+faker
