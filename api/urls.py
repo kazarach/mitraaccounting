@@ -11,10 +11,11 @@ from api.views import CategoryViewSet
 
 # Create a router and register viewsets
 router = DefaultRouter()
-router.register(r'stock', StockViewSet, basename='stock')
-router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'users', UserAccountViewSet, basename='user')
 router.register(r'roles', UserRoleViewSet, basename='role')
+router.register(r'stock', StockViewSet, basename='stock')
+#/low_stock, /update_margin
+router.register(r'categories', CategoryViewSet, basename='category')
 
 
 urlpatterns = [
