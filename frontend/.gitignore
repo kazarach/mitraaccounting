@@ -42,3 +42,5 @@ next-env.d.ts
 
 /frontend/package.json
 /frontend/package-lock.json
+
+*/venv
