@@ -265,11 +265,12 @@ const PurchasingReport = () => {
                     <TableHead className="text-left">Jumlah Barang</TableHead>
                     <TableHead className="text-left">Satuan</TableHead>
                     <TableHead className="text-left">Harga</TableHead>
-                    <TableHead className="text-left">Diskon (%)</TableHead>
-                    <TableHead className="text-left">Diskon (%)</TableHead>
-                    <TableHead className="text-left">Diskon (Rp)</TableHead>
+                    <TableHead className="text-left">Diskon</TableHead>
+                    <TableHead className="text-left">Diskon</TableHead>
+                    <TableHead className="text-left">Diskon</TableHead>
                     <TableHead className="text-left">Netto</TableHead>
                     <TableHead className="text-left">Keterangan</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -286,7 +287,12 @@ const PurchasingReport = () => {
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>          
+                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-right">
+                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
+                          <Trash></Trash>
+                        </Button>
+                      </TableCell>           
                     </TableRow>
                   ))}
                 </TableBody>

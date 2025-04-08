@@ -31,7 +31,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
-import OrderModal from '@/components/transaction/selling/ordermodal';
 
 const OrderSelling = () => {
 
@@ -238,7 +237,7 @@ const OrderSelling = () => {
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="w-[75vw] max-h-[90vh]">
-                    <OrderModal tableName='s_pesanan'/>
+                    <TambahProdukModal tableName='s_pesanan'/>
                   </DialogContent>
                 </Dialog>
                 <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
@@ -259,9 +258,10 @@ const OrderSelling = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>No. Faktur</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Harga</TableHead>
+                    <TableHead className="text-left">Pelanggan</TableHead>
+                    <TableHead className="text-left">Sales</TableHead>
                     <TableHead className="text-left">Subtotal</TableHead>
+                    <TableHead className="text-left">Jumlah Barang</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -279,6 +279,7 @@ const OrderSelling = () => {
                       <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
                       <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-right">
                         <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
@@ -291,6 +292,8 @@ const OrderSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
+            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
+            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
             <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
           </div>
           </div>

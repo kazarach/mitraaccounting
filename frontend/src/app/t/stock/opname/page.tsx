@@ -140,10 +140,12 @@ const StockOpname = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Jumlah Sistem Narik</TableHead>
-                    <TableHead className="text-left">Jumlah Fisik Input</TableHead>
-                    <TableHead className="text-left">Selisih Auto Hitung</TableHead>
-                    <TableHead className="text-left">Kas</TableHead>
+                    <TableHead>Barcode</TableHead>
+                    <TableHead className="text-left">Nama Barang</TableHead>
+                    <TableHead className="text-left">Satuan</TableHead>
+                    <TableHead className="text-left">Jumlah Sistem</TableHead>
+                    <TableHead className="text-left">Jumlah Fisik</TableHead>
+                    <TableHead className="text-left">Selisih</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                 </TableRow>
                 </TableHeader>
@@ -161,6 +163,8 @@ const StockOpname = () => {
                         <TableCell className="text-left">{item.produk}</TableCell>
                         <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                         <TableCell className="text-left">{item.isi_packing}</TableCell>
+                        <TableCell className="text-left">{item.isi_packing}</TableCell>
+                        <TableCell className="text-left">{item.id}</TableCell>
                         <TableCell className="text-right">
                             <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                               <Trash></Trash>
