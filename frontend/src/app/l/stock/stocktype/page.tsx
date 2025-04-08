@@ -23,10 +23,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { DateRange } from "react-day-picker";
 
 const OrderSelling = () => {
   const [data, setData] = useState([
@@ -94,13 +95,17 @@ const OrderSelling = () => {
   ]
 
   const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
+  const [date, setDate] = React.useState<DateRange | undefined>({
+      from: new Date(),
+      to: addDays(new Date(), 7),
+    });
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
   const [open2, setOpen2] = React.useState(false)
   const [value2, setValue2] = React.useState("")
   const [open3, setOpen3] = React.useState(false)
   const [value3, setValue3] = React.useState("")
+  
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -113,29 +118,43 @@ const OrderSelling = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
-                      >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Label htmlFor="date-range">Tanggal</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="date-range"
+                          variant={"outline"}
+                          className={cn(
+                            "w-[300px] justify-start text-left font-normal",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date?.from ? (
+                            date.to ? (
+                              <>
+                                {format(date.from, "LLL dd, y")} -{" "}
+                                {format(date.to, "LLL dd, y")}
+                              </>
+                            ) : (
+                              format(date.from, "LLL dd, y")
+                            )
+                          ) : (
+                            <span>Pilih Tanggal</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={date?.from}
+                          selected={date}
+                          onSelect={setDate}
+                          numberOfMonths={2}
+                        />
+                      </PopoverContent>
+                    </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
