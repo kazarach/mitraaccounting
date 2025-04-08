@@ -145,7 +145,7 @@ const OrderSelling = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[150px] justify-between font-normal"
+                        className="w-[200px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
@@ -197,7 +197,7 @@ const OrderSelling = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[150px] justify-between font-normal"
+                        className="w-[200px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value2)?.label
@@ -240,59 +240,7 @@ const OrderSelling = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                </div>                
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sub Kategori</Label>
-                  <Popover open={open3} onOpenChange={setOpen3}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Kategori"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue3(selectedDistributor.value);
-                                  } else {
-                                    setValue3("");
-                                  }
-                                  setOpen3(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>                
+                </div>                               
                 
                 
               </div>

@@ -204,7 +204,7 @@ const FastMoving = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nomor</TableHead>
+                    <TableHead>No.</TableHead>
                     <TableHead className="text-left">Barcode</TableHead>
                     <TableHead className="text-left">Code</TableHead>
                     <TableHead className="text-left">Nama</TableHead>
