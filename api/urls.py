@@ -8,6 +8,7 @@ from rest_framework_simplejwt.views import (
 from api.views import UserAccountViewSet, UserRoleViewSet
 from api.views import StockViewSet
 from api.views import CategoryViewSet
+from api.views import TransItemDetailViewSet, TransactionHistoryViewSet
 
 # Create a router and register viewsets
 router = DefaultRouter()
@@ -17,6 +18,10 @@ router.register(r'stock', StockViewSet, basename='stock')
 #/low_stock, /update_margin
 router.register(r'categories', CategoryViewSet, basename='category')
 
+router.register(r'transactions', TransactionHistoryViewSet, basename='transaction')
+router.register(r'trans-items', TransItemDetailViewSet, basename='transitem')
+
+
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -24,5 +29,5 @@ urlpatterns = [
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 
     path('', include(router.urls)),
-    #/low_stock, /update_margin
+
 ]

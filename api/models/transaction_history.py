@@ -60,8 +60,13 @@ class TransactionHistory(models.Model):
 class TransItemDetail(models.Model):
     transaction = models.ForeignKey(TransactionHistory, on_delete=models.CASCADE, related_name='items')
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name='transaction_items')
+    
+    stock_code = models.CharField(max_length=50)
+    stock_name = models.CharField(max_length=255)
+    stock_price_buy = models.DecimalField(max_digits=15, decimal_places=2)
+
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
-    sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
 
     def __str__(self):
         return f"{self.transaction.th_number} - {self.stock.stock_name}"
