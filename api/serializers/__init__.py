@@ -3,4 +3,5 @@ from .stock_unit_serializer import StockUnitSerializer
 from .stock_assembly_serializer import StockAssemblySerializer
 from .stock_price_serializer import StockPriceSerializer
 from .category_serializer import CategorySerializer, CategoryCreateUpdateSerializer
-from .user_serializer import UserAccountSerializer,UserRegistrationSerializer, UserRoleSerializer
+from .user_serializer import UserAccountSerializer, UserRegistrationSerializer, UserRoleSerializer
+from .transaction_history_serializer import TransactionHistorySerializer, TransItemDetailSerializer

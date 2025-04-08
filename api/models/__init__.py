@@ -18,6 +18,4 @@ from .stock_price import StockPrice
 from .sales import Sales
 from .event_discount import EventDisc, EventDiscItem
 from .transaction_history import TransactionHistory, TransItemDetail
-from .transaction_item_par import TransItemPar
-from .payment_record import PR, PRHistory, PRReturn
-from .transaction_return import TransRetur
+from .payment_record import Payment

@@ -1,17 +1,17 @@
 import random
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.contrib.auth import get_user_model  # Use this instead of importing User directly
+from django.contrib.auth import get_user_model
 from faker import Faker
 from decimal import Decimal
 from django.utils import timezone
 
-from api.models.payment_record import PR, PRReturn, PRHistory
+from api.models.payment_record import Payment  # Updated import for the new model
 from api.models.transaction_history import TransactionHistory
 from api.models.bank import Bank
 
 class Command(BaseCommand):
-    help = 'Seed Payment Record data for the application'
+    help = 'Seed Payment data for the application'
 
     def handle(self, *args, **kwargs):
         fake = Faker()
@@ -20,31 +20,29 @@ class Command(BaseCommand):
         self.ensure_related_models_exist()
         
         # Clear existing data
-        PRHistory.objects.all().delete()
-        PRReturn.objects.all().delete()
-        PR.objects.all().delete()
+        Payment.objects.all().delete()
         
         # Generate data
         try:
             with transaction.atomic():
-                # Create Payment Records
-                payment_records = self.create_payment_records(fake)
+                # Create Initial Payments
+                initial_payments = self.create_initial_payments(fake)
                 
-                # Create Payment Record Returns
-                payment_record_returns = self.create_payment_record_returns(fake, payment_records)
+                # Create Additional Payments
+                additional_payments = self.create_additional_payments(fake, initial_payments)
                 
-                # Create Payment Record Histories
-                self.create_payment_record_histories(fake, payment_records)
+                # Create Payment Returns
+                payment_returns = self.create_payment_returns(fake, initial_payments)
                 
-                self.stdout.write(self.style.SUCCESS('Successfully seeded Payment Record data'))
+                self.stdout.write(self.style.SUCCESS('Successfully seeded Payment data'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error seeding Payment Record data: {str(e)}'))
+            self.stdout.write(self.style.ERROR(f'Error seeding Payment data: {str(e)}'))
 
     def ensure_related_models_exist(self):
         """
         Ensure we have some related model instances to reference
         """
-        User = get_user_model()  # Retrieve custom User model dynamically
+        User = get_user_model()
 
         # Ensure there are some users
         if not User.objects.exists():
@@ -64,83 +62,109 @@ class Command(BaseCommand):
                 bank_code='SMP'
             )
 
-    def create_payment_records(self, fake):
+    def create_initial_payments(self, fake):
         """
-        Create Payment Records
+        Create Initial Payments
         """
-        payment_records = []
+        initial_payments = []
         transaction_histories = list(TransactionHistory.objects.all())
-        
-        for _ in range(20):  # Create 20 Payment Records
-            th = random.choice(transaction_histories)
-            pr_type = random.choice([
-                'Cash', 'Transfer', 'Credit', 'Debit', 'Online Payment'
-            ])
-            
-            pr = PR.objects.create(
-                th=th,
-                pr_type=pr_type
-            )
-            payment_records.append(pr)
-        
-        return payment_records
-
-    def create_payment_record_returns(self, fake, payment_records):
-        """
-        Create Payment Record Returns
-        """
-        payment_record_returns = []
-        transaction_histories = list(TransactionHistory.objects.all())
-        
-        for _ in range(10):  # Create 10 Payment Record Returns
-            th = random.choice(transaction_histories)
-            prr = PRReturn.objects.create(
-                retur_id=random.randint(1000, 9999) if random.random() > 0.5 else None,
-                th=th,
-                prr_total=Decimal(random.uniform(50, 5000)),
-                prr_from=fake.company() if random.random() > 0.5 else None
-            )
-            payment_record_returns.append(prr)
-        
-        return payment_record_returns
-
-    def create_payment_record_histories(self, fake, payment_records):
-        """
-        Create Payment Record Histories
-        """
-        User = get_user_model()  # Retrieve custom User model dynamically
-
-        users = list(User.objects.all())
+        users = list(get_user_model().objects.all())
         banks = list(Bank.objects.all())
-        transaction_histories = list(TransactionHistory.objects.all())
         
-        for pr in payment_records:
-            # Create multiple history entries for each Payment Record
-            num_histories = random.randint(1, 3)
-            for _ in range(num_histories):
-                PRHistory.objects.create(
-                    payment_record=pr,
-                    user=random.choice(users),
-                    payment_record_history_type=random.choice([
-                        'Initial', 'Partial', 'Full', 'Pending'
-                    ]),
-                    payment_record_history_amount=Decimal(random.uniform(50, 5000)),
-                    payment_record_history_date=timezone.now() - timezone.timedelta(
-                        days=random.randint(0, 365),
+        payment_methods = ['Cash', 'Transfer', 'Credit Card', 'Debit Card', 'Online Payment']
+        statuses = ['COMPLETED', 'PENDING', 'PROCESSING']
+        
+        for _ in range(20):  # Create 20 Initial Payments
+            th = random.choice(transaction_histories)
+            
+            payment = Payment.objects.create(
+                transaction=th,
+                payment_type='INITIAL',
+                original_payment=None,
+                amount=Decimal(random.uniform(50, 5000)),
+                payment_method=random.choice(payment_methods),
+                bank=random.choice(banks) if random.random() > 0.5 else None,
+                bank_reference=f'{random.randint(1000, 9999)}-{random.randint(10000, 99999)}' if random.random() > 0.5 else None,
+                recorded_by=random.choice(users),
+                payment_date=timezone.now() - timezone.timedelta(
+                    days=random.randint(0, 365),
+                    hours=random.randint(0, 24),
+                    minutes=random.randint(0, 60)
+                ),
+                notes=fake.text(max_nb_chars=200) if random.random() > 0.5 else None,
+                status=random.choice(statuses),
+                reference_id=random.randint(1000, 9999) if random.random() > 0.5 else None
+            )
+            initial_payments.append(payment)
+        
+        return initial_payments
+
+    def create_additional_payments(self, fake, initial_payments):
+        """
+        Create Additional Payments linked to initial payments
+        """
+        additional_payments = []
+        users = list(get_user_model().objects.all())
+        banks = list(Bank.objects.all())
+        
+        payment_methods = ['Cash', 'Transfer', 'Credit Card', 'Debit Card', 'Online Payment']
+        statuses = ['COMPLETED', 'PENDING', 'PROCESSING']
+        
+        # Create additional payments for some of the initial payments
+        for payment in random.sample(initial_payments, min(10, len(initial_payments))):
+            num_additional = random.randint(1, 3)
+            
+            for _ in range(num_additional):
+                additional_payment = Payment.objects.create(
+                    transaction=payment.transaction,
+                    payment_type='ADDITIONAL',
+                    original_payment=payment,
+                    amount=Decimal(random.uniform(10, 1000)),
+                    payment_method=random.choice(payment_methods),
+                    bank=random.choice(banks) if random.random() > 0.5 else None,
+                    bank_reference=f'{random.randint(1000, 9999)}-{random.randint(10000, 99999)}' if random.random() > 0.5 else None,
+                    recorded_by=random.choice(users),
+                    payment_date=payment.payment_date + timezone.timedelta(
+                        days=random.randint(1, 30),
                         hours=random.randint(0, 24),
                         minutes=random.randint(0, 60)
                     ),
-                    payment_record_history_payment=random.choice([
-                        'Completed', 'Pending', 'Cancelled', 'Refunded'
-                    ]),
-                    bank=random.choice(banks) if random.random() > 0.5 else None,
-                    payment_record_history_note=fake.text(max_nb_chars=200) if random.random() > 0.5 else None,
-                    payment_record_history_status=random.choice([
-                        'Active', 'Inactive', 'Processed', 'Waiting'
-                    ]),
-                    transaction_history=random.choice(transaction_histories) if random.random() > 0.5 else None,
-                    bank_number=f'{random.randint(1000, 9999)}-{random.randint(10000, 99999)}' if random.random() > 0.5 else None,
-                    payment_record_history_note2=fake.text(max_nb_chars=200) if random.random() > 0.5 else None,
-                    payment_record_m_id=random.randint(1000, 9999) if random.random() > 0.5 else None,
-                    payment_record_mass_id=random.randint(1000, 9999) if random.random() > 0.5 else None
+                    notes=fake.text(max_nb_chars=200) if random.random() > 0.5 else None,
+                    status=random.choice(statuses),
+                    reference_id=random.randint(1000, 9999) if random.random() > 0.5 else None
                 )
+                additional_payments.append(additional_payment)
+        
+        return additional_payments
+
+    def create_payment_returns(self, fake, initial_payments):
+        """
+        Create Payment Returns linked to initial payments
+        """
+        payment_returns = []
+        users = list(get_user_model().objects.all())
+        banks = list(Bank.objects.all())
+        
+        # Create returns for some of the initial payments
+        for payment in random.sample(initial_payments, min(5, len(initial_payments))):
+            return_payment = Payment.objects.create(
+                transaction=payment.transaction,
+                payment_type='RETURN',
+                original_payment=payment,
+                amount=payment.amount * Decimal(random.uniform(0.1, 0.8)),  # Return a portion of the original amount
+                payment_method=payment.payment_method,
+                bank=random.choice(banks) if random.random() > 0.5 else None,
+                bank_reference=f'RTN-{random.randint(1000, 9999)}' if random.random() > 0.5 else None,
+                recorded_by=random.choice(users),
+                payment_date=payment.payment_date + timezone.timedelta(
+                    days=random.randint(5, 60),
+                    hours=random.randint(0, 24),
+                    minutes=random.randint(0, 60)
+                ),
+                notes=f"Return of payment {payment.id}: {fake.text(max_nb_chars=100)}" if random.random() > 0.5 else None,
+                status='COMPLETED',
+                reference_id=random.randint(1000, 9999) if random.random() > 0.5 else None
+            )
+            payment_returns.append(return_payment)
+        
+        return payment_returns

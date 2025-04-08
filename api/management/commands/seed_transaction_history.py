@@ -148,13 +148,17 @@ class Command(BaseCommand):
         for _ in range(num_items):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
-            
+            sell_price = (stock.price_buy * Decimal(random.uniform(1.1, 1.5))).quantize(Decimal('0.01'))
+
             transaction_items.append(
                 TransItemDetail(
                     transaction=transaction,
                     stock=stock,
+                    stock_code=stock.stock_code,
+                    stock_name=stock.stock_name,
+                    stock_price_buy=stock.price_buy,
                     quantity=quantity,
-                    sell_price=stock.price_buy * Decimal(random.uniform(1.1, 1.5)).quantize(Decimal('0.01'))
+                    sell_price=sell_price
                 )
             )
         
