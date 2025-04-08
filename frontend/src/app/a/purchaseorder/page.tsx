@@ -57,7 +57,8 @@ const PurchaseOrderArchive = () => {
     },
 
   ]
-
+  
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [selectedDistributor, setSelectedDistributor] = useState("All");
   const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
@@ -67,8 +68,35 @@ const PurchaseOrderArchive = () => {
   const [open3, setOpen3] = React.useState(false)
   const [value3, setValue3] = React.useState("")
 
+  const [stocks, setStocks] = useState([]);
+
   const dispatch = useDispatch();
   const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  
+    const fetchStock = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/stock/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error("Gagal mengambil data stock");
+        }
+  
+        const result = await response.json();
+        setStocks(result);
+      } catch (error) {
+        console.error("Fetch error:", error);
+      }
+    };
+  
+    fetchStock();
+  }, []);  
 
   useEffect(() => {
     if (data.length === 0) {
@@ -81,6 +109,8 @@ const PurchaseOrderArchive = () => {
     }
   }, [dispatch]);
 
+    
+
   const handleDelete = (id: number) => {
     dispatch(deleteRow({ tableName: "s_pesanan", id }));
     toast.error("Produk berhasil dihapus!");
@@ -90,6 +120,7 @@ const PurchaseOrderArchive = () => {
     dispatch(clearTable({ tableName: "s_pesanan" }));
     toast.error("Table berhasil dihapus!");
   };
+
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -287,7 +318,7 @@ const PurchaseOrderArchive = () => {
               </div>
               
               <div className='flex flex-col gap-2'>
-              <div className='flex items-end gap-2'>
+              {/* <div className='flex items-end gap-2'>
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
@@ -297,7 +328,7 @@ const PurchaseOrderArchive = () => {
                   </DialogContent>
                 </Dialog>
                 <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
-                </div>
+                </div> */}
                 <div className={cn(
                         "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
@@ -325,29 +356,28 @@ const PurchaseOrderArchive = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center text-gray-400 bg-gray-200">
-                        Belum menambahkan produk
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                  data.map((item) => (
+                {stocks && stocks.length > 0 ? (
+                  stocks.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-right">
-                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
-                      </TableCell>           
+                      <TableCell>{item.code}</TableCell>
+                      <TableCell className="text-left">{item.name}</TableCell>
+                      <TableCell className="text-left">{item.supplier_name}</TableCell>
+                      <TableCell className="text-left">{item.available_quantity}</TableCell>
+                      <TableCell className="text-left">{item.price_buy}</TableCell>
+                      <TableCell className="text-left">{item.category_name}</TableCell>
+                      <TableCell className="text-left">{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : '-'}</TableCell>
                     </TableRow>
                   ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-gray-400 bg-gray-100">
+                      Tidak ada data stok
+                    </TableCell>
+                  </TableRow>
                 )}
-                </TableBody>
+              </TableBody>
+
+
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
