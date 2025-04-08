@@ -535,13 +535,11 @@ const SellingArchive = () => {
                     <TableHead className="text-left">Total</TableHead>
                     <TableHead className="text-left">Pelanggan</TableHead>
                     <TableHead className="text-left">Tipe Bayar</TableHead>
-                    <TableHead className="text-left">Pembayaran
-                    <TableHead className="text-right">Tunai</TableHead>
-                    <TableHead className="text-right">Kredit</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Retur</TableHead>
-                    <TableHead className="text-right">Voucher</TableHead>
-                    </TableHead>
+                    <TableHead className="text-left">Tunai</TableHead>
+                    <TableHead className="text-left">Kredit</TableHead>
+                    <TableHead className="text-left">Debit</TableHead>
+                    <TableHead className="text-left">Retur</TableHead>
+                    <TableHead className="text-left">Voucher</TableHead>
                     <TableHead className="text-left">Total</TableHead>
                     <TableHead className="text-left">Bank</TableHead>
                     <TableHead className="text-left">Sales</TableHead>

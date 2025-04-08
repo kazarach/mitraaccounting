@@ -114,7 +114,7 @@ const SellingReport = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Laporan Penjualan</CardTitle>
+          <CardTitle>Laporan Pembelian</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
@@ -526,11 +526,11 @@ const SellingReport = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Kode</TableHead>
+                    <TableHead>Tanggal</TableHead>
                     <TableHead className="text-left">No. Faktur</TableHead>
-                    <TableHead className="text-left">Tanggal</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
                     <TableHead className="text-left">Member</TableHead>
+                    <TableHead className="text-left">Kode</TableHead>
+                    <TableHead className="text-left">Nama Barang</TableHead>
                     <TableHead className="text-left">Jumlah Barang</TableHead>
                     <TableHead className="text-left">Satuan</TableHead>
                     <TableHead className="text-left">Harga</TableHead>

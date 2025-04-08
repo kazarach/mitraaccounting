@@ -89,21 +89,6 @@ const SellingTransaction = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Poin</Label>
-                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Select Distributor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {distributors.map((distributor) => (
-                        <SelectItem key={distributor} value={distributor}>
-                          {distributor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
               <div className='flex items-end gap-2'>
                 <Dialog>

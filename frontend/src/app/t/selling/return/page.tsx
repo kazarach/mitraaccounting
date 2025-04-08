@@ -31,7 +31,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
-import ReturModal from '@/components/transaction/selling/returmodal';
 
 const ReturnSelling = () => {
 
@@ -181,7 +180,7 @@ const ReturnSelling = () => {
                         <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
                     </DialogTrigger>
                     <DialogContent className="w-[75vw] max-h-[90vh]">
-                        <ReturModal tableName='s_return'/>
+                        <TambahProdukModal tableName='s_return'/>
                     </DialogContent>
                 </Dialog>
                 <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
@@ -192,10 +191,17 @@ const ReturnSelling = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Jumlah Retur</TableHead>
-                    <TableHead className="text-left">Keterangan</TableHead>
-                    <TableHead className="text-left">Hapus Diskon</TableHead>
-                    <TableHead className="text-left">Aksi</TableHead>
+                    <TableHead>Produk</TableHead>
+                    <TableHead className="text-left">Jumlah Pesanan</TableHead>
+                    <TableHead className="text-left">Jumlah barang</TableHead>
+                    <TableHead className="text-left">Isi Packing</TableHead>
+                    <TableHead className="text-left">Satuan</TableHead>
+                    <TableHead className="text-left">Harga Beli</TableHead>
+                    <TableHead className="text-left">Diskon (%)</TableHead>
+                    <TableHead className="text-left">Diskon (Rp)</TableHead>
+                    <TableHead className="text-left">Total</TableHead>
+                    <TableHead className="text-left">Inc. PPN</TableHead>
+                    <TableHead className="text-left">Action</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -211,6 +217,13 @@ const ReturnSelling = () => {
                         <TableCell className="font-medium">{item.produk}</TableCell>
                         <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
                         <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                        <TableCell className="text-left">{item.isi_packing}</TableCell>
+                        <TableCell className="text-left">{item.satuan}</TableCell>
+                        <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                        <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
+                        <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
+                        <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
+                        <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
                         <TableCell className="text-right">
                             <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                               <Trash></Trash>
@@ -223,7 +236,10 @@ const ReturnSelling = () => {
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Retur Semua</Button>
+            <Button className='bg-green-500 hover:bg-green-600'>Tambah </Button>
+            <Button className='bg-red-500 hover:bg-red-600'>Hapus</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Retur dengan Nota</Button>
           </div>
           </div>
         </CardContent>
