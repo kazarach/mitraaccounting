@@ -122,6 +122,7 @@ const StockUse = () => {
                   <TableRow>
                     <TableHead>Barcode</TableHead>
                     <TableHead>Nama Barang</TableHead>
+                    <TableHead>Stock</TableHead>
                     <TableHead className="text-left">Jumlah</TableHead>
                     <TableHead className="text-left">Satuan</TableHead>
                     <TableHead className="text-left">Keterangan</TableHead>
@@ -140,6 +141,7 @@ const StockUse = () => {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.barcode ?? "-"}</TableCell>
                         <TableCell>{item.produk}</TableCell>
+                        <TableCell>19</TableCell>
                         <TableCell className="text-left">
                           <input
                             type="number"

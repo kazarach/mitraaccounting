@@ -114,10 +114,18 @@ const ReturnPurchase = () => {
               <div className='flex items-end gap-2'>
                 <Dialog>
                   <DialogTrigger asChild>
+                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Transaksi</Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-[80vw] max-h-[90vh]">
+                    <TpModal />
+                  </DialogContent>
+                </Dialog>
+                <Dialog>
+                  <DialogTrigger asChild>
                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="w-[80vw] max-h-[90vh]">
-                    <TambahProdukModal tableName='return'/>
+                    <TambahProdukModal tableName='return' />
                   </DialogContent>
                 </Dialog>
 
@@ -131,13 +139,11 @@ const ReturnPurchase = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produk</TableHead>
-                    <TableHead className="text-left">Jumlah Pesanan</TableHead>
                     <TableHead className="text-left">Jumlah barang</TableHead>
+                    <TableHead className="text-left">Jumlah Return</TableHead>
                     <TableHead className="text-left">Isi Packing</TableHead>
                     <TableHead className="text-left">Satuan</TableHead>
                     <TableHead className="text-left">Harga Beli</TableHead>
-                    <TableHead className="text-left">Diskon (%)</TableHead>
-                    <TableHead className="text-left">Diskon (Rp)</TableHead>
                     <TableHead className="text-left">Total</TableHead>
                     <TableHead className="text-left">Inc. PPN</TableHead>
                     <TableHead className="text-center">Action</TableHead>
@@ -154,12 +160,10 @@ const ReturnPurchase = () => {
                     data.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.produk}</TableCell>
-                        <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                        <TableCell className="text-left">0</TableCell>
                         <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                         <TableCell className="text-left">{item.isi_packing}</TableCell>
                         <TableCell className="text-left">{item.satuan}</TableCell>
-                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
-                        <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='0%' /></TableCell>
                         <TableCell className="text-left"><input type="number" className='pl-1 text-left w-24 bg-gray-100 rounded-sm' placeholder='Rp0' /></TableCell>
                         <TableCell className="text-left">Rp{item.subtotal.toLocaleString('id-ID')}</TableCell>
                         <TableCell className="text-left">Rp{(item.subtotal * 1.11).toLocaleString('id-ID')}</TableCell>
@@ -184,7 +188,7 @@ const ReturnPurchase = () => {
           </div>
           <div className='flex justify-end gap-2 mt-4 '>
 
-            <Button onClick={() => toast.success("Return Pembelian Berhasil")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Return</Button>
+            <Button onClick={() => toast.success("Return Pembelian Berhasil")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Input</Button>
 
           </div>
         </CardContent>
