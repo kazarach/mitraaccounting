@@ -21,12 +21,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
@@ -75,15 +75,26 @@ const SellingOrderArchive = () => {
   const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
 
   useEffect(() => {
-    if (data.length === 0) {
-      dispatch(
-        setTableData({
-          tableName: "s_pesanan",
-          data: [],
-        })
-      );
-    }
-  }, [dispatch]);
+            if (data.length === 0) {
+              dispatch(setTableData({
+                tableName: "s_pesanan",
+                data: [
+                  {
+                    id: 1,
+                    produk: "Edwin",
+                    jumlah_barang: 12345,
+                    sales: "Zaenudin",
+                    jumlah_poin: 300,
+                    sisa_poin: 100,
+                    tipe_tukar: "Cash",
+                    satuan: "Poin",
+                    nominal_tukar: "Rp 30.000",
+                    kadaluarsa: "19 January 2025",
+                  }
+                ]
+              }));
+            }
+          }, [dispatch]);
 
   const handleDelete = (id: number) => {
     dispatch(deleteRow({ tableName: "s_pesanan", id }));
@@ -94,6 +105,9 @@ const SellingOrderArchive = () => {
     dispatch(clearTable({ tableName: "s_pesanan" }));
     toast.error("Table berhasil dihapus!");
   };
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -369,12 +383,12 @@ const SellingOrderArchive = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead className="text-left">No. Faktur</TableHead>
+                    <TableHead>No. Faktur</TableHead>
+                    <TableHead className="text-left">Tanggal</TableHead>
+                    <TableHead className="text-left">Pelanggan</TableHead>
                     <TableHead className="text-left">Total</TableHead>
                     <TableHead className="text-left">Tipe DP</TableHead>
                     <TableHead className="text-left">DP</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
                     <TableHead className="text-left">Sales</TableHead>
                     <TableHead className="text-left">Keterangan</TableHead>
                     <TableHead className="text-left">Operator</TableHead>
@@ -382,39 +396,77 @@ const SellingOrderArchive = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center text-gray-400 bg-gray-200">
-                        Belum menambahkan produk
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                  data.map((item) => (
+                {data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-right">
-                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
+                      <Button onClick={() => {setSelectedItemId(item.id);
+                                                setIsDialogOpen(true);
+                                }} className='bg-blue-500 hover:bg-blue-600 size-7'>
+                          <Eye/>
                         </Button>
                       </TableCell>           
                     </TableRow>
-                  ))
-                )}
+                ))}
                 </TableBody>
               </Table>
             </div>
-          <div className='flex gap-2 justify-end '>
-            <Button className='bg-green-500 hover:bg-green-600'>Buat Faktur</Button>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
-          </div>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent>
+              <DialogTitle>Detail Arsip Pesanan Penjualan</DialogTitle>
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Edwin</h2>
+                {selectedItemId !== null && (
+                  <Table>
+                    <TableHeader>
+                    <TableRow>
+                      <TableHead>No. Faktur</TableHead>
+                      <TableHead className="text-left">Tanggal</TableHead>
+                      <TableHead className="text-left">Pelanggan</TableHead>
+                      <TableHead className="text-left">Tipe DP</TableHead>
+                      <TableHead className="text-left">DP</TableHead>
+                      <TableHead className="text-left">Pelanggan</TableHead>
+                      <TableHead className="text-left">Sales</TableHead>
+                      <TableHead className="text-left">Keterangan</TableHead>
+                      <TableHead className="text-left">Operator</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data
+                        .filter((item) => item.id === selectedItemId)
+                        .map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.produk}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                            <TableCell className="text-left">{item.satuan}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            <div className='flex gap-2 justify-end '>
+              <Button className='bg-green-500 hover:bg-green-600'>Buat Faktur</Button>
+              <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
+            </div>
+            </DialogContent>
+          </Dialog>
+
           </div>
         </CardContent>
       </Card>

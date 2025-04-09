@@ -31,6 +31,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
+import OrderModal from '@/components/transaction/selling/ordermodal';
 
 const OrderSelling = () => {
 
@@ -237,7 +238,7 @@ const OrderSelling = () => {
                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
                   </DialogTrigger>
                   <DialogContent className="w-[75vw] max-h-[90vh]">
-                    <TambahProdukModal tableName='s_pesanan'/>
+                    <OrderModal tableName='s_pesanan'/>
                   </DialogContent>
                 </Dialog>
                 <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
@@ -255,13 +256,12 @@ const OrderSelling = () => {
 
             <div className="rounded-md border overflow-auto">
               <Table>
-                <TableHeader>
+              <TableHeader>
                   <TableRow>
                     <TableHead>No. Faktur</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
-                    <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Subtotal</TableHead>
                     <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead className="text-left">Harga</TableHead>
+                    <TableHead className="text-left">Subtotal</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>

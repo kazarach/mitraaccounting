@@ -25,13 +25,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Trash } from 'lucide-react';
+import { Eye, Trash } from 'lucide-react';
 import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 const SellingPoint = () => {
 
@@ -40,12 +41,22 @@ const SellingPoint = () => {
 
   useEffect(() => {
     if (data.length === 0) {
-      dispatch(
-        setTableData({
-          tableName: "s_poin",
-          data: [],
-        })
-      );
+      dispatch(setTableData({
+        tableName: "s_poin",
+        data: [
+          {
+            id: 1,
+            produk: "Edwin",
+            jumlah_barang: "Fulanah",
+            jumlah_poin: 300,
+            sisa_poin: 100,
+            tipe_tukar: "Cash",
+            satuan: "Poin",
+            nominal_tukar: "Rp 30.000",
+            kadaluarsa: "19 January 2025",
+          }
+        ]
+      }));
     }
   }, [dispatch]);
 
@@ -58,6 +69,9 @@ const SellingPoint = () => {
     dispatch(clearTable({ tableName: "s_poin" }));
     toast.error("Table berhasil dihapus!");
   };
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
   return (
     <div className="flex justify-center w-full pt-4">
@@ -83,16 +97,10 @@ const SellingPoint = () => {
 
             <div className="rounded-md border overflow-auto">
               <Table>
-                <TableHeader>
+              <TableHeader>
                   <TableRow>
-                    <TableHead>Produk</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
+                    <TableHead>Pelanggan</TableHead>
                     <TableHead className="text-left">Jumlah Poin</TableHead>
-                    <TableHead className="text-left">Tipe Tukar Poin</TableHead>
-                    <TableHead className="text-left">Nominal Tukar</TableHead>
-                    <TableHead className="text-left">Voucher Belanja</TableHead>
-                    <TableHead className="text-left">Kadaluarsa</TableHead>
-                    <TableHead className="text-center">Sisa Poin</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -107,16 +115,12 @@ const SellingPoint = () => {
                   data.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="font-medium">{item.jumlah_barang}</TableCell>
-                      <TableCell className="font-medium">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="font-medium">{item.satuan}</TableCell>
-                      <TableCell className="font-medium">{item.harga_beli}</TableCell>
-                      <TableCell className="font-medium">{item.diskon_rupiah}</TableCell>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-28' placeholder='1' /></TableCell>
+                      <TableCell className="font-medium">{item.jumlah_poin}</TableCell>
                       <TableCell className="text-right">
-                        <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
+                        <Button onClick={() => {setSelectedItemId(item.id);
+                                                setIsDialogOpen(true);
+                                }} className='bg-blue-500 hover:bg-blue-600 size-7'>
+                          <Eye/>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -125,6 +129,44 @@ const SellingPoint = () => {
                 </TableBody>
               </Table>
             </div>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent>
+              <DialogTitle>Detail Poin</DialogTitle>
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Edwin</h2>
+                {selectedItemId !== null && (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pelanggan</TableHead>
+                        <TableHead>Jumlah Poin</TableHead>
+                        <TableHead>Tipe Tukar</TableHead>
+                        <TableHead>Nominal Tukar</TableHead>
+                        <TableHead>Kadaluarsa</TableHead>
+                        <TableHead>Sisa Poin</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data
+                        .filter((item) => item.id === selectedItemId)
+                        .map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.produk}</TableCell>
+                            <TableCell>{item.jumlah_poin}</TableCell>
+                            <TableCell>{item.tipe_tukar}</TableCell>
+                            <TableCell>{item.nominal_tukar}</TableCell>
+                            <TableCell>{item.kadaluarsa}</TableCell>
+                            <TableCell>{item.sisa_poin}</TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
             <div className='flex gap-2 justify-end '>
                 <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
               </div>

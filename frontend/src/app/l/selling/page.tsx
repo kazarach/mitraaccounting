@@ -196,111 +196,7 @@ const SellingReport = () => {
                       </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Kategori</Label>
-                  <Popover open={open2} onOpenChange={setOpen2}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Kategori"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue2(selectedDistributor.value);
-                                  } else {
-                                    setValue2("");
-                                  }
-                                  setOpen2(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>                  
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Distributor</Label>
-                  <Popover open={open3} onOpenChange={setOpen3}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value3)?.label
-                          : "Pilih Distributor"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue3(selectedDistributor.value);
-                                  } else {
-                                    setValue3("");
-                                  }
-                                  setOpen3(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>                  
+                </div>                                    
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Member</Label>
                   <Popover open={open4} onOpenChange={setOpen4}>
@@ -529,18 +425,15 @@ const SellingReport = () => {
                     <TableHead>Tanggal</TableHead>
                     <TableHead className="text-left">No. Faktur</TableHead>
                     <TableHead className="text-left">Member</TableHead>
+                    <TableHead className="text-left">Pelanggan</TableHead>
+                    <TableHead className="text-left">Operator</TableHead>
                     <TableHead className="text-left">Kode</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
                     <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Satuan</TableHead>
-                    <TableHead className="text-left">Harga</TableHead>
-                    <TableHead className="text-left">Diskon Item</TableHead>
                     <TableHead className="text-left">Sub Total</TableHead>
                     <TableHead className="text-left">Diskon Total</TableHead>
-                    <TableHead className="text-left">PPN</TableHead>
-                    <TableHead className="text-left">Pembulatan</TableHead>
-                    <TableHead className="text-left">Netto</TableHead>
                     <TableHead className="text-left">Sales</TableHead>
+                    <TableHead className="text-left">Netto</TableHead>
+                    <TableHead className="text-left">Status</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -553,9 +446,6 @@ const SellingReport = () => {
                       <TableCell className="text-left">{item.isi_packing}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.harga_beli}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>
                       <TableCell className="text-left">{item.satuan}</TableCell>

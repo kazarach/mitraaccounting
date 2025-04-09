@@ -427,6 +427,17 @@ const OrderSelling = () => {
                 </TableBody>
               </Table>
             </div>
+            <div className='font-semibold'>
+              <h1>
+                Total Nilai Stok :
+              </h1>
+              <h1>
+                Total Jumlah Stok :
+              </h1>
+              <h1>
+                Total Jenis Item :
+              </h1>
+            </div>
           <div className='flex gap-2 justify-end '>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>

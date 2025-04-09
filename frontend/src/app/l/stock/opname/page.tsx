@@ -154,7 +154,7 @@ const OrderSelling = () => {
                     </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Selisih</Label>
+                  <Label htmlFor="distributor">Kategori</Label>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -165,7 +165,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Selisih"}
+                          : "Pilih Kategori"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -206,7 +206,7 @@ const OrderSelling = () => {
                   </Popover>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Operator</Label>
+                  <Label htmlFor="distributor">Distributor</Label>
                   <Popover open={open2} onOpenChange={setOpen2}>
                     <PopoverTrigger asChild>
                       <Button
@@ -217,7 +217,7 @@ const OrderSelling = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Operator"}
+                          : "Pilih Distributor"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
