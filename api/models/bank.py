@@ -10,7 +10,7 @@ class Bank(models.Model):
     acc = models.ForeignKey(Account, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self):
-        return self.bank_name
+        return self.name
 
     class Meta:
         verbose_name = "Bank"

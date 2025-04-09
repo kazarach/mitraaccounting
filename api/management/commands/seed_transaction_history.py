@@ -154,8 +154,8 @@ class Command(BaseCommand):
                 TransItemDetail(
                     transaction=transaction,
                     stock=stock,
-                    stock_code=stock.stock_code,
-                    stock_name=stock.stock_name,
+                    stock_code=stock.code,
+                    stock_name=stock.name,
                     stock_price_buy=stock.price_buy,
                     quantity=quantity,
                     sell_price=sell_price

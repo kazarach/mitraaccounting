@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 
-from ..filters import TransactionHistoryFilter
+from ..filters.transaction_history_filters import TransactionHistoryFilter
 from ..models import TransactionHistory, TransItemDetail
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 

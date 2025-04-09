@@ -12,7 +12,6 @@ from .supplier import Supplier
 from .category import Category
 from .warehouse import Warehouse
 from .stock import Stock
-from .stock_unit import StockUnit
 from .stock_assembly import StockAssembly
 from .stock_price import StockPrice
 from .sales import Sales

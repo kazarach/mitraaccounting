@@ -22,12 +22,9 @@ class Command(BaseCommand):
             'seed_sales',
 
             'seed_stock',
-            'seed_stock_unit',
             'seed_stock_assembly',
 
             'seed_transaction_history',
-            'seed_transaction_item',
-            'seed_transaction_return',
             'seed_payment_record',
             'seed_event_discount',
         ]
