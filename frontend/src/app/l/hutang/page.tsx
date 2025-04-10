@@ -27,14 +27,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TpModal from '@/components/modal/tp-pesanan-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { distributors, HutangData } from '@/data/product';
-import HPModal from '@/components/transaction/detailHutangPiutang-modal';
+import HPModal from '@/components/modal/detailHutangPiutang-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Hutang = () => {
@@ -59,8 +59,10 @@ const Hutang = () => {
                         <div className="flex justify-between gap-4 mb-4">
                             <div className="flex flex-wrap items-end gap-4">
                                 <div className="flex flex-col space-y-2">
+                                    <Label htmlFor="date">Tanggal</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
+
                                             <Button
                                                 variant={"outline"}
                                                 className={cn(
@@ -82,37 +84,45 @@ const Hutang = () => {
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div className=" relative w-[200px]">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                                    <Input
-                                        placeholder="Cari Pemasok"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        className="w-full pl-10"
-                                    />
+                                <div className="flex flex-col space-y-2">
+                                <Label htmlFor="date">Umur Hutang</Label>
+                                    <Select >
+                                        <SelectTrigger className="relative w-[200px] bg-gray-100 ">
+                                            <SelectValue placeholder="Umur Hutang" className='' />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Semua</SelectItem>
+                                            <SelectItem value="asc">Terbaru</SelectItem>
+                                            <SelectItem value="desc">Terlama</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                <Select >
-                                    <SelectTrigger className="relative w-[200px]">
-                                        <SelectValue placeholder="Umur Hutang" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua</SelectItem>
-                                        <SelectItem value="asc">Terbaru</SelectItem>
-                                        <SelectItem value="desc">Terlama</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex flex-col space-y-2">
+                                <Label htmlFor="date">Status Hutang</Label>
+                                    <Select>
+                                        <SelectTrigger className="relative w-[200px] bg-gray-100">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
 
-                                <Select>
-                                    <SelectTrigger className="relative w-[200px]">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-
-                                        <SelectItem value="all">Semua</SelectItem>
-                                        <SelectItem value="1">Lunas</SelectItem>
-                                        <SelectItem value="0">Belum Lunas</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                            <SelectItem value="all">Semua</SelectItem>
+                                            <SelectItem value="1">Lunas</SelectItem>
+                                            <SelectItem value="0">Belum Lunas</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className='flex items-end'>
+                                <div className='flex items-end gap-2'>
+                                    <div className={cn(
+                                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                                    )}>
+                                        <Search size={20} style={{ marginRight: '10px' }} />
+                                        <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -158,11 +168,6 @@ const Hutang = () => {
                                 </TableBody>
                             </Table>
                         </div>
-                    </div>
-                    <div className='flex justify-end gap-2 mt-4 '>
-
-                        <Button onClick={() => toast.success("Transaksi Berhasil Ditambahkan  ")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Input Pemakaian</Button>
-
                     </div>
                 </CardContent>
             </Card>

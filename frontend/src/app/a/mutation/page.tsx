@@ -27,8 +27,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TpModal from '@/components/modal/tp-pesanan-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { distributors, operators, poinMemberPelanggan } from '@/data/product';

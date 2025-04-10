@@ -27,52 +27,26 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TpModal from '@/components/modal/tp-pesanan-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
-import { distributors } from '@/data/product';
+import { distributors, usestockdata } from '@/data/product';
+import DetailUseStock from '@/components/modal/detailusestock-modal';
+import { DateRange } from 'react-day-picker';
 
 const StockUse = () => {
     const tableName = "stockuse";
     const [selectedDistributor, setSelectedDistributor] = useState("All");
-    const [date, setDate] = React.useState<Date>()
+    const [date, setDate] = React.useState<DateRange | undefined>(undefined)
     const [open, setOpen] = React.useState(false)
     const [value, setValue] = React.useState("")
 
     const [search, setSearch] = useState("");
     const dispatch = useDispatch();
-    const data = [
-        {
-            id: 1,
-            barcode: "8991234567890",
-            kode: "BRG001",
-            produk: "Tissue Magic Clean 250",
-            jumlah: 10,
-            satuan: "pcs",
-            keterangan: "Untuk kebutuhan event A"
-        },
-        {
-            id: 2,
-            barcode: "8991234567880",
-            kode: "BRG002",
-            produk: "Sabun Cair BioSoft 1L",
-            jumlah: 5,
-            satuan: "botol",
-            keterangan: "Kebutuhan harian di dapur"
-        },
-        {
-            id: 3,
-            barcode: "8991234567870",
-            kode: "BRG003",
-            produk: "Sapu Ijuk Super",
-            jumlah: 2,
-            satuan: "unit",
-            keterangan: "Pengganti sapu rusak"
-        }
-    ];
+
 
     const handleDelete = (id: number) => {
         dispatch(deleteRow({ tableName, id }));
@@ -94,43 +68,45 @@ const StockUse = () => {
                     <div className="flex flex-col space-y-4">
                         <div className="flex justify-between gap-4 mb-4">
                             <div className="flex flex-wrap items-end gap-4">
-                                <div className="flex flex-col space-y-2">
-                                    <Label htmlFor="distributor">Cari Faktur</Label>
-                                    <div className=" relative w-[200px]">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                                        <Input
-                                            placeholder="Cari Faktur"
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            className="w-full pl-10"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-col space-y-2">
-                                    <Label htmlFor="date">Tanggal</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-[200px] justify-start text-left font-normal",
-
-                                                )}
-                                            >
-                                                <CalendarIcon />
-                                                {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={date}
-                                                onSelect={setDate}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
+                                <div className="flex flex-col space-y-2" >
+                                                                    <Label htmlFor="date">Tanggal</Label>
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button
+                                                                                id="date"
+                                                                                variant={"outline"}
+                                                                                className={cn(
+                                                                                    "w-56 justify-start text-left font-normal",
+                                                                                    !date && "text-muted-foreground"
+                                                                                )}
+                                                                            >
+                                                                                <CalendarIcon />
+                                                                                {date?.from ? (
+                                                                                    date.to ? (
+                                                                                        <>
+                                                                                            {format(date.from, "LLL dd, y")} -{" "}
+                                                                                            {format(date.to, "LLL dd, y")}
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        format(date.from, "LLL dd, y")
+                                                                                    )
+                                                                                ) : (
+                                                                                    <span>Pilih Tanggal</span>
+                                                                                )}
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                                            <Calendar
+                                                                                initialFocus
+                                                                                mode="range"
+                                                                                defaultMonth={date?.from}
+                                                                                selected={date}
+                                                                                onSelect={setDate}
+                                                                                numberOfMonths={2}
+                                                                            />
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </div>
                                 <div className="flex flex-col space-y-2">
                                     <Label htmlFor="distributor">Operator</Label>
                                     <Popover open={open} onOpenChange={setOpen}>
@@ -183,7 +159,18 @@ const StockUse = () => {
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-
+                            </div>
+                            <div className='flex items-end'>
+                                <div className='flex items-end gap-2'>
+                                    <div className={cn(
+                                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                                    )}>
+                                        <Search size={20} style={{ marginRight: '10px' }} />
+                                        <input type="text" placeholder="Cari Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
@@ -192,36 +179,49 @@ const StockUse = () => {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Barcode</TableHead>
-                                        <TableHead>Kode</TableHead>
-                                        <TableHead>Nama Barang</TableHead>
-                                        <TableHead className="text-left">Jumlah</TableHead>
-                                        <TableHead className="text-left">Satuan</TableHead>
-                                        <TableHead className="text-left">Keterangan</TableHead>
-                                        <TableHead className="text-center">Action</TableHead>
+                                        <TableHead>No Faktur</TableHead>
+                                        <TableHead>Operator</TableHead>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead>Barang</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {data.length === 0 ? (
+                                    {usestockdata.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center text-gray-400 bg-gray-200">
                                                 Belum menambahkan produk
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        data.map((item) => (
+                                        usestockdata.map((item) => (
                                             <TableRow key={item.id}>
-                                                <TableCell className="font-medium">{item.barcode ?? "-"}</TableCell>
-                                                <TableCell className="font-medium">{item.kode ?? "-"}</TableCell>
-                                                <TableCell>{item.produk}</TableCell>
-                                                <TableCell>{item.jumlah}</TableCell>
-                                                <TableCell>{item.satuan}</TableCell>
-                                                <TableCell>{item.keterangan}</TableCell>
-
-                                                <TableCell className="text-center">
-                                                    <Button className='bg-blue-500 hover:bg-blue-600 size-7 mr-1'>
-                                                        <Eye />
-                                                    </Button>
+                                                <TableCell className="font-medium">{item.noFaktur ?? "-"}</TableCell>
+                                                <TableCell className="font-medium">{item.operator ?? "-"}</TableCell>
+                                                <TableCell>{item.tanggal}</TableCell>
+                                                <TableCell>
+                                                    {item.items.length > 3 ? (
+                                                        <>
+                                                            <div>{item.items[0].produk}</div>
+                                                            <div>{item.items[1].produk}</div>
+                                                            <div>...</div>
+                                                        </>
+                                                    ) : (
+                                                        item.items.map((product, index) => (
+                                                            <div key={index}>{product.produk}</div>
+                                                        ))
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button className="bg-blue-500 hover:bg-blue-600 size-7 mr-1">
+                                                                <Eye />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-[80vw] max-h-[90vh]">
+                                                            <DetailUseStock noFaktur={item.noFaktur} />
+                                                        </DialogContent>
+                                                    </Dialog>
                                                     <Button className='bg-yellow-500 hover:bg-yellow-600 size-7 mr-1'>
                                                         <Pencil />
                                                     </Button>

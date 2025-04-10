@@ -27,16 +27,16 @@ import { Calendar } from "@/components/ui/calendar"
 import { addDays, format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TpModal from '@/components/modal/tp-pesanan-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { poinMemberPelanggan } from '@/data/product';
-import HPModal from '@/components/transaction/detailHutangPiutang-modal';
+import HPModal from '@/components/modal/detailHutangPiutang-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import DetailPoin from '@/components/transaction/detailpoin-modal';
+import DetailPoin from '@/components/modal/detailpoin-modal';
 import { DateRange } from 'react-day-picker';
 
 const Hutang = () => {
@@ -100,7 +100,7 @@ const Hutang = () => {
                                 </div>
                             </div>
                             <div className=''>
-                                <div className='flex justify-end'>
+                                <div className='flex justify-end mb-2'>
                                     <Button onClick={() => toast.success("Transaksi Berhasil Ditambahkan  ")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Transaksi Poin</Button>
                                 </div>
                                 <div className='flex items-end gap-2'>

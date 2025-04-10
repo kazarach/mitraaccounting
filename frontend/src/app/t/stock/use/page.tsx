@@ -27,8 +27,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/transaction/purchasing/tp-pesanan-modal';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TpModal from '@/components/modal/tp-pesanan-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -77,7 +77,7 @@ const StockUse = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">Tanggal</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -88,7 +88,7 @@ const StockUse = () => {
                         )}
                       >
                         <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -180,7 +180,7 @@ const StockUse = () => {
           </div>
           <div className='flex justify-end gap-2 mt-4 '>
 
-            <Button onClick={() => toast.success("Transaksi Berhasil Ditambahkan  ")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Input Pemakaian</Button>
+            <Button onClick={() => toast.success("Transaksi Berhasil Ditambahkan  ")} className='font-medium bg-blue-500 hover:bg-blue-600  '>Input</Button>
 
           </div>
         </CardContent>

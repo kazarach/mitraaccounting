@@ -27,7 +27,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { distributors } from '@/data/product';
 import { clearTable, deleteRow, setTableData } from '@/store/features/tableSlicer';
@@ -76,7 +76,7 @@ const TransactionPurchase = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">Tanggal</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -87,7 +87,7 @@ const TransactionPurchase = () => {
                         )}
                       >
                         <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -112,13 +112,13 @@ const TransactionPurchase = () => {
                       >
                         {value
                           ? distributors.find((d) => d.value === value)?.label
-                          : "Select Distributor"}
+                          : "Pilih Distributor"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput placeholder="Search Distributor" />
+                        <CommandInput placeholder="Cari Distributor" />
                         <CommandList>
                           <CommandEmpty>No Distributor found.</CommandEmpty>
                           <CommandGroup>

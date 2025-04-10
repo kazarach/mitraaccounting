@@ -30,7 +30,7 @@ import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlice
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
 import OrderSelling from '../../selling/order/page';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 
 const StockOpname = () => {

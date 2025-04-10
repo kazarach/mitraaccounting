@@ -25,8 +25,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Eye, Trash } from 'lucide-react';
-import TambahProdukModal from '@/components/transaction/purchasing/tambahProduk-modal';
+import { Trash } from 'lucide-react';
+import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';

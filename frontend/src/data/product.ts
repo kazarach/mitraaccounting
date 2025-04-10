@@ -449,3 +449,196 @@ export const poinMemberPelanggan = [
     kasBank: "Bank Mandiri"
   }
 ];
+
+export const usestockdata = [
+  {
+      id: 1,
+      noFaktur: "FTR001",
+      operator: "John Doe",
+      tanggal: "2025-04-09",
+      items: [
+          {
+              barcode: "8991234567890",
+              kode: "BRG001",
+              produk: "Tissue  Clean 250",
+              jumlah: 30,
+              satuan: "pcs",
+              keterangan: "Untuk kebutuhan event A"
+          },
+          {
+              barcode: "8991234567890",
+              kode: "BRG001",
+              produk: "Kain",
+              jumlah: 30,
+              satuan: "pcs",
+              keterangan: "Untuk kebutuhan event A"
+          },
+          {
+              barcode: "8991234567890",
+              kode: "BRG001",
+              produk: "Walawe",
+              jumlah: 30,
+              satuan: "pcs",
+              keterangan: "Untuk kebutuhan event A"
+          },
+          {
+              barcode: "8991234567880",
+              kode: "BRG002",
+              produk: "Sabun Cair BioSoft 1L",
+              jumlah: 10,
+              satuan: "botol",
+              keterangan: "Kebutuhan harian di dapur"
+          }
+      ]
+  },
+  {
+      id: 2,
+      noFaktur: "FTR002",
+      operator: "Jane Smith",
+      tanggal: "2025-04-09",
+      items: [
+          {
+              barcode: "8991234567880",
+              kode: "BRG002",
+              produk: "Sabun Cair BioSoft 1L",
+              jumlah: 20,
+              satuan: "botol",
+              keterangan: "Kebutuhan harian di dapur"
+          },
+          {
+              barcode: "8991234567870",
+              kode: "BRG003",
+              produk: "Sapu Ijuk Super",
+              jumlah: 5,
+              satuan: "unit",
+              keterangan: "Pengganti sapu rusak"
+          }
+      ]
+  },
+  {
+      id: 3,
+      noFaktur: "FTR003",
+      operator: "Sarah Lee",
+      tanggal: "2025-04-09",
+      items: [
+          {
+              barcode: "8991234567870",
+              kode: "BRG003",
+              produk: "Sapu Ijuk Super",
+              jumlah: 10,
+              satuan: "unit",
+              keterangan: "Pengganti sapu rusak"
+          },
+          {
+              barcode: "8991234567890",
+              kode: "BRG001",
+              produk: "Tissue Magic Clean 250",
+              jumlah: 50,
+              satuan: "pcs",
+              keterangan: "Untuk kebutuhan event A"
+          }
+      ]
+  }
+];
+
+export const kasirData = [
+  {
+    id: 1,
+    operator: "John Doe",
+    penjualanNetto: 1000000,
+    kredit: 200000,
+    debit: 500000,
+    voucher: 100000,
+    cekGiro: 300000,
+    tunai: 400000,
+    retur: 50000,
+    rincianKasTunai: 150000,
+    saldoAwal: 200000,
+    kasPenjualanTunai: 350000,
+    kasDPPesanan: 200000,
+    bayarPiutang: 250000,
+    returPenjualanBayarTunai: 10000,
+    penerimaanLain: 50000,
+    pengeluaranLain: 20000,
+    pembelianTunai: 100000,
+    setorKasir: 150000,
+    saldoAkhir: 1700000,
+    jumlahJenisTransaksi: 15,
+    bayarPiutangViaRetur: 50000,
+    bayarPiutangViaBank: 150000,
+    bayarPiutangViaGiro: 100000,
+    jmlNotaPenjualan: 25,
+    jmlBatalPenjualan: 5,
+    jmlKoreksiPenjualan: 2,
+    jmlReturPenjualan: 3,
+    jmlPembayaranPiutang: 20,
+    jmlMutasiMasuk: 10,
+    jmlMutasiKeluar: 8
+  },
+  {
+    id: 2,
+    operator: "Jane Smith",
+    penjualanNetto: 800000,
+    kredit: 150000,
+    debit: 350000,
+    voucher: 80000,
+    cekGiro: 100000,
+    tunai: 200000,
+    retur: 30000,
+    rincianKasTunai: 120000,
+    saldoAwal: 150000,
+    kasPenjualanTunai: 250000,
+    kasDPPesanan: 180000,
+    bayarPiutang: 220000,
+    returPenjualanBayarTunai: 8000,
+    penerimaanLain: 40000,
+    pengeluaranLain: 15000,
+    pembelianTunai: 80000,
+    setorKasir: 120000,
+    saldoAkhir: 1450000,
+    jumlahJenisTransaksi: 13,
+    bayarPiutangViaRetur: 40000,
+    bayarPiutangViaBank: 130000,
+    bayarPiutangViaGiro: 90000,
+    jmlNotaPenjualan: 18,
+    jmlBatalPenjualan: 4,
+    jmlKoreksiPenjualan: 3,
+    jmlReturPenjualan: 2,
+    jmlPembayaranPiutang: 17,
+    jmlMutasiMasuk: 8,
+    jmlMutasiKeluar: 6
+  },
+  {
+    id: 3,
+    operator: "Sarah Lee",
+    penjualanNetto: 1200000,
+    kredit: 250000,
+    debit: 400000,
+    voucher: 120000,
+    cekGiro: 350000,
+    tunai: 600000,
+    retur: 70000,
+    rincianKasTunai: 200000,
+    saldoAwal: 300000,
+    kasPenjualanTunai: 500000,
+    kasDPPesanan: 250000,
+    bayarPiutang: 300000,
+    returPenjualanBayarTunai: 15000,
+    penerimaanLain: 60000,
+    pengeluaranLain: 25000,
+    pembelianTunai: 150000,
+    setorKasir: 200000,
+    saldoAkhir: 1750000,
+    jumlahJenisTransaksi: 16,
+    bayarPiutangViaRetur: 70000,
+    bayarPiutangViaBank: 200000,
+    bayarPiutangViaGiro: 120000,
+    jmlNotaPenjualan: 30,
+    jmlBatalPenjualan: 3,
+    jmlKoreksiPenjualan: 1,
+    jmlReturPenjualan: 4,
+    jmlPembayaranPiutang: 25,
+    jmlMutasiMasuk: 12,
+    jmlMutasiKeluar: 10
+  }
+];
