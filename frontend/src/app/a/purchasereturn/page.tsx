@@ -26,6 +26,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import TambahProdukModal from '@/components/modal/tambahProduk-modal';
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
