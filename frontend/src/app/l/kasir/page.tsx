@@ -90,14 +90,13 @@ const Kasir = () => {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Variabel</TableHead>
-                                            <TableHead className="text-left">Nilai</TableHead>
+                                         
                                         </TableRow>
                                     </TableHeader>
 
                                     {filteredData.map((data) => (
                                         <TableBody key={data.id}>
-                                            <TableRow >
+                                            <TableRow className='bg-gray-400 text-white'>
                                                 <TableCell>Penjualan Netto</TableCell>
                                                 <TableCell className="text-left">{`Rp ${data.penjualanNetto.toLocaleString('id-ID')}`}</TableCell>
                                             </TableRow>
@@ -124,6 +123,10 @@ const Kasir = () => {
                                             <TableRow >
                                                 <TableCell>Retur</TableCell>
                                                 <TableCell className="text-left">{`Rp ${data.retur.toLocaleString('id-ID')}`}</TableCell>
+                                            </TableRow>
+                                            <TableRow >
+                                                <TableCell></TableCell>
+                                                <TableCell className="text-left"></TableCell>
                                             </TableRow>
                                             <TableRow >
                                                 <TableCell>Rincian Kas Tunai</TableCell>

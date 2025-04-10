@@ -36,6 +36,7 @@ import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/ta
 import { distributors } from '@/data/product';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CategoryDropdown } from '@/components/dropdown/category-dropdown';
 
 
 interface TransactionRow {
@@ -48,7 +49,6 @@ interface TransactionRow {
 }
 
 interface Props {
-
     tableName: string;
 }
 
@@ -273,6 +273,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         >
                             Termasuk PPN
                         </label>
+                        
                     </div>
                 </div>
                 <div className='flex items-end gap-2'>
@@ -292,8 +293,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             <TambahProdukModal tableName='transaksi' />
                         </DialogContent>
                     </Dialog>
-
                     <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                   
                 </div>
             </div>
 

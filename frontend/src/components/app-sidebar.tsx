@@ -78,7 +78,6 @@ const Menus = [
       { title: "Hutang", url: "/l/hutang" },
       { title: "Piutang", url: "/l/piutang" },
       { title: "Kas / Bank", url: "/l/kasbank" },
-      { title: "Pendapatan Jasa", url: "#" },
       { title: "Kasir", url: "/l/kasir" },
       { title: "Poin Member", url: "/l/poinmember" },
     ],
@@ -94,7 +93,7 @@ const Menus = [
       { title: "Penjualan", url: "/a/selling" },
       { title: "Retur Penjualan", url: "/a/sellingreturn" },
       { title: "Pemakaian Persediaan", url: "/a/usestock" },
-      { title: "Mutasi", url: "/a/mutation" },
+      // { title: "Mutasi", url: "/a/mutation" },
       { title: "Kas / Bank", url: "/a/kasbank" },
       { title: "Open Drawer", url: "/a/drawer" },
     ],
@@ -154,8 +153,8 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-            
-            <SidebarMenuButton className="flex items-center gap-2 w-full p-2 rounded-sm hover:bg-slate-700 transition hover:text-white">
+
+              <SidebarMenuButton className="flex items-center gap-2 w-full p-2 rounded-sm hover:bg-slate-700 transition hover:text-white">
                 <a href="/" className="flex items-center gap-2 w-full text-white">
                   <House size={18} className="text-white" />
                   <span>Home</span>
@@ -176,9 +175,8 @@ export function AppSidebar() {
                         </div>
                         <ChevronDown
                           size={16}
-                          className={`text-white transition-transform duration-200 ${
-                            openMainMenus === menu.title ? "rotate-180" : ""
-                          }`}
+                          className={`text-white transition-transform duration-200 ${openMainMenus === menu.title ? "rotate-180" : ""
+                            }`}
                         />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -197,9 +195,8 @@ export function AppSidebar() {
                                   <span className="text-white">{subItem.title}</span>
                                   <ChevronDown
                                     size={14}
-                                    className={`text-white transition-transform duration-200 ${
-                                      openSubMenus[subItem.title] ? "rotate-180" : ""
-                                    }`}
+                                    className={`text-white transition-transform duration-200 ${openSubMenus[subItem.title] ? "rotate-180" : ""
+                                      }`}
                                   />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
@@ -209,9 +206,8 @@ export function AppSidebar() {
                                     <div key={nestedSub.title} className="hover:bg-slate-700 transition rounded-sm">
                                       <a
                                         href={nestedSub.url}
-                                        className={`flex items-center px-2 py-1.5 text-white ${
-                                          pathname === nestedSub.url ? "bg-slate-700 font-semibold" : ""
-                                        }`}
+                                        className={`flex items-center px-2 py-1.5 text-white ${pathname === nestedSub.url ? "bg-slate-700 rounded-sm font-semibold" : ""
+                                          }`}
                                       >
                                         <span>{nestedSub.title}</span>
                                       </a>
@@ -224,13 +220,12 @@ export function AppSidebar() {
                           ) : (
                             <div key={subItem.title} className="hover:bg-slate-700 transition rounded-sm">
                               <a
-  href={subItem.url}
-  className={`flex items-center px-2 py-1.5 text-white ${
-    pathname === subItem.url ? "bg-slate-700 font-semibold" : ""
-  }`}
->
-  <span>{subItem.title}</span>
-</a>
+                                href={subItem.url}
+                                className={`flex items-center px-2 py-1.5 text-white ${pathname === subItem.url ? "bg-slate-700 rounded-sm font-semibold" : ""
+                                  }`}
+                              >
+                                <span>{subItem.title}</span>
+                              </a>
 
                             </div>
                           )
@@ -244,31 +239,31 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-    <SidebarFooter>
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Admin</Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-60">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none text-center">Admin</h4>
-            <p className="text-sm text-center text-muted-foreground">
-              Welcome to MitraAccounting.
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <Button>
-              <a href="#">Admin Page</a>
-            </Button>
-            <Button className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white">
-              <a href="/login">Logout</a>
-            </Button>          
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-    </SidebarFooter>
+      <SidebarFooter>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Admin</Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-60">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none text-center">Admin</h4>
+                <p className="text-sm text-center text-muted-foreground">
+                  Welcome to MitraAccounting.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Button>
+                  <a href="#">Admin Page</a>
+                </Button>
+                <Button className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white">
+                  <a href="/login">Logout</a>
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </SidebarFooter>
     </Sidebar>
   );
 }
