@@ -31,7 +31,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
-import OrderModal from '@/components/transaction/selling/ordermodal';
+import OrderModal from '@/components/modal/ts-ordermodal';
 
 const OrderSelling = () => {
 

@@ -31,7 +31,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
-import ReturModal from '@/components/transaction/selling/returmodal';
+import ReturModal from '@/components/modal/ts-returmodal';
 
 const ReturnSelling = () => {
 
