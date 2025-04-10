@@ -43,15 +43,15 @@ const OrderModal: React.FC<OrderModalProps> = ({ tableName }) => {
 
   const handleAddProduct = (product: any) => {
     const newItem = {
-      id: Date.now(),
-      produk: product.name,
-      jumlah_pesanan: 0,
+      name: product.name,
+      jumlah_pesanan: product.jumlah_pesanan ?? 1,
       harga_beli: product.purchasePrice,
-      subtotal: product.purchasePrice,
+      subtotal: product.purchasePrice * (product.jumlah_pesanan ?? 1),
     };
     toast.success(product.name + " Berhasil Ditambahkan");
     dispatch(addRow({ tableName, row: newItem }));
   };
+  
 
   const distributors = [
     {
@@ -104,6 +104,48 @@ const OrderModal: React.FC<OrderModalProps> = ({ tableName }) => {
         cell: (info : any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
       },
       {
+        accessorKey: "jumlahInput",
+        header: "Jumlah",
+        cell: ({ row }: { row: Row<any> }) => {
+          const product = row.original;
+          const [quantity, setQuantity] = useState(product.jumlah_pesanan || 1);
+
+          const updateQuantity = (val: number) => {
+            const value = Math.max(1, val);
+            setQuantity(value);
+            row.original.jumlah_pesanan = value; // ⬅️ simpan langsung ke row
+          };
+      
+          const increment = () => updateQuantity(quantity + 1);
+          const decrement = () => updateQuantity(quantity - 1);
+      
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={decrement}
+                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                className="w-12 text-center border rounded"
+                min={1}
+              />
+              <button
+                onClick={increment}
+                className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                +
+              </button>
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
+      {
         accessorKey: "action",
         header: "Action",
         cell: ({ row }: { row: Row<any> }) => (
@@ -112,7 +154,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ tableName }) => {
           </Button>
         ),
         enableSorting: false,
-      },
+      },      
     ],
     [sorting]
   );

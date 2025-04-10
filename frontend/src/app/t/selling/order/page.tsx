@@ -275,11 +275,10 @@ const OrderSelling = () => {
                   ) : (
                   data.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
+                      <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
+                      <TableCell className="text-left">{item.harga_beli}</TableCell>
+                      <TableCell className="text-left">{item.subtotal}</TableCell>
                       <TableCell className="text-right">
                         <Button onClick={() => handleDelete(item.id)} className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash></Trash>
