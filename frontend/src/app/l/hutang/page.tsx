@@ -34,12 +34,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { distributors, HutangData } from '@/data/product';
-import HPModal from '@/components/modal/detailHutangPiutang-modal';
+import HPModal from '@/components/modal/hutang-detailHutang-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRange } from 'react-day-picker';
+import { StatusHutangDropdown } from '@/components/dropdown/statusHutang-dropdown';
+import DetailHutangModal from '@/components/modal/hutang-detailHutang-modal';
 
 const Hutang = () => {
     const tableName = "hutang";
-    const [date, setDate] = React.useState<Date>()
+    const [date, setDate] = React.useState<DateRange | undefined>(undefined)
     const [search, setSearch] = useState("");
     const [umurHutang, setUmurHutang] = useState('');
     const [status, setStatus] = useState('')
@@ -58,34 +61,47 @@ const Hutang = () => {
                     <div className="flex flex-col space-y-4">
                         <div className="flex justify-between gap-4 mb-4">
                             <div className="flex flex-wrap items-end gap-4">
-                                <div className="flex flex-col space-y-2">
+                                <div className="flex flex-col space-y-2" >
                                     <Label htmlFor="date">Tanggal</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
-
                                             <Button
+                                                id="date"
                                                 variant={"outline"}
                                                 className={cn(
-                                                    "w-[200px] justify-start text-left font-normal",
-
+                                                    "w-56 justify-start text-left font-normal",
+                                                    !date && "text-muted-foreground"
                                                 )}
                                             >
                                                 <CalendarIcon />
-                                                {date ? format(date, "PPP") : <span>Tanggal</span>}
+                                                {date?.from ? (
+                                                    date.to ? (
+                                                        <>
+                                                            {format(date.from, "LLL dd, y")} -{" "}
+                                                            {format(date.to, "LLL dd, y")}
+                                                        </>
+                                                    ) : (
+                                                        format(date.from, "LLL dd, y")
+                                                    )
+                                                ) : (
+                                                    <span>Pilih Tanggal</span>
+                                                )}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
+                                        <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
-                                                mode="single"
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={date?.from}
                                                 selected={date}
                                                 onSelect={setDate}
-                                                initialFocus
+                                                numberOfMonths={2}
                                             />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
                                 <div className="flex flex-col space-y-2">
-                                <Label htmlFor="date">Umur Hutang</Label>
+                                    <Label htmlFor="date">Umur Hutang</Label>
                                     <Select >
                                         <SelectTrigger className="relative w-[200px] bg-gray-100 ">
                                             <SelectValue placeholder="Umur Hutang" className='' />
@@ -98,18 +114,8 @@ const Hutang = () => {
                                     </Select>
                                 </div>
                                 <div className="flex flex-col space-y-2">
-                                <Label htmlFor="date">Status Hutang</Label>
-                                    <Select>
-                                        <SelectTrigger className="relative w-[200px] bg-gray-100">
-                                            <SelectValue placeholder="Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-
-                                            <SelectItem value="all">Semua</SelectItem>
-                                            <SelectItem value="1">Lunas</SelectItem>
-                                            <SelectItem value="0">Belum Lunas</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="date">Status Hutang</Label>
+                                    <StatusHutangDropdown/>
                                 </div>
                             </div>
                             <div className='flex items-end'>
@@ -132,7 +138,7 @@ const Hutang = () => {
                                     <TableRow>
                                         <TableHead>Kode Pemasok</TableHead>
                                         <TableHead>Nama Pemasok</TableHead>
-                                        <TableHead className="text-left">Total Hutang</TableHead>
+                                        <TableHead className="text-left">Jumlah Transaksi Hutang</TableHead>
                                         <TableHead className="text-center">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -148,7 +154,7 @@ const Hutang = () => {
                                             <TableRow key={item.id}>
                                                 <TableCell className="font-medium">{item.kodePemasok ?? "-"}</TableCell>
                                                 <TableCell>{item.namaPemasok}</TableCell>
-                                                <TableCell>{item.totalHutang}</TableCell>
+                                                <TableCell>{item.itemHutang.length}</TableCell>
                                                 <TableCell className="text-center">
 
                                                     <Dialog>
@@ -157,8 +163,8 @@ const Hutang = () => {
                                                                 <Eye />
                                                             </Button>
                                                         </DialogTrigger>
-                                                        <DialogContent className="max-w-[80vw] max-h-[90vh]">
-                                                            <HPModal />
+                                                        <DialogContent className="max-w-[80vw] min-w-[20vw] max-h-[92vh] ">
+                                                            <DetailHutangModal kodePemasok={item.kodePemasok} />
                                                         </DialogContent>
                                                     </Dialog>
                                                 </TableCell>

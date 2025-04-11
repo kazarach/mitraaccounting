@@ -32,6 +32,7 @@ import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlice
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
 import { distributors } from '@/data/product';
+import DetailUseStock from '@/components/modal/detailusestock-modal';
 
 const SellingReturn = () => {
 
@@ -196,7 +197,7 @@ const SellingReturn = () => {
                             </div>
 
 
-                                
+
 
                         </div>
 
@@ -235,17 +236,24 @@ const SellingReturn = () => {
                                                 <TableCell className="">{item.operator}</TableCell>
                                                 <TableCell className="">{item.status}</TableCell>
                                                 <TableCell className=" text-center">
-                                                    <Button className='bg-blue-500 hover:bg-blue-600 size-7 mr-1'>
-                                                        <Eye/>
-                                                    </Button>
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button className="bg-blue-500 hover:bg-blue-600 size-7 mr-1">
+                                                                <Eye />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-[80vw] max-h-[90vh]">
+                                                            <DetailUseStock noFaktur='FTR001' />
+                                                        </DialogContent>
+                                                    </Dialog>
                                                     <Button className='bg-yellow-500 hover:bg-yellow-600 size-7 mr-1'>
-                                                        <Pencil/>
+                                                        <Pencil />
                                                     </Button>
                                                     <Button className='bg-blue-500 hover:bg-blue-600 size-7 mr-1'>
-                                                        <Printer/>
+                                                        <Printer />
                                                     </Button>
                                                     <Button className='bg-red-500 hover:bg-red-600 size-7 mr-1' >
-                                                        <Trash/>
+                                                        <Trash />
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>

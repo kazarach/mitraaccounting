@@ -198,57 +198,115 @@ export const HutangData = [
     id: 1,
     kodePemasok: "SUP123",
     namaPemasok: "Pemasok A",
-    totalHutang: 1000000,
-    detail: "Pembelian barang A",
-    tanggal: "2025-03-01",
-    noFaktur: "Faktur001",
-    tipeBayar: "Tunai",
-    kas: "Kas 1",
-    jatuhTempo: "2025-03-15",
-    notaRetur: "Retur001",
-    jumlahHutang: 800000,
-    diskon: 5,  // Diskon dalam persen
-    totalHutangSetelahDiskon: 760000, // Total hutang setelah diskon
-    pembayaran: 300000,
-    sisaHutang: 460000, // Sisa hutang setelah pembayaran
+    itemHutang: [
+      {
+        id: 1,
+        detail: "Pembelian barang A",
+        tanggal: "2025-03-01",
+        noFaktur: "Faktur001",
+        tipeBayar: "Tunai",
+        kas: "Kas 1",
+        jatuhTempo: "2025-03-15",
+        notaRetur: "Retur001",
+        jumlahHutang: 800000,
+        diskon: 5,  // Diskon dalam persen
+        totalHutangSetelahDiskon: 760000, // Total hutang setelah diskon
+        pembayaran: 300000,
+        sisaHutang: 460000, // Sisa hutang setelah pembayaran
+      },
+      {
+        id: 2,
+        detail: "Pembelian barang B",
+        tanggal: "2025-03-10",
+        noFaktur: "Faktur002",
+        tipeBayar: "Kredit",
+        kas: "Kas 1",
+        jatuhTempo: "2025-03-20",
+        notaRetur: "Retur002",
+        jumlahHutang: 1000000,
+        diskon: 10, // Diskon dalam persen
+        totalHutangSetelahDiskon: 900000, // Total hutang setelah diskon
+        pembayaran: 200000,
+        sisaHutang: 700000, // Sisa hutang setelah pembayaran
+      }
+    ]
   },
   {
     id: 2,
     kodePemasok: "SUP124",
     namaPemasok: "Pemasok B",
-    totalHutang: 500000,
-    detail: "Pembelian barang B",
-    tanggal: "2025-02-15",
-    noFaktur: "Faktur002",
-    tipeBayar: "Kredit",
-    kas: "Kas 2",
-    jatuhTempo: "2025-03-01",
-    notaRetur: "Retur002",
-    jumlahHutang: 500000,
-    diskon: 10, // Diskon dalam persen
-    totalHutangSetelahDiskon: 450000, // Total hutang setelah diskon
-    pembayaran: 150000,
-    sisaHutang: 300000, // Sisa hutang setelah pembayaran
+    itemHutang: [
+      {
+        id: 1,
+        detail: "Pembelian barang C",
+        tanggal: "2025-02-15",
+        noFaktur: "Faktur003",
+        tipeBayar: "Kredit",
+        kas: "Kas 2",
+        jatuhTempo: "2025-03-01",
+        notaRetur: "Retur003",
+        jumlahHutang: 500000,
+        diskon: 10, // Diskon dalam persen
+        totalHutangSetelahDiskon: 450000, // Total hutang setelah diskon
+        pembayaran: 150000,
+        sisaHutang: 300000, // Sisa hutang setelah pembayaran
+      },
+      {
+        id: 2,
+        detail: "Pembelian barang D",
+        tanggal: "2025-02-20",
+        noFaktur: "Faktur004",
+        tipeBayar: "Tunai",
+        kas: "Kas 2",
+        jatuhTempo: "2025-03-05",
+        notaRetur: "Retur004",
+        jumlahHutang: 750000,
+        diskon: 5, // Diskon dalam persen
+        totalHutangSetelahDiskon: 712500, // Total hutang setelah diskon
+        pembayaran: 250000,
+        sisaHutang: 462500, // Sisa hutang setelah pembayaran
+      }
+    ]
   },
   {
     id: 3,
     kodePemasok: "SUP125",
     namaPemasok: "Pemasok C",
-    totalHutang: 2000000,
-    detail: "Pembelian barang C",
-    tanggal: "2025-03-05",
-    noFaktur: "Faktur003",
-    tipeBayar: "Tunai",
-    kas: "Kas 1",
-    jatuhTempo: "2025-03-20",
-    notaRetur: "Retur003",
-    jumlahHutang: 2000000,
-    diskon: 0, // Diskon tidak ada
-    totalHutangSetelahDiskon: 2000000, // Total hutang tetap
-    pembayaran: 500000,
-    sisaHutang: 1500000, // Sisa hutang setelah pembayaran
+    itemHutang: [
+      {
+        id: 1,
+        detail: "Pembelian barang E",
+        tanggal: "2025-03-05",
+        noFaktur: "Faktur005",
+        tipeBayar: "Tunai",
+        kas: "Kas 1",
+        jatuhTempo: "2025-03-20",
+        notaRetur: "Retur005",
+        jumlahHutang: 2000000,
+        diskon: 0, // Diskon tidak ada
+        totalHutangSetelahDiskon: 2000000, // Total hutang tetap
+        pembayaran: 500000,
+        sisaHutang: 1500000, // Sisa hutang setelah pembayaran
+      },
+      {
+        id: 2,
+        detail: "Pembelian barang F",
+        tanggal: "2025-03-07",
+        noFaktur: "Faktur006",
+        tipeBayar: "Kredit",
+        kas: "Kas 1",
+        jatuhTempo: "2025-03-22",
+        notaRetur: "Retur006",
+        jumlahHutang: 1500000,
+        diskon: 0, // Diskon tidak ada
+        totalHutangSetelahDiskon: 1500000, // Total hutang tetap
+        pembayaran: 700000,
+        sisaHutang: 800000, // Sisa hutang setelah pembayaran
+      }
+    ]
   }
 ];
+
 
 export const poinMemberPelanggan = [
   {

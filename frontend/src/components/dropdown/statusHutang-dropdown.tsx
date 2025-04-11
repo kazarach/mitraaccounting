@@ -9,12 +9,11 @@ import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 const items = [
-  { id: "1", name: "Kas"},
-  { id: "2", name: "Bank"},
-  { id: "3", name: "Piutang"}
+  { id: "1", name: "Lunas"},
+  { id: "2", name: "Belum Lunas"},
 ]
 
-export function TipeDropdown() {
+export function StatusHutangDropdown() {
   const [selected, setSelected] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -67,7 +66,7 @@ export function TipeDropdown() {
             {allFilteredSelected ? "Unselect All" : "Select All"}
           </button>
         </div>
-        <ScrollArea className="h-30">
+        <ScrollArea className="h-20">
           {filteredItems.length > 0 ? (
             filteredItems.map(item => (
               <label
