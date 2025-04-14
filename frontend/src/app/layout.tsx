@@ -18,14 +18,10 @@ export const metadata: Metadata = {
   description: "Mitra Accounting",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="bg-white">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
