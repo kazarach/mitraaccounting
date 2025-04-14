@@ -23,7 +23,17 @@ export const tableSlice = createSlice({
       state[action.payload.tableName] = action.payload.data;
     },
     addRow: (state, action: PayloadAction<{ tableName: string; row: any }>) => {
-      state[action.payload.tableName].push(action.payload.row);
+      const table = state[action.payload.tableName];
+      const nextId = table.length > 0
+        ? Math.max(...table.map((row) => row.id ?? 0)) + 1
+        : 0;
+    
+      const rowWithId = {
+        ...action.payload.row,
+        id: action.payload.row.id ?? nextId,
+      };
+    
+      table.push(rowWithId);
     },
     updateRow: (state, action: PayloadAction<{ tableName: string; index: number; row: any }>) => {
       state[action.payload.tableName][action.payload.index] = action.payload.row;

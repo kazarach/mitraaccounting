@@ -33,19 +33,69 @@ import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
-import { distributors } from '@/data/product';
+import { distributors, products } from '@/data/product';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CategoryDropdown } from '@/components/dropdown/category-dropdown';
+import * as yup from "yup";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+
+
+export const schema = yup.object({
+  tanggal: yup.date().required("Tanggal wajib diisi"),
+  distributor: yup.string().required("Distributor wajib dipilih"),
+//   produk: yup.array().of(
+//     yup.object({
+//       id: yup.number().required("ID produk wajib ada"),
+//       name: yup.string().required("Nama produk wajib diisi"),
+//       jumlah_pesanan: yup.number().required("Jumlah pesanan wajib diisi"),
+//       jumlah_barang: yup.number().required("Jumlah barang wajib diisi"),
+//       isi_packing: yup.number().required("Isi packing wajib diisi"),
+//       satuan: yup.string().required("Satuan wajib diisi"),
+//       harga_beli: yup.number().required("Harga beli wajib diisi"),
+//       diskon_persen: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+//       diskon_rp: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+//       diskon_nota: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+//       total: yup.number().required("Total wajib dihitung"),
+//       total2: yup.number().required("Total2 (inc. PPN) wajib dihitung"),
+//     })
+//   ).min(1, "Minimal 1 produk harus dimasukkan"),
+//   total: yup.number().required("Total keseluruhan wajib dihitung"),
+});
+
 
 
 interface TransactionRow {
     id: number;
-    produk: string;
+    name: string;
     jumlah_pesanan: number;
+    jumlah_barang: number;
+    harga_beli: number;
     isi_packing: number;
     satuan: string;
     subtotal: number;
+}
+
+interface inputForm {
+    tanggal: Date,
+    distributor: string,
+    // produk: [
+    //     {
+    //         id: number,
+    //         name: string,
+    //         jumlah_pesanan: number,
+    //         jumlah_barang: number,
+    //         isi_packing: number,
+    //         satuan: string,
+    //         harga_beli: number,
+    //         diskon_persen: number,
+    //         diskon_rp: number,
+    //         diskon_nota: number,
+    //         total: number,
+    //         total2: number,
+    //     }
+    // ]
+    // total : number
 }
 
 interface Props {
@@ -61,11 +111,19 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
     const data = useSelector((state: RootState) => state.table["transaksi"] || []);
 
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        reset,
+      } = useForm<inputForm>({
+        resolver: yupResolver(schema),
+      });
 
     const columns: ColumnDef<TransactionRow>[] = [
         {
             header: "Produk",
-            accessorKey: "produk",
+            accessorKey: "name",
         },
         {
             header: "Jumlah Pesanan",
@@ -74,13 +132,19 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
         {
             header: "Jumlah Barang",
-            cell: () => (
-                <input
-                    type="number"
-                    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                    placeholder="0"
-                />
-            ),
+
+            cell: ({ row }) => {
+                const jumlahBarang = row.original.jumlah_barang || 0;
+
+                return (
+                    <input
+                        type="number"
+                        defaultValue={jumlahBarang}
+                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        placeholder="0"
+                    />
+                );
+            },
         },
         {
             header: "Isi Packing",
@@ -93,20 +157,25 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
         {
             header: "Harga Beli",
-            cell: () => (
-                <input
-                    type="number"
-                    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                    placeholder="Rp0"
-                />
-            ),
+            cell: ({ row }) => {
+                const harga_beli = row.original.harga_beli || 0;
+
+                return (
+                    <input
+                        type="number"
+                        defaultValue={harga_beli}
+                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        placeholder="0"
+                    />
+                );
+            },
         },
         {
             header: "Diskon (%)",
             cell: () => (
                 <input
                     type="number"
-                    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     placeholder="0%"
                 />
             ),
@@ -116,7 +185,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             cell: () => (
                 <input
                     type="number"
-                    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     placeholder="Rp0"
                 />
             ),
@@ -126,7 +195,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             cell: () => (
                 <input
                     type="number"
-                    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     placeholder="Rp0"
                 />
             ),
@@ -145,7 +214,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 <div className="text-center">
                     <Button
                         onClick={() => {
-                            dispatch(deleteRow({ tableName, id: row.original.id }));
+                            handleDelete(row.original.id);
                             toast.error("Produk berhasil dihapus!");
                         }}
                         className="bg-red-500 hover:bg-red-600 size-7"
@@ -184,7 +253,20 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         toast.error("Table berhasil dihapus!");
     };
 
+    const handleInputClick = () => {
+        const inputData = {
+            tanggal: date ? format(date, "yyyy-MM-dd") : null,
+            distributor: value || null,
+            // tabel: data,
+        };
+        console.log("Input Data:", inputData);
+        toast.success("Produk berhasil diinput!");
+        dispatch(clearTable({ tableName: "transaksi" }));
+    };
+
+
     return (
+        
         <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
                 <div className="flex flex-wrap items-end gap-4">
@@ -273,7 +355,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         >
                             Termasuk PPN
                         </label>
-                        
+
                     </div>
                 </div>
                 <div className='flex items-end gap-2'>
@@ -294,7 +376,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </DialogContent>
                     </Dialog>
                     <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
-                   
+
                 </div>
             </div>
 
@@ -343,7 +425,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 </Table>
             </div>
             <div className='flex justify-end gap-2 mt-4 '>
-                <Button className='font-medium bg-blue-500 hover:bg-blue-600  '>Input</Button>
+                <Button className='font-medium bg-blue-500 hover:bg-blue-600 ' onClick={handleInputClick}>Input</Button>
             </div>
         </div>
 
