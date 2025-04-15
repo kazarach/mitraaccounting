@@ -192,10 +192,13 @@ const ReturnSelling = () => {
               <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead>Jumlah Retur</TableHead>
-                    <TableHead className="text-left">Keterangan</TableHead>
-                    <TableHead className="text-left">Hapus Diskon</TableHead>
-                    <TableHead className="text-left">Aksi</TableHead>
+                    <TableHead>Produk</TableHead>
+                    <TableHead className="text-left">Jumlah barang</TableHead>
+                    <TableHead className="text-left">Jumlah Return</TableHead>
+                    <TableHead className="text-left">Isi Packing</TableHead>
+                    <TableHead className="text-left">Satuan</TableHead>
+                    <TableHead className="text-left">Harga Beli</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -209,6 +212,9 @@ const ReturnSelling = () => {
                   data.map((item) => (
                     <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.produk}</TableCell>
+                        <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                        <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
+                        <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
                         <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
                         <TableCell className="text-left"><input type="number" className='text-left w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
                         <TableCell className="text-right">

@@ -21,6 +21,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 // Pindahkan data menu ke atas
 const Menus = [
@@ -253,12 +254,18 @@ export function AppSidebar() {
                 </p>
               </div>
               <div className="grid gap-2">
-                <Button>
-                  <a href="#">Admin Page</a>
+                <a href="/login">
+                <Button className="w-full cursor-pointer">
+                  Admin Page
                 </Button>
-                <Button className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white">
-                  <a href="/login">Logout</a>
-                </Button>
+                </a>
+                <a href="/login">
+                  <Button
+                    className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white cursor-pointer w-full"
+                  >
+                    Logout
+                  </Button>
+                </a>
               </div>
             </div>
           </PopoverContent>
