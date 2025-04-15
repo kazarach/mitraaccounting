@@ -1,4 +1,5 @@
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -16,6 +17,7 @@ router.register(r'users', UserAccountViewSet, basename='user')
 router.register(r'roles', UserRoleViewSet, basename='role')
 router.register(r'stock', StockViewSet, basename='stock')
 #/low_stock, /update_margin
+
 router.register(r'categories', CategoryViewSet, basename='category')
 
 router.register(r'transactions', TransactionHistoryViewSet, basename='transaction')
@@ -30,4 +32,10 @@ urlpatterns = [
 
     path('', include(router.urls)),
 
+    # OpenAPI schema
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # Swagger UI
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    # Redoc
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
