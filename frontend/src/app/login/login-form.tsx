@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { SelectItemText } from "@radix-ui/react-select";
+import { useRouter } from "next/navigation";
 
 const schema = yup.object().shape({
     username: yup.string().required("Username wajib diisi"),
@@ -43,7 +45,8 @@ export function LoginForm({
     ...props
 }: React.ComponentProps<"div">) {
     const [errorMessage, setErrorMessage] = useState("");
-
+    const router = useRouter()
+    
     const {
         register,
         handleSubmit,
@@ -62,11 +65,16 @@ export function LoginForm({
         try {
             const response = await trigger(data);
             console.log("Sukses login:", response);
-            // Simpan token, redirect, dll
+            if (response.access && response.refresh) {
+                localStorage.setItem("access", response.access);
+                localStorage.setItem("refresh", response.refresh);
+            }
+            router.push("/");
         } catch (err: any) {
             setErrorMessage(err.message);
         }
     };
+
 
     return (
         <div className={cn("flex flex-col gap-4", className)} {...props}>
@@ -99,7 +107,7 @@ export function LoginForm({
                     </form>
                     <div className="relative hidden bg-muted md:block">
                         <img
-                            src="https://i.ibb.co.com/twnGw48n/Whats-App-Image-2025-04-14-at-16-24-14-87747106.jpg"
+                            src="/menu"
                             alt="Image"
                             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                         />
