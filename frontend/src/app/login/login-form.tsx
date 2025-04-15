@@ -99,7 +99,7 @@ export function LoginForm({
                     </form>
                     <div className="relative hidden bg-muted md:block">
                         <img
-                            src="/placeholder.svg"
+                            src="https://i.ibb.co.com/twnGw48n/Whats-App-Image-2025-04-14-at-16-24-14-87747106.jpg"
                             alt="Image"
                             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                         />
