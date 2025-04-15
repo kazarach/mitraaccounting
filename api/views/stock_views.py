@@ -2,12 +2,51 @@ from rest_framework import viewsets, filters, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from decimal import Decimal, InvalidOperation
 
 from ..models import Stock
 from ..serializers import StockSerializer, StockDetailSerializer
 from ..filters.stock_filters import StockFilter
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List stocks",
+        description="Get a list of all stocks with pagination, filtering, and search capabilities.",
+        responses={200: StockSerializer(many=True)},
+        tags=["Stock"]
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve stock",
+        description="Get detailed information about a specific stock item.",
+        responses={200: StockDetailSerializer},
+        tags=["Stock"]
+    ),
+    create=extend_schema(
+        summary="Create stock",
+        description="Create a new stock item.",
+        responses={201: StockSerializer},
+        tags=["Stock"]
+    ),
+    update=extend_schema(
+        summary="Update stock",
+        description="Update all fields of an existing stock item.",
+        responses={200: StockSerializer},
+        tags=["Stock"]
+    ),
+    partial_update=extend_schema(
+        summary="Partial update stock",
+        description="Update one or more fields of an existing stock item.",
+        responses={200: StockSerializer},
+        tags=["Stock"]
+    ),
+    destroy=extend_schema(
+        summary="Delete stock",
+        description="Delete an existing stock item.",
+        responses={204: None},
+        tags=["Stock"]
+    )
+)
 class StockViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing stock items.
@@ -30,6 +69,16 @@ class StockViewSet(viewsets.ModelViewSet):
             return StockDetailSerializer
         return StockSerializer
     
+    @extend_schema(
+        summary="Get low stock items",
+        description="Return all stock items that are below their minimum stock level.",
+        responses={200: OpenApiExample(
+            'Low stock items',
+            value={"success": True, "stock": [{"id": 1, "name": "Example Item", "quantity": 5, "min_stock": 10}]},
+            response_only=True
+        )},
+        tags=["Stock"]
+    )
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
         """
@@ -42,7 +91,24 @@ class StockViewSet(viewsets.ModelViewSet):
                 'success': True,
                 'stock': serializer.data
             })
-    
+
+    @extend_schema(
+        summary="Update stock margin",
+        description="Update the margin based on the provided sell price.",
+        request={
+            "application/json": {
+                "example": {
+                    "sell_price": "15000"
+                }
+            }
+        },
+        responses={200: OpenApiExample(
+            'Margin updated',
+            value={"success": True, "margin": "15.00"},
+            response_only=True
+        )},
+        tags=["Stock"]
+    )
     @action(detail=True, methods=['post'])
     def update_margin(self, request, pk=None):
         """
@@ -76,6 +142,30 @@ class StockViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Update stock quantity",
+        description="Update stock quantity with automatic conversion if needed.",
+        request={
+            "application/json": {
+                "example": {
+                    "quantity_change": "10.5"
+                }
+            }
+        },
+        responses={
+            200: OpenApiExample(
+                'Quantity updated',
+                value={"success": True, "new_quantity": "25.5"},
+                response_only=True
+            ),
+            400: OpenApiExample(
+                'Invalid request',
+                value={"error": "Not enough stock available for this operation"},
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
     @action(detail=True, methods=['post'])
     def update_quantity(self, request, pk=None):
         """
@@ -108,6 +198,16 @@ class StockViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get related stocks",
+        description="Get all stocks related to this one (parent, siblings, children).",
+        responses={200: OpenApiExample(
+            'Related stocks',
+            value={"success": True, "stock": [{"id": 2, "name": "Related Item 1"}, {"id": 3, "name": "Related Item 2"}]},
+            response_only=True
+        )},
+        tags=["Stock"]
+    )
     @action(detail=True, methods=['get'])
     def related_stocks(self, request, pk=None):
         """
@@ -122,6 +222,44 @@ class StockViewSet(viewsets.ModelViewSet):
                 'stock': serializer.data
             })
     
+    @extend_schema(
+        summary="Convert stock quantities",
+        description="Convert stock quantity between related stocks.",
+        request={
+            "application/json": {
+                "example": {
+                    "target_stock_id": 2,
+                    "quantity": "5.0"
+                }
+            }
+        },
+        responses={
+            200: OpenApiExample(
+                'Conversion successful',
+                value={
+                    "success": True,
+                    "source_stock": {
+                        "id": 1,
+                        "name": "Source Item",
+                        "quantity": "15.0"
+                    },
+                    "target_stock": {
+                        "id": 2,
+                        "name": "Target Item",
+                        "quantity": "10.0"
+                    },
+                    "converted_quantity": "2.5"
+                },
+                response_only=True
+            ),
+            400: OpenApiExample(
+                'Invalid request',
+                value={"error": "Not enough source stock available"},
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
     @action(detail=True, methods=['post'])
     def convert_stock(self, request, pk=None):
         """
@@ -138,16 +276,15 @@ class StockViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if target_stock not in source_stock.get_related_stocks():
-            return Response(
-                {'error': 'Target stock is not related to source stock'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         try:
             target_stock = Stock.objects.get(id=target_stock_id)
             quantity = Decimal(str(quantity))
-
+            
+            if target_stock not in source_stock.get_related_stocks():
+                return Response(
+                    {'error': 'Target stock is not related to source stock'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
             # Check if we have enough stock
             if source_stock.quantity < quantity:
@@ -191,6 +328,35 @@ class StockViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Preview stock conversion",
+        description="Preview a manual conversion between related stocks without making changes.",
+        request={
+            "application/json": {
+                "example": {
+                    "target_stock_id": 2,
+                    "quantity": "5.0"
+                }
+            }
+        },
+        responses={
+            200: OpenApiExample(
+                'Conversion preview',
+                value={
+                    "converted_quantity": "2.5",
+                    "source_unit": "kg",
+                    "target_unit": "box"
+                },
+                response_only=True
+            ),
+            400: OpenApiExample(
+                'Invalid request',
+                value={"error": "Target stock is not related to source stock"},
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
     @action(detail=True, methods=['post'])
     def conversion_preview(self, request, pk=None):
         """

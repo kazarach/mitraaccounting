@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
     'corsheaders',
     'api',
     'django_filters',
@@ -188,3 +189,10 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
     "x-refresh-token",
 ]
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'My API',
+    'DESCRIPTION': 'API documentation for My Django App',
+    'VERSION': '1.0.0',
+    # Add more customizations if needed
+}
