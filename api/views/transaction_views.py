@@ -3,11 +3,15 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
+from django.utils import timezone
+from django.db.models import Sum
+from datetime import timedelta, datetime 
 
-from ..filters.transaction_history_filters import TransactionHistoryFilter
+from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
 from ..models import TransactionHistory, TransItemDetail
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 
+import pytz
 
 @extend_schema_view(
     list=extend_schema(
@@ -130,3 +134,75 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
 class TransItemDetailViewSet(viewsets.ModelViewSet):
     queryset = TransItemDetail.objects.select_related('transaction', 'stock')
     serializer_class = TransItemDetailSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TransactionItemDetailFilter
+
+    @extend_schema(
+        summary="Fast moving items",
+        description="List fast moving items sold today, this week, or this month. Supports filters.",
+        tags=["Transaction"],
+        parameters=[
+            OpenApiParameter(
+                name='range',
+                description='Date range to filter by. Options: today, week, month.',
+                required=False,
+                type=str,
+                enum=['today', 'week', 'month'],
+            ),
+                OpenApiParameter(name='cashier', type=int, required=False),
+                OpenApiParameter(name='th_status', type=str, required=False),
+                OpenApiParameter(name='start_date', type=str, required=False, description='Format: YYYY-MM-DD'),
+                OpenApiParameter(name='end_date', type=str, required=False, description='Format: YYYY-MM-DD'),
+        ]
+    )
+    @action(detail=False, methods=['get'])
+    def fast_moving(self, request):
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        now_jakarta = timezone.now().astimezone(jakarta_tz)
+        today = now_jakarta.date()
+
+        # 1. Check explicit dates first
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+        else:
+            # 2. Fallback to range option
+            range_type = request.query_params.get('range', 'today')
+            if range_type == 'week':
+                start_date = today - timedelta(days=today.weekday())
+            elif range_type == 'month':
+                start_date = today.replace(day=1)
+            else:
+                start_date = today
+            end_date = today
+
+        # Filter transactions based on date range
+        base_qs = TransactionHistory.objects.filter(th_date__range=(start_date, end_date))
+        filterset = TransactionHistoryFilter(request.GET, queryset=base_qs)
+        filtered_transactions = filterset.qs
+
+        items = TransItemDetail.objects.filter(
+            transaction__in=filtered_transactions
+        ).values(
+            'stock_id',
+            'stock__name'
+        ).annotate(
+            total_quantity=Sum('quantity')
+        ).order_by('-total_quantity')
+
+        result = [
+            {
+                "stock_id": item['stock_id'],
+                "stock_name": item['stock__name'],
+                "total_quantity": item['total_quantity']
+            }
+            for item in items
+        ]
+
+        return Response(result)

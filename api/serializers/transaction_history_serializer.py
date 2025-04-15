@@ -6,7 +6,7 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransItemDetail
         fields = [
-            'id',
+            'transaction',
             'stock',
             'stock_code',
             'stock_name',

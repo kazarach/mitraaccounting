@@ -8,3 +8,4 @@ psycopg2
 django-mptt
 faker
 drf-spectacular
+pytz
