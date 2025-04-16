@@ -10,6 +10,7 @@ from api.views import UserAccountViewSet, UserRoleViewSet
 from api.views import StockViewSet
 from api.views import CategoryViewSet
 from api.views import TransItemDetailViewSet, TransactionHistoryViewSet
+from api.views import SupplierViewSet
 
 # Create a router and register viewsets
 router = DefaultRouter()
@@ -22,7 +23,7 @@ router.register(r'categories', CategoryViewSet, basename='category')
 
 router.register(r'transactions', TransactionHistoryViewSet, basename='transaction')
 router.register(r'trans-items', TransItemDetailViewSet, basename='transitem')
-
+router.register(r'suppliers', SupplierViewSet, basename='supplier')
 
 
 urlpatterns = [
