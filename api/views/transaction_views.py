@@ -191,7 +191,9 @@ class TransItemDetailViewSet(viewsets.ModelViewSet):
             transaction__in=filtered_transactions
         ).values(
             'stock_id',
-            'stock__name'
+            'stock__name',
+            'stock__barcode',
+            'stock__supplier__name'
         ).annotate(
             total_quantity=Sum('quantity')
         ).order_by('-total_quantity')
@@ -200,7 +202,9 @@ class TransItemDetailViewSet(viewsets.ModelViewSet):
             {
                 "stock_id": item['stock_id'],
                 "stock_name": item['stock__name'],
-                "total_quantity": item['total_quantity']
+                "stock_barcode": item['stock__barcode'],
+                "stock_supplier": item['stock__supplier__name'],
+                "total_quantity": item['total_quantity'],
             }
             for item in items
         ]

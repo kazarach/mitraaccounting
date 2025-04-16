@@ -5,3 +5,4 @@ from .category_serializer import CategorySerializer, CategoryCreateUpdateSeriali
 from .user_serializer import UserAccountSerializer, UserRegistrationSerializer, UserRoleSerializer
 from .transaction_history_serializer import TransactionHistorySerializer, TransItemDetailSerializer
 from .bank_serializer import BankSerializer
+from .supplier_serializer import SupplierSerializer, SupplierCreateUpdateSerializer

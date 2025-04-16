@@ -4,15 +4,61 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from decimal import Decimal, InvalidOperation
+from django.db.models import Sum, OuterRef, Subquery
 
-from ..models import Stock
+from ..models import Stock, TransItemDetail
 from ..serializers import StockSerializer, StockDetailSerializer
 from ..filters.stock_filters import StockFilter
 
 @extend_schema_view(
     list=extend_schema(
         summary="List stocks",
-        description="Get a list of all stocks with pagination, filtering, and search capabilities.",
+        description="Get a list of all stocks with pagination, filtering, and search capabilities. Add include_sales=true to include sales data for each stock.",
+        parameters=[
+            OpenApiParameter(
+                name='include_sales',
+                description='Include sales quantity data for each stock item',
+                required=False,
+                type=bool,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='range',
+                description='Date range for sales data: today, week, month',
+                required=False,
+                type=str,
+                enum=['today', 'week', 'month'],
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='start_date',
+                description='Start date for sales data (format: YYYY-MM-DD)',
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='end_date',
+                description='End date for sales data (format: YYYY-MM-DD)',
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='th_status',
+                description='Transaction status filter for sales data',
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='cashier',
+                description='Cashier ID filter for sales data',
+                required=False,
+                type=int,
+                location=OpenApiParameter.QUERY
+            ),
+        ],
         responses={200: StockSerializer(many=True)},
         tags=["Stock"]
     ),
@@ -393,3 +439,107 @@ class StockViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Target stock not found'}, status=404)
         except (InvalidOperation, ValueError, TypeError):
             return Response({'error': 'Invalid quantity'}, status=400)
+        
+    def list(self, request, *args, **kwargs):
+        """Override list method to include sales data when requested"""
+        # Get filtered queryset using existing filters
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Check if we need to include sales data
+        include_sales = request.query_params.get('include_sales', '').lower() == 'true'
+        
+        # Get paginated results if pagination is enabled
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = serializer.data
+            
+            # Add sales data if requested
+            if include_sales:
+                self._enhance_with_sales_data(data, request)
+                
+            return self.get_paginated_response(data)
+            
+        # Handle non-paginated results
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        
+        # Add sales data if requested
+        if include_sales:
+            self._enhance_with_sales_data(data, request)
+            
+        return Response(data)
+    
+    def _enhance_with_sales_data(self, stock_data, request):
+        """Add sales data to stock items based on TransItemDetail records"""
+        # Extract stock IDs
+        stock_ids = [item['id'] for item in stock_data]
+        
+        # Get date range parameters (similar to fast_moving action)
+        from django.utils import timezone
+        import pytz
+        from datetime import timedelta, datetime
+        
+        jakarta_tz = pytz.timezone('Asia/Jakarta')
+        now_jakarta = timezone.now().astimezone(jakarta_tz)
+        today = now_jakarta.date()
+        
+        # Process date range parameters
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                # Default to today if invalid format
+                start_date = today
+                end_date = today
+        else:
+            # Use range parameter with default 'today'
+            range_type = request.query_params.get('range', 'today')
+            if range_type == 'week':
+                start_date = today - timedelta(days=today.weekday())
+            elif range_type == 'month':
+                start_date = today.replace(day=1)
+            else:  # 'today' or any other value
+                start_date = today
+            end_date = today
+        
+        # Query sales data for these stocks within date range
+        from ..models import TransactionHistory  # Import here to avoid circular imports
+        
+        # First get valid transactions in the date range
+        transaction_filter = {'th_date__range': (start_date, end_date)}
+        
+        # Add any additional filters from request if needed
+        th_status = request.query_params.get('th_status')
+        if th_status:
+            transaction_filter['th_status'] = th_status
+            
+        cashier_id = request.query_params.get('cashier')
+        if cashier_id and cashier_id.isdigit():
+            transaction_filter['cashier_id'] = int(cashier_id)
+        
+        transactions = TransactionHistory.objects.filter(**transaction_filter)
+        
+        # Now get sales data for the stocks
+        sales_data = TransItemDetail.objects.filter(
+            transaction__in=transactions,
+            stock_id__in=stock_ids
+        ).values(
+            'stock_id'
+        ).annotate(
+            total_quantity=Sum('quantity')
+        )
+        
+        # Create lookup dictionary
+        sales_by_stock = {item['stock_id']: item['total_quantity'] for item in sales_data}
+        
+        # Add sales data to stock items
+        for stock in stock_data:
+            stock['sales_quantity'] = sales_by_stock.get(stock['id'], 0)
+            # Calculate if this is a fast-moving item (optional)
+            # You could set a threshold or use percentile ranking
+            stock['is_fast_moving'] = stock['sales_quantity'] > 0  # Simple example
