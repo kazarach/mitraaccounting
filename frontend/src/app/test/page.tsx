@@ -79,7 +79,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       accessorKey: "name",
       header: () => (
         <div
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer font-medium"
           onClick={() => {
             const isDesc = sorting[0]?.id === "name" && sorting[0]?.desc;
             setSorting([{ id: "name", desc: !isDesc }]);
@@ -90,13 +90,13 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       ),
     },
     { accessorKey: "barcode", header: "Barcode" },
-    { accessorKey: "quantityOutput", header: "Jumlah Stok" },
+    { accessorKey: "quantity", header: "Jumlah Stok" },
     { accessorKey: "boughtLast7Days", header: "Terbeli (7H)" },
     { accessorKey: "boughtLast30Days", header: "Terbeli (30H)" },
     { accessorKey: "soldLast7Days", header: "Terjual (7H)" },
     { accessorKey: "soldLast30Days", header: "Terjual (30H)" },
     {
-        accessorKey: "purchasePrice",
+        accessorKey: "price_buy",
         header: "Harga Beli",
         cell: ({ getValue }) => {
           const value = getValue<number>();
