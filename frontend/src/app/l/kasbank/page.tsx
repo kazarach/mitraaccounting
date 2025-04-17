@@ -179,9 +179,9 @@ const kasbank = () => {
                                                 <TableCell>{item.noFaktur}</TableCell>
                                                 <TableCell>{item.tanggal}</TableCell>
                                                 <TableCell>{item.keterangan}</TableCell>
-                                                <TableCell className="text-right">{item.masuk.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right">{item.keluar.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right">{item.total.toLocaleString()}</TableCell>
+                                                <TableCell className="text-right">{item.masuk.toLocaleString('id-ID')}</TableCell>
+                                                <TableCell className="text-right">{item.keluar.toLocaleString('id-ID')}</TableCell>
+                                                <TableCell className="text-right">{item.total.toLocaleString('id-ID')}</TableCell>
                                                 <TableCell>{item.tipe}</TableCell>
                                                 <TableCell>{item.operator}</TableCell>
                                                 <TableCell>

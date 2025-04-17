@@ -140,12 +140,12 @@ const StockUse = () => {
                     data.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.barcode ?? "-"}</TableCell>
-                        <TableCell>{item.produk}</TableCell>
+                        <TableCell>{item.name}</TableCell>
                         <TableCell>19</TableCell>
                         <TableCell className="text-left">
                           <input
                             type="number"
-                            defaultValue={item.jumlah ?? 0}
+                            value={item.jumlah_barang}
                             className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                             placeholder="0"
                           />

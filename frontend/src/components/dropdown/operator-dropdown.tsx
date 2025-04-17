@@ -1,55 +1,56 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
-
-const items = [
-  { id: "1", name: "Edwin", role: "admin" },
-  { id: "2", name: "Juan", role: "admin" },
-  { id: "3", name: "Rizky", role: "admin" },
-  { id: "4", name: "Sugeng", role: "staff" },
-  { id: "5", name: "Tresno", role: "staff" },
-]
+import { fetcher } from "@/lib/utils"
+import useSWR from "swr"
 
 export function OperatorDropdown() {
-  const [selected, setSelected] = useState<string[]>([])
+  const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
+  const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/by_role/?role_id=3", fetcher);
 
-  const toggleItem = (id: string) => {
+  // Menangani status loading dan error
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
+
+  const toggleItem = (id: number) => {
     setSelected(prev =>
       prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
     )
   }
 
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  )
+  // Filter data berdasarkan pencarian
+  const filteredItems = Array.isArray(data)
+  ? data.filter((item: { username: string }) =>
+      item.username.toLowerCase().includes(search.toLowerCase())
+    )
+  : []
 
-  const allFilteredSelected = filteredItems.every(item =>
+  const allFilteredSelected = filteredItems.every((item: { id: number}) =>
     selected.includes(item.id)
   )
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
       setSelected(prev =>
-        prev.filter(id => !filteredItems.find(item => item.id === id))
+        prev.filter(id => !filteredItems.find((item: { id: number }) => item.id === id))
       )
     } else {
       setSelected(prev => [
         ...prev,
         ...filteredItems
-          .filter(item => !prev.includes(item.id))
-          .map(item => item.id),
+          .filter((item: { id: number }) => !prev.includes(item.id))
+          .map((item: { id: any }) => item.id),
       ])
     }
   }
-
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -76,7 +77,7 @@ export function OperatorDropdown() {
         </div>
         <ScrollArea className="h-40">
           {filteredItems.length > 0 ? (
-            filteredItems.map(item => (
+            filteredItems.map((item: { id: number; username: string }) => (
               <label
                 key={item.id}
                 className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
@@ -85,7 +86,7 @@ export function OperatorDropdown() {
                   checked={selected.includes(item.id)}
                   onCheckedChange={() => toggleItem(item.id)}
                 />
-                <span>{item.name}</span>
+                <span>{item.username}</span>
               </label>
             ))
           ) : (

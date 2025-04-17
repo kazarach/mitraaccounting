@@ -24,17 +24,26 @@ export const tableSlice = createSlice({
     },
     addRow: (state, action: PayloadAction<{ tableName: string; row: any }>) => {
       const table = state[action.payload.tableName];
-      const nextId = table.length > 0
-        ? Math.max(...table.map((row) => row.id ?? 0)) + 1
-        : 0;
+      const rowToAdd = action.payload.row;
     
-      const rowWithId = {
-        ...action.payload.row,
-        id: action.payload.row.id ?? nextId,
-      };
+      const existingRowIndex = table.findIndex((row) => row.name === rowToAdd.name);
     
-      table.push(rowWithId);
+      if (existingRowIndex !== -1) {
+        table[existingRowIndex].jumlah_barang += rowToAdd.jumlah_barang;
+      } else {
+        const nextId = table.length > 0
+          ? Math.max(...table.map((row) => row.id ?? 0)) + 1
+          : 0;
+    
+        const rowWithId = {
+          ...rowToAdd,
+          id: rowToAdd.id ?? nextId,
+        };
+    
+        table.push(rowWithId);
+      }
     },
+    
     updateRow: (state, action: PayloadAction<{ tableName: string; index: number; row: any }>) => {
       state[action.payload.tableName][action.payload.index] = action.payload.row;
     },
