@@ -27,24 +27,11 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 import useSWR from "swr";
+import { fetcher } from "@/lib/utils";
 
 interface TambahProdukModalProps {
   tableName: string;
 }
-
-const fetcher = (url: string) => {
-  const access = localStorage.getItem("access");
-  const refresh = localStorage.getItem("refresh");
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  if (access) headers["Authorization"] = `Bearer ${access}`;
-  if (refresh) headers["x-refresh-token"] = refresh;
-
-  return fetch(url, { headers }).then((res) => res.json());
-};
 
 const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const dispatch = useDispatch();
@@ -52,7 +39,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
-  const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/stock/", fetcher);
+  const { data, error, isLoading, mutate } = useSWR("http://127.0.0.1:8000/api/stock/", fetcher);
 
   const handleAddProduct = (product: any) => {
     const quantity = quantities[product.id] ?? 1;

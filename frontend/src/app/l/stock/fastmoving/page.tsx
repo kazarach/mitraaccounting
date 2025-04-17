@@ -1,5 +1,7 @@
 "use client";
+
 import React, { useState } from 'react';
+import useSWR from 'swr';
 import {
   Table, TableBody, TableCaption, TableCell, TableHead,
   TableHeader, TableRow
@@ -11,32 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, fetcher } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, addDays } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DateRange } from "react-day-picker";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const FastMoving = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1, "produk": "Susu Coklat Bubuk", "jumlah_pesanan": 10, "jumlah_barang": 10,
-      "isi_packing": 24, "satuan": "Kardus", "harga_beli": 150000,
-      "diskon_persen": 5, "diskon_rupiah": 7500, "subtotal": 142500
-    },
-    {
-      "id": 2, "produk": "Teh Hijau Organik", "jumlah_pesanan": 5, "jumlah_barang": 5,
-      "isi_packing": 12, "satuan": "Pack", "harga_beli": 200000,
-      "diskon_persen": 10, "diskon_rupiah": 20000, "subtotal": 180000
-    },
-    {
-      "id": 3, "produk": "Kopi Arabika", "jumlah_pesanan": 8, "jumlah_barang": 8,
-      "isi_packing": 6, "satuan": "Kardus", "harga_beli": 800000,
-      "diskon_persen": 15, "diskon_rupiah": 120000, "subtotal": 680000
-    }
-  ]);
-
   const distributors = [
     { value: "1", label: "Distributor A" },
     { value: "2", label: "Distributor B" },
@@ -45,12 +30,25 @@ const FastMoving = () => {
     { value: "5", label: "Distributor E" },
   ];
 
-  const [value, setValue] = React.useState("");
-  const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 7),
-  });
+  const [range, setRange] = useState("day");
+
+  const [value, setValue] = useState("");
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState<DateRange | undefined>(undefined);  // Ubah ke undefined
+
+
+  const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
+  const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
+
+  const { data, error, isLoading } = useSWR(
+    startDate && endDate
+      ? `http://127.0.0.1:8000/api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
+      : range
+      ? `http://127.0.0.1:8000/api/trans-items/fast_moving/?range=${range}`
+      : null,  // Jika tidak ada parameter apapun, jangan lakukan fetch
+    fetcher
+  );
+  // console.log("data:",data)
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -118,10 +116,8 @@ const FastMoving = () => {
                       <Button
                         id="date-range"
                         variant={"outline"}
-                        className={cn(
-                          "w-[300px] justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
+                        className="w-[300px] justify-start text-left font-normal"
+                        disabled={false}  // Disable jika range dipilih
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {date?.from ? (
@@ -147,9 +143,30 @@ const FastMoving = () => {
                         onSelect={setDate}
                         numberOfMonths={2}
                       />
+                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
                 </div>
+
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="waktu">Waktu</Label>
+                  <Select
+                    value={range}
+                    onValueChange={(val) => setRange(val)}
+                    disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Pilih Waktu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Hari Ini</SelectItem>
+                      <SelectItem value="week">Mingguan</SelectItem>
+                      <SelectItem value="month">Bulanan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+
               </div>
 
               <div className='flex items-end gap-2'>
@@ -164,28 +181,30 @@ const FastMoving = () => {
               </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nomor</TableHead>
-                    <TableHead className="text-left">Barcode</TableHead>
-                    <TableHead className="text-left">Code</TableHead>
-                    <TableHead className="text-left">Nama</TableHead>
-                    <TableHead className="text-left">Jumlah</TableHead>
-                    <TableHead className="text-left">Pemasok</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.produk}</TableCell>
+            {isLoading && <p>Loading data...</p>}
+            {error && <p className="text-red-500">Error: {error.message}</p>}
+
+            {!isLoading && !error && (
+              <div className="rounded-md border overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nomor</TableHead>
+                      <TableHead className="text-left">Barcode</TableHead>
+                      <TableHead className="text-left">Nama</TableHead>
+                      <TableHead className="text-left">Jumlah</TableHead>
+                      <TableHead className="text-left">Pemasok</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {data.map((item: any, index: number) => (
+                    <TableRow key={item.stock_id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className="text-left">{item.stock_barcode}</TableCell>
+                      <TableCell className="text-left">{item.stock_name}</TableCell>
+                      <TableCell className="text-left">{item.total_quantity}</TableCell>
+                      <TableCell className="text-left">{item.stock_supplier ?? "-"}</TableCell>
                       <TableCell className="text-right">
                         <Button className='bg-red-500 hover:bg-red-600 size-7'>
                           <Trash />
@@ -193,10 +212,12 @@ const FastMoving = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className='flex gap-2 justify-end '>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className='flex gap-2 justify-end'>
               <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
             </div>
           </div>
