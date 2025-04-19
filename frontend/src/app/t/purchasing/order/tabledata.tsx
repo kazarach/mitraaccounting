@@ -42,24 +42,25 @@ import { yupResolver } from "@hookform/resolvers/yup";
 
 
 export const schema = yup.object({
-  tanggal: yup.date().required("Tanggal wajib diisi"),
-//   produk: yup.array().of(
-//     yup.object({
-//       id: yup.number().required("ID produk wajib ada"),
-//       name: yup.string().required("Nama produk wajib diisi"),
-//       jumlah_pesanan: yup.number().required("Jumlah pesanan wajib diisi"),
-//       jumlah_barang: yup.number().required("Jumlah barang wajib diisi"),
-//       isi_packing: yup.number().required("Isi packing wajib diisi"),
-//       satuan: yup.string().required("Satuan wajib diisi"),
-//       harga_beli: yup.number().required("Harga beli wajib diisi"),
-//       diskon_persen: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       diskon_rp: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       diskon_nota: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       total: yup.number().required("Total wajib dihitung"),
-//       total2: yup.number().required("Total2 (inc. PPN) wajib dihitung"),
-//     })
-//   ).min(1, "Minimal 1 produk harus dimasukkan"),
-//   total: yup.number().required("Total keseluruhan wajib dihitung"),
+    tanggal: yup.date().required("Tanggal wajib diisi"),
+    distributor: yup.string().required("Distributor wajib dipilih"),
+    //   produk: yup.array().of(
+    //     yup.object({
+    //       id: yup.number().required("ID produk wajib ada"),
+    //       name: yup.string().required("Nama produk wajib diisi"),
+    //       jumlah_pesanan: yup.number().required("Jumlah pesanan wajib diisi"),
+    //       jumlah_barang: yup.number().required("Jumlah barang wajib diisi"),
+    //       isi_packing: yup.number().required("Isi packing wajib diisi"),
+    //       satuan: yup.string().required("Satuan wajib diisi"),
+    //       harga_beli: yup.number().required("Harga beli wajib diisi"),
+    //       diskon_persen: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+    //       diskon_rp: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+    //       diskon_nota: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
+    //       total: yup.number().required("Total wajib dihitung"),
+    //       total2: yup.number().required("Total2 (inc. PPN) wajib dihitung"),
+    //     })
+    //   ).min(1, "Minimal 1 produk harus dimasukkan"),
+    //   total: yup.number().required("Total keseluruhan wajib dihitung"),
 });
 
 
@@ -77,6 +78,7 @@ interface TransactionRow {
 
 interface inputForm {
     tanggal: Date,
+    distributor: string,
     // produk: [
     //     {
     //         id: number,
@@ -100,23 +102,23 @@ interface Props {
     tableName: string;
 }
 
-const ReturTransTable: React.FC<Props> = ({ tableName }) => {
+const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
     const [selectedDistributor, setSelectedDistributor] = useState("All");
     const [date, setDate] = React.useState<Date>()
     const [open, setOpen] = React.useState(false)
     const [value, setValue] = React.useState("")
 
-    const data = useSelector((state: RootState) => state.table["return"] || []);
+    const data = useSelector((state: RootState) => state.table["order"] || []);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
         reset,
-      } = useForm<inputForm>({
+    } = useForm<inputForm>({
         resolver: yupResolver(schema),
-      });
+    });
 
     const columns: ColumnDef<TransactionRow>[] = [
         {
@@ -124,20 +126,15 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
             accessorKey: "name",
         },
         {
-            header: "Jumlah barang",
-            accessorKey: "jumlah_barang",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        },
-        {
-            header: "Jumlah Return",
+            header: "Jumlah Barang",
 
             cell: ({ row }) => {
-                
+                const jumlahBarang = row.original.jumlah_barang || 0;
 
                 return (
                     <input
                         type="number"
-                        
+                        defaultValue={jumlahBarang}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                         placeholder="0"
                     />
@@ -154,27 +151,12 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
             accessorKey: "satuan",
         },
         {
-            header: "Harga Beli",
-            cell: ({ row }) => {
-                const harga_beli = row.original.harga_beli || 0;
-
-                return (
-                    <input
-                        type="number"
-                        defaultValue={harga_beli}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
-                    />
-                );
-            },
-        },
+            header: "Harga Beli Terakhir",
+            accessorKey: "harga_beli",
+        },      
         {
             header: "Total",
             accessorFn: (row) => `Rp${row.subtotal.toLocaleString("id-ID")}`,
-        },
-        {
-            header: "Inc. PPN",
-            accessorFn: (row) => `Rp${(row.subtotal * 1.11).toLocaleString("id-ID")}`,
         },
         {
             header: "Action",
@@ -204,7 +186,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
         if (data.length === 0) {
             dispatch(
                 setTableData({
-                    tableName: "transaksi",
+                    tableName: "order",
                     data: [],
                 })
             );
@@ -212,28 +194,29 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     }, [dispatch]);
 
     const handleDelete = (id: number) => {
-        dispatch(deleteRow({ tableName: "return", id }));
+        dispatch(deleteRow({ tableName: "order", id }));
         toast.error("Produk berhasil dihapus!");
     };
 
     const handleClear = () => {
-        dispatch(clearTable({ tableName: "return" }));
+        dispatch(clearTable({ tableName: "order" }));
         toast.error("Table berhasil dihapus!");
     };
 
     const handleInputClick = () => {
         const inputData = {
             tanggal: date ? format(date, "yyyy-MM-dd") : null,
+            distributor: value || null,
             // tabel: data,
         };
         console.log("Input Data:", inputData);
         toast.success("Produk berhasil diinput!");
-        dispatch(clearTable({ tableName: "return" }));
+        dispatch(clearTable({ tableName: "order" }));
     };
 
 
     return (
-        
+
         <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
                 <div className="flex flex-wrap items-end gap-4">
@@ -262,22 +245,68 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                             </PopoverContent>
                         </Popover>
                     </div>
+                    <div className="flex flex-col space-y-2">
+                        <Label htmlFor="distributor">Distributor</Label>
+                        <Popover open={open} onOpenChange={setOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={open}
+                                    className="w-[200px] justify-between font-normal"
+                                >
+                                    {value
+                                        ? distributors.find((d) => d.value === value)?.label
+                                        : "Pilih Distributor"}
+                                    <ChevronsUpDown className="opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[200px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Pilih Distributor" />
+                                    <CommandList>
+                                        <CommandEmpty>Distributor Tidak Ditemukan.</CommandEmpty>
+                                        <CommandGroup>
+                                            {distributors.map((d) => (
+                                                <CommandItem
+                                                    key={d.value}
+                                                    value={d.label}
+                                                    data-value={d.value}
+                                                    onSelect={(currentLabel: string) => {
+                                                        const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
+                                                        if (selectedDistributor) {
+                                                            setValue(selectedDistributor.value);
+                                                        } else {
+                                                            setValue("");
+                                                        }
+                                                        setOpen(false);
+                                                    }}
+                                                >
+                                                    {d.label}
+                                                    <Check
+                                                        className={cn(
+                                                            "ml-auto",
+                                                            value === d.value ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    
                 </div>
                 <div className='flex items-end gap-2'>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
-                        </DialogTrigger>
-                        <DialogContent className="w-[80vw] max-h-[90vh]">
-                            <TpModal />
-                        </DialogContent>
-                    </Dialog>
+                    
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                         </DialogTrigger>
                         <DialogContent className="w-[80vw] max-h-[90vh]">
-                            <TambahProdukModal tableName='return' />
+                            <TambahProdukModal tableName='order' />
                         </DialogContent>
                     </Dialog>
                     <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -319,7 +348,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-white">
-                            <TableCell colSpan={7} className="text-right font-bold">
+                            <TableCell colSpan={6} className="text-right font-bold">
                                 Total:
                             </TableCell>
                             <TableCell className="text-left font-bold">
@@ -337,4 +366,4 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     );
 };
 
-export default ReturTransTable;
+export default OrderTransTable;
