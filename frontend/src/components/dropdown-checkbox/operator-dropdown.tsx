@@ -16,7 +16,6 @@ export function OperatorDropdown() {
   const [search, setSearch] = useState("")
   const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/by_role/?role_id=3", fetcher);
 
-  // Menangani status loading dan error
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
@@ -26,7 +25,6 @@ export function OperatorDropdown() {
     )
   }
 
-  // Filter data berdasarkan pencarian
   const filteredItems = Array.isArray(data)
   ? data.filter((item: { username: string }) =>
       item.username.toLowerCase().includes(search.toLowerCase())

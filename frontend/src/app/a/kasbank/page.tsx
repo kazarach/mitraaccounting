@@ -27,8 +27,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { operators } from '@/data/product';
-import { TipeDropdown } from '@/components/dropdown/tipe-dropdown';
-import { OperatorDropdown } from '@/components/dropdown/operator-dropdown';
+import { TipeDropdown } from '@/components/dropdown-checkbox/tipe-dropdown';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 import { DateRange } from 'react-day-picker';
 
 const TransferKasBank = () => {

@@ -34,8 +34,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { distributors, operators, poinMemberPelanggan } from '@/data/product';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { OperatorDropdown } from '@/components/dropdown/operator-dropdown';
-import { TipeDropdown } from '@/components/dropdown/tipe-dropdown';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import { TipeDropdown } from '@/components/dropdown-checkbox/tipe-dropdown';
 import { DateRange } from 'react-day-picker';
 
 
