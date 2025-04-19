@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, addDays } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -194,7 +194,6 @@ const FastMoving = () => {
                       <TableHead className="text-left">Nama</TableHead>
                       <TableHead className="text-left">Jumlah</TableHead>
                       <TableHead className="text-left">Pemasok</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -205,11 +204,6 @@ const FastMoving = () => {
                       <TableCell className="text-left">{item.stock_name}</TableCell>
                       <TableCell className="text-left">{item.total_quantity}</TableCell>
                       <TableCell className="text-left">{item.stock_supplier ?? "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash />
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                   </TableBody>
