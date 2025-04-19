@@ -22,7 +22,9 @@ class Customer(models.Model):
     customer_date = models.DateField(blank=True, null=True)
     duedate = models.DateField(blank=True, null=True)
     changed = models.DateTimeField(auto_now=True)
-    # Link to Django User model if needed
+    
+    credit_term_days = models.IntegerField(default=14)
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     def __str__(self):
         return self.name

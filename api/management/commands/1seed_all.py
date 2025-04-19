@@ -8,6 +8,7 @@ class Command(BaseCommand):
         # List of seeder commands to run in order
         seeders = [
             'seed_user',
+            'seed_member_type',
             'seed_unit',
             'seed_category',
             'seed_warehouse',
@@ -17,7 +18,6 @@ class Command(BaseCommand):
             'seed_bank',
             'seed_customer',
             'seed_log_drawer',
-            'seed_member_type',
             'seed_myindex',
             'seed_sales',
 

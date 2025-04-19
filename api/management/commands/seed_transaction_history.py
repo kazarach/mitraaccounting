@@ -1,9 +1,10 @@
 import random
 from django.core.management.base import BaseCommand
-from django.db import transaction as db_transaction  # Rename to avoid conflicts
+from django.db import transaction as db_transaction
 from faker import Faker
 from decimal import Decimal
 from django.utils import timezone
+from datetime import timedelta, date
 
 from api.models.transaction_history import TransactionHistory, TransItemDetail
 from api.models.supplier import Supplier
@@ -19,39 +20,48 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-        
+
         # Ensure related models have some data to reference
         self.ensure_related_models_exist()
-        
+
         # Clear existing transaction history data
         TransactionHistory.objects.all().delete()
-        
-        # Generate transaction histories
+
+        # Set the start and end dates for 2025
+        start_date = date(2025, 1, 1)
+        end_date = date(2025, 12, 31)
+
+        # Generate transaction histories for each day in 2025
         transactions_to_create = []
-        for _ in range(50):  # Create 50 transaction histories
-            transaction = self.create_transaction_history(fake)
-            transactions_to_create.append(transaction)
+        transaction_items = []
         
-        # Bulk create to improve performance
+        current_date = start_date
+        while current_date <= end_date:
+            # For each day, ensure at least 3 transactions with at least 10 items
+            for _ in range(3):
+                transaction = self.create_transaction_history(fake, current_date)
+                transactions_to_create.append(transaction)
+                
+                # Save transaction first to assign the primary key
+                transaction.save()
+
+                # Create at least 10 items for each transaction
+                transaction_items.extend(self.create_transaction_items(transaction, 10))
+            
+            current_date += timedelta(days=1)
+
+        # Bulk create transaction items
         try:
             with db_transaction.atomic():
-
-                # First create transaction histories
-                created_transactions = TransactionHistory.objects.bulk_create(transactions_to_create)
-                
-                # Then create transaction item details for each transaction
-                transaction_items = []
-                for transaction in created_transactions:
-                    # Create 1-5 transaction items for each transaction
-                    num_items = random.randint(1, 5)
-                    transaction_items.extend(
-                        self.create_transaction_items(transaction, num_items)
-                    )
-                
-                # Bulk create transaction items
+                # Now create and save all transaction items
                 TransItemDetail.objects.bulk_create(transaction_items)
                 
-                self.stdout.write(self.style.SUCCESS('Successfully seeded transaction history data'))
+                # Now, manually calculate and update points for all transactions after saving them
+                for transaction in transactions_to_create:
+                    transaction.th_point = transaction.calculate_points()
+                    transaction.save()
+
+                self.stdout.write(self.style.SUCCESS('Successfully seeded transaction history data for 2025'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error seeding transaction history data: {str(e)}'))
 
@@ -71,8 +81,8 @@ class Command(BaseCommand):
         
         # Ensure we have some customers
         if not Customer.objects.exists():
-            Customer.objects.create(name='John Doe', phone='1234567890')
-            Customer.objects.create(name='Jane Smith', phone='0987654321')
+            Customer.objects.create(name='John Doe', telp='1234567890')
+            Customer.objects.create(name='Jane Smith', telp='0987654321')
         
         # Ensure we have some banks
         if not Bank.objects.exists():
@@ -93,7 +103,7 @@ class Command(BaseCommand):
             from django.core.management import call_command
             call_command('seed_stock')
 
-    def create_transaction_history(self, fake):
+    def create_transaction_history(self, fake, current_date):
         """
         Create a single transaction history with randomized but realistic data
         """
@@ -105,17 +115,19 @@ class Command(BaseCommand):
         bank = random.choice(list(Bank.objects.all()) + [None])
         event_discount = random.choice(list(EventDisc.objects.all()) + [None])
         sales_order = random.choice(list(Sales.objects.all()) + [None])
-        
+
         # Generate transaction types
-        transaction_types = ['Sale', 'Purchase', 'Return', 'Refund']
+        transaction_types = ['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE']
         payment_types = ['Cash', 'Credit Card', 'Bank Transfer', 'E-Wallet']
-        
+
         # Generate values
         total = Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01'))
         discount = Decimal(random.uniform(0, float(total * Decimal('0.2')))).quantize(Decimal('0.01')) if random.random() > 0.5 else None
         ppn = (total * Decimal('0.1')).quantize(Decimal('0.01')) if random.random() > 0.3 else None
-        
-        return TransactionHistory(
+        round_amount = Decimal(random.uniform(0, 10)).quantize(Decimal('0.01')) if random.random() > 0.7 else None
+
+        # Create transaction history object
+        transaction = TransactionHistory(
             supplier=supplier,
             customer=customer,
             cashier=cashier,
@@ -124,9 +136,9 @@ class Command(BaseCommand):
             th_payment_type=random.choice(payment_types),
             th_disc=discount,
             th_ppn=ppn,
-            th_round=Decimal(random.uniform(0, 10)).quantize(Decimal('0.01')) if random.random() > 0.7 else None,
+            th_round=round_amount,
             th_total=total,
-            th_date=timezone.now() - timezone.timedelta(days=random.randint(0, 365)),
+            th_date=current_date,  # Set the transaction date to the current date in the loop
             th_note=fake.sentence() if random.random() > 0.5 else None,
             th_status=random.random() > 0.1,  # 90% chance of being active
             bank=bank,
@@ -134,9 +146,14 @@ class Command(BaseCommand):
             th_so=sales_order,
             th_delivery=random.random() > 0.5,
             th_post=random.random() > 0.5,
-            th_point=Decimal(random.uniform(0, 100)).quantize(Decimal('0.01')) if random.random() > 0.7 else None,
-            th_point_nominal=Decimal(random.uniform(0, 1000)).quantize(Decimal('0.01')) if random.random() > 0.7 else None
         )
+
+        # REMOVE THESE TWO LINES - don't save or calculate points here
+        # transaction.save()
+        # transaction.th_point = transaction.calculate_points()
+
+        return transaction
+
 
     def create_transaction_items(self, transaction, num_items):
         """
@@ -144,7 +161,7 @@ class Command(BaseCommand):
         """
         transaction_items = []
         stocks = list(Stock.objects.all())
-        
+
         for _ in range(num_items):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
@@ -161,5 +178,5 @@ class Command(BaseCommand):
                     sell_price=sell_price
                 )
             )
-        
+
         return transaction_items

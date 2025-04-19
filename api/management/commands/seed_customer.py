@@ -18,7 +18,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR('No users found. Please create at least one user.'))
             return
         
-        # Ensure there are member types
+        # Ensure there are member types to assign to customers
+        if not MemberType.objects.exists():
+            self.stdout.write(self.style.ERROR('No member types found. Please create at least one member type.'))
+            return
+        
         member_types = list(MemberType.objects.all())
         
         customers_to_create = []

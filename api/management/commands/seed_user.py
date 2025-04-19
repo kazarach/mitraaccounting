@@ -14,7 +14,7 @@ class Command(BaseCommand):
         fake = Faker()
         
         # Define the number of users to create
-        num_users = 50
+        num_users = 10
         
         # Ensure roles exist in the database
         role_names = ['superuser', 'master', 'admin', 'staff', 'member', 'user']
@@ -22,24 +22,44 @@ class Command(BaseCommand):
         try:
             with transaction.atomic():
                 # Create roles if they don't exist
-                roles = []
+                roles = {}
                 for name in role_names:
                     role, created = UserRole.objects.get_or_create(name=name)
-                    roles.append(role)
+                    roles[name] = role  # Store the role in a dictionary
                 
                 # Clear existing users except superusers
                 User.objects.exclude(is_superuser=True).delete()
                 
-                # Create users
+                # Create superuser and admin user
+                superuser_role = roles.get('superuser')
+                admin_role = roles.get('admin')
+
+                superuser = User.objects.create_superuser(
+                    username='admin', 
+                    password='admin123', 
+                    role=superuser_role  # Assigning the superuser role
+                )
+                admin_user = User.objects.create_user(
+                    username='admin_user', 
+                    password='admin123', 
+                    role=admin_role  # Assigning the admin role
+                )
+                
+                self.stdout.write(self.style.SUCCESS('Successfully created superuser and admin user'))
+                
+                # Create other random users
                 users_to_create = []
                 for _ in range(num_users):
                     username = fake.unique.user_name()
                     
-                    # Alternate method of creating user
+                    # Choose a random role
+                    random_role = random.choice(list(roles.values()))
+                    
+                    # Create user with the role argument directly
                     user = User.objects.create_user(
                         username=username, 
-                        password='password123',  # Default password
-                        role=random.choice(roles)  # Use the create_user method from UserAccountManager
+                        password='password123',
+                        role=random_role  # Pass the role during creation
                     )
                     users_to_create.append(user)
                 

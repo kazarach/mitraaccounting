@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from .transaction_history import TransactionHistory
 
 class AccountType(models.TextChoices):
     ASSET = 'ASSET', 'Asset'
@@ -31,4 +32,22 @@ class Account(models.Model):
         indexes = [
             models.Index(fields=['account_number']),
             models.Index(fields=['account_type']),
+        ]
+
+class JournalEntry(models.Model):
+    transaction = models.ForeignKey('TransactionHistory', on_delete=models.CASCADE, related_name='journal_entries')
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='journal_entries')
+    description = models.CharField(max_length=255)
+    debit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    credit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    date = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"{self.transaction.th_number} - {self.account.name} - {self.date}"
+    
+    class Meta:
+        verbose_name = "Journal Entry"
+        verbose_name_plural = "Journal Entries"
+        indexes = [
+            models.Index(fields=['date']),
         ]

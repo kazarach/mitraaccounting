@@ -9,6 +9,8 @@ class Supplier(models.Model):
     npwp = models.CharField(max_length=50, blank=True, null=True)  # Tax ID (if applicable)
     platform = models.CharField(max_length=50, blank=True, null=True)
     
+    credit_term_days = models.IntegerField(default=30)
+    
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     discount_type = models.CharField(max_length=20, blank=True, null=True)
     
