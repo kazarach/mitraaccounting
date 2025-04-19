@@ -73,7 +73,7 @@ interface TransactionRow {
     id: number;
     name: string;
     jumlah_pesanan: number;
-    jumlah_barang: number;
+    quantity: number;
     harga_beli: number;
     isi_packing: number;
     satuan: string;
@@ -138,7 +138,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             header: "Jumlah Barang",
 
             cell: ({ row }) => {
-                const jumlahBarang = row.original.jumlah_barang || 0;
+                const jumlahBarang = row.original.quantity || 0;
 
                 return (
                     <input

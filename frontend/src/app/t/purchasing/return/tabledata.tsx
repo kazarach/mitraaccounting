@@ -39,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import * as yup from "yup";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import DatePick from '@/components/dropdown-normal/datePick_dd';
 
 
 export const schema = yup.object({
@@ -239,28 +240,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col space-y-2">
                         <Label htmlFor="date">Tanggal</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[200px] justify-start text-left font-normal",
-
-                                    )}
-                                >
-                                    <CalendarIcon />
-                                    {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <DatePick/>
                     </div>
                 </div>
                 <div className='flex items-end gap-2'>

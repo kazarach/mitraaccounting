@@ -29,7 +29,7 @@ export const tableSlice = createSlice({
       const existingRowIndex = table.findIndex((row) => row.name === rowToAdd.name);
     
       if (existingRowIndex !== -1) {
-        table[existingRowIndex].jumlah_barang += rowToAdd.jumlah_barang;
+        table[existingRowIndex].quantity += rowToAdd.quantity;
       } else {
         const nextId = table.length > 0
           ? Math.max(...table.map((row) => row.id ?? 0)) + 1

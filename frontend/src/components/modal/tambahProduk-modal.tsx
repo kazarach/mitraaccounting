@@ -42,7 +42,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       barcode: product.barcode,
       name: product.name,
       jumlah_pesanan: "-",
-      jumlah_barang: product.jumlah_barang ?? 1,
+      quantity: product.jumlah_barang ?? 1,
       harga_beli: product.purchasePrice,
       subtotal: product.purchasePrice * (product.jumlah_pesanan ?? 1),
     };
