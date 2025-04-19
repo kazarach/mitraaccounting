@@ -39,6 +39,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import * as yup from "yup";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import DistributorDD from '@/components/dropdown-normal/distributor_dd';
+import OperatorDD from '@/components/dropdown-normal/operator-dd';
+import DatePick from '@/components/dropdown-normal/datePick_dd';
+
 
 
 export const schema = yup.object({
@@ -272,80 +276,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col space-y-2">
                         <Label htmlFor="date">Tanggal</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[200px] justify-start text-left font-normal",
-
-                                    )}
-                                >
-                                    <CalendarIcon />
-                                    {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                        <DatePick/>
                     </div>
                     <div className="flex flex-col space-y-2">
                         <Label htmlFor="distributor">Distributor</Label>
-                        <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    aria-expanded={open}
-                                    className="w-[200px] justify-between font-normal"
-                                >
-                                    {value
-                                        ? distributors.find((d) => d.value === value)?.label
-                                        : "Pilih Distributor"}
-                                    <ChevronsUpDown className="opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[200px] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Pilih Distributor" />
-                                    <CommandList>
-                                        <CommandEmpty>Distributor Tidak Ditemukan.</CommandEmpty>
-                                        <CommandGroup>
-                                            {distributors.map((d) => (
-                                                <CommandItem
-                                                    key={d.value}
-                                                    value={d.label}
-                                                    data-value={d.value}
-                                                    onSelect={(currentLabel: string) => {
-                                                        const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                                        if (selectedDistributor) {
-                                                            setValue(selectedDistributor.value);
-                                                        } else {
-                                                            setValue("");
-                                                        }
-                                                        setOpen(false);
-                                                    }}
-                                                >
-                                                    {d.label}
-                                                    <Check
-                                                        className={cn(
-                                                            "ml-auto",
-                                                            value === d.value ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <DistributorDD/>
                     </div>
                     <div className="flex  gap-2 items-center pb-2">
                         <Checkbox id="terms" className='size-5 items-center' />

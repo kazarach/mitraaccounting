@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import useSWR from "swr";
 import { fetcher } from "@/lib/utils";
+import Loading from "@/components/loading";
 
 interface TambahProdukModalProps {
   tableName: string;
@@ -146,7 +147,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) return <p><Loading/></p>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
   return (
