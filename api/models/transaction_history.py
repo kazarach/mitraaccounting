@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from datetime import datetime, date, time  
 from django.contrib.auth.models import User
@@ -21,6 +21,8 @@ class TransactionType(models.TextChoices):
     RECEIPT = 'RECEIPT', 'Receipt'
     ADJUSTMENT = 'ADJUSTMENT', 'Adjustment'
     EXPENSE = 'EXPENSE', 'Expense'
+    ORDERIN = 'ORDERIN', 'Order In'
+    ORDEROUT = 'ORDEROUT', 'Order Out'
     
 class TransactionHistory(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
@@ -40,7 +42,6 @@ class TransactionHistory(models.Model):
     
     th_date = models.DateTimeField(default=timezone.now)
     th_note = models.TextField(blank=True, null=True)
-    th_status = models.BooleanField(default=True)
     
     bank = models.ForeignKey('Bank', on_delete=models.SET_NULL, blank=True, null=True)
     event_discount = models.ForeignKey(EventDisc, on_delete=models.SET_NULL, blank=True, null=True)
@@ -48,6 +49,7 @@ class TransactionHistory(models.Model):
     th_so = models.ForeignKey(Sales, on_delete=models.SET_NULL, blank=True, null=True, related_name="sales_orders")
     th_retur = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="returns")  # Self-referencing for returns
     
+    th_status = models.BooleanField(default=True)
     th_delivery = models.BooleanField(default=False)
     th_post = models.BooleanField(default=False)
     
@@ -91,15 +93,15 @@ class TransactionHistory(models.Model):
         # Assign the aware datetime to th_date
         self.th_date = th_date_aware
 
-        # Save the transaction first without calculating points
-        super().save(*args, **kwargs)
-        
-        # After the transaction is saved and has a primary key, calculate points
-        if not self.th_point:  # Only calculate points if it's not already set
-            self.th_point = self.calculate_points()
-            # Save the transaction again to update the points
+        # Use a transaction to ensure atomic behavior
+        with transaction.atomic():
+            # Save the transaction first
             super().save(*args, **kwargs)
 
+            # Calculate points only if not already set, and avoid duplicate saves
+            if not self.th_point:  # Only calculate points if it's not already set
+                self.th_point = self.calculate_points()
+                super().save(update_fields=["th_point"])  # Update only the points field
 
     class Meta:
         verbose_name = "Transaction History"

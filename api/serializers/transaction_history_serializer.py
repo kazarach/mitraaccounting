@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import TransactionHistory, TransItemDetail
+from ..models import TransactionHistory, TransItemDetail, ARAP
 
 
 class TransItemDetailSerializer(serializers.ModelSerializer):
@@ -47,3 +47,26 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
             for item_data in items_data:
                 TransItemDetail.objects.create(transaction=instance, **item_data)
         return instance
+    
+class ARAPSerializer(serializers.ModelSerializer):
+    transaction_number = serializers.CharField(source='transaction.th_number', read_only=True)
+    is_receivable_display = serializers.SerializerMethodField()
+    remaining = serializers.DecimalField(source='remaining_amount', max_digits=15, decimal_places=2, read_only=True)
+    
+    class Meta:
+        model = ARAP
+        fields = [
+            'id',
+            'transaction',
+            'transaction_number',
+            'is_receivable',
+            'is_receivable_display',
+            'total_amount',
+            'amount_paid',
+            'remaining',
+            'due_date',
+            'is_settled',
+        ]
+    
+    def get_is_receivable_display(self, obj):
+        return "Receivable" if obj.is_receivable else "Payable"

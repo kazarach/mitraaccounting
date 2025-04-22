@@ -35,8 +35,8 @@ class Command(BaseCommand):
                 admin_role = roles.get('admin')
 
                 superuser = User.objects.create_superuser(
-                    username='admin', 
-                    password='admin123', 
+                    username='string', 
+                    password='string', 
                     role=superuser_role  # Assigning the superuser role
                 )
                 admin_user = User.objects.create_user(
