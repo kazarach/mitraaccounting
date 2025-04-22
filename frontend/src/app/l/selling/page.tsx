@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import {
   Table,
@@ -16,62 +16,62 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
-import { format } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
-import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
-import { MemberDropdown } from '@/components/dropdown-checkbox/member-dropdown';
+import { format, addDays } from 'date-fns';
 import OperatorDD from '@/components/dropdown-normal/operator_dd';
-import MemberDD from '@/components/dropdown-normal/member-dd';
+import MemberDD from '@/components/dropdown-normal/member_dd';
+import { DateRange } from "react-day-picker";
+import SalesDD from '@/components/dropdown-normal/sales_dd';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const SellingReport = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
+  const [data, setData] = useState<any[]>([]);
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/transactions/report/?status=true&transaction_type=SALE");
+      const json = await response.json();
+
+      if (!json.results) return;
+
+      const transformedData = json.results.map((transaction: any) => {
+        const totalQuantity = transaction.items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity), 0);
+        const subtotal = parseFloat(transaction.th_total);
+        const discount = parseFloat(transaction.th_disc);
+      
+        return {
+          id: transaction.id,
+          tanggal: new Date(transaction.th_date).toLocaleDateString(),
+          noFaktur: transaction.th_number,
+          member: transaction.supplier_name,
+          pelanggan: transaction.customer_name,
+          operator: transaction.cashier_username,
+          kode: transaction.stock_code,
+          jumlah_barang: totalQuantity,
+          subtotal: subtotal,
+          diskon_total: discount,
+          sales: transaction.bank_name,
+          netto: subtotal - discount,
+          status: transaction.th_status ? "Sukses" : "Batal",
+          items: transaction.items, // Tambahkan detail items
+        };
+      });      
+
+      setData(transformedData);
+    } catch (error) {
+      console.error("Gagal mengambil data:", error);
     }
-  ]
-  );
+  };
+
+  fetchData();
+}, []);
+
 
   const distributors = [
     {
@@ -97,14 +97,12 @@ const SellingReport = () => {
 
   ]
 
-  const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: new Date(),
+    to: addDays(new Date(), 7),
+  });
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
-  const [open6, setOpen6] = React.useState(false)
-  const [value6, setValue6] = React.useState("")
-  const [open7, setOpen7] = React.useState(false)
-  const [value7, setValue7] = React.useState("")
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -117,30 +115,44 @@ const SellingReport = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
+                <Label htmlFor="date-range">Tanggal</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="date-range"
                         variant={"outline"}
                         className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
+                          "w-[300px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date?.from ? (
+                          date.to ? (
+                            <>
+                              {format(date.from, "LLL dd, y")} -{" "}
+                              {format(date.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(date.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pilih Tanggal</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
                         selected={date}
                         onSelect={setDate}
-                        initialFocus
+                        numberOfMonths={2}
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
+              </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="operator">Operator</Label>
                   <OperatorDD />
@@ -150,108 +162,21 @@ const SellingReport = () => {
                   <MemberDD />
               </div>                                                                        
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
-                  <Popover open={open6} onOpenChange={setOpen6}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value6)?.label
-                          : "Pilih Sales"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue6(selectedDistributor.value);
-                                  } else {
-                                    setValue6("");
-                                  }
-                                  setOpen6(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                <Label htmlFor="member">Sales</Label>
+                  <SalesDD/>
                 </div>                  
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Status</Label>
-                  <Popover open={open7} onOpenChange={setOpen7}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value7)?.label
-                          : "Pilih Status"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue7(selectedDistributor.value);
-                                  } else {
-                                    setValue7("");
-                                  }
-                                  setOpen7(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="waktu">Status</Label>
+                  <Select>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Pilih Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Hari Ini</SelectItem>
+                      <SelectItem value="week">Mingguan</SelectItem>
+                      <SelectItem value="month">Bulanan</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>
@@ -272,42 +197,67 @@ const SellingReport = () => {
                   <TableRow>
                     <TableHead>Tanggal</TableHead>
                     <TableHead className="text-left">No. Faktur</TableHead>
-                    <TableHead className="text-left">Member</TableHead>
                     <TableHead className="text-left">Pelanggan</TableHead>
                     <TableHead className="text-left">Operator</TableHead>
-                    <TableHead className="text-left">Kode</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Sub Total</TableHead>
-                    <TableHead className="text-left">Diskon Total</TableHead>
                     <TableHead className="text-left">Sales</TableHead>
+                    <TableHead className="text-left">Kode</TableHead>
+                    <TableHead className="text-left">Nama Barang</TableHead>
+                    <TableHead className="text-left">Jumlah Barang</TableHead>
+                    <TableHead className="text-left">Harga Jual</TableHead>
+                    <TableHead className="text-left">Total Harga Barang</TableHead>
+                    <TableHead className="text-left">Diskon</TableHead>
                     <TableHead className="text-left">Netto</TableHead>
                     <TableHead className="text-left">Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.harga_beli}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
-                      </TableCell>           
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {data.map((item) => (
+    <React.Fragment key={item.id}>
+      {/* Baris utama transaksi */}
+      <TableRow className="bg-muted/20">
+        <TableCell>{item.tanggal}</TableCell>
+        <TableCell className="text-left">{item.noFaktur}</TableCell>
+        <TableCell className="text-left">{item.pelanggan}</TableCell>
+        <TableCell className="text-left">{item.operator}</TableCell>
+        <TableCell className="text-left">{item.sales}</TableCell>
+        <TableCell className="text-left">
+          {item.items[0]?.stock_code ?? "-"}
+        </TableCell>
+        <TableCell className="text-left">
+          {item.items[0]?.stock_name ?? "-"}
+        </TableCell>
+        <TableCell className="text-left">
+          {item.items[0]?.quantity ?? "-"}
+        </TableCell>
+        <TableCell className="text-left">Rp {item.items[0]?.sell_price ?? "-"}</TableCell>
+        <TableCell className="text-left">{item.subtotal.toLocaleString()}</TableCell>
+        <TableCell className="text-left">Rp {item.diskon_total.toLocaleString()}</TableCell>
+        <TableCell className="text-left">
+          {isNaN(item.netto) ? "-" : item.netto.toLocaleString()}
+        </TableCell>
+        <TableCell className="text-left">{item.status}</TableCell>
+      </TableRow>
+
+      {/* Baris untuk setiap item */}
+      {item.items.slice(1).map((itm: any, index: number) => (
+        <TableRow key={index}>
+          <TableCell colSpan={5}></TableCell>
+          <TableCell className="text-left">{itm.stock_code}</TableCell>
+          <TableCell className="text-left">{itm.stock_name}</TableCell>
+          <TableCell className="text-left">{itm.quantity}</TableCell>
+          <TableCell className="text-left">Rp {itm.sell_price}</TableCell>
+          <TableCell className="text-left">Rp {item.subtotal}</TableCell>
+          <TableCell className="text-left">Rp {item.diskon_total}</TableCell>
+          <TableCell className="text-left">
+          {isNaN(item.netto) ? "-" : item.netto.toLocaleString()}
+          </TableCell>
+          <TableCell className="text-left">{item.status}</TableCell>
+        </TableRow>
+      ))}
+    </React.Fragment>
+  ))}
+</TableBody>
+
               </Table>
             </div>
           <div className='flex gap-2 justify-end '>
