@@ -55,7 +55,7 @@ class ARAPViewSet(viewsets.ModelViewSet):
     serializer_class = ARAPSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_receivable', 'is_settled', 'due_date']
-    search_fields = ['transaction__th_number', 'transaction__th_note', 
+    search_fields = ['transaction__th_code', 'transaction__th_note', 
                      'transaction__supplier__supplier_name', 'transaction__customer__customer_name']
     ordering_fields = ['due_date', 'total_amount', 'amount_paid', 'transaction__th_date']
     
@@ -306,7 +306,7 @@ class ARAPPaymentViewSet(viewsets.GenericViewSet):
         transaction_type = TransactionType.RECEIPT if arap.is_receivable else TransactionType.PAYMENT
         payments = TransactionHistory.objects.filter(
             th_type=transaction_type,
-            th_note__icontains=arap.transaction.th_number
+            th_note__icontains=arap.transaction.th_code
         ).order_by('-th_date')
         
         return Response(TransactionHistorySerializer(payments, many=True).data)

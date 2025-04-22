@@ -30,7 +30,7 @@ class TransactionHistory(models.Model):
     
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="cashier_transactions")  # For tracking cashier
     
-    th_number = models.CharField(max_length=50, unique=True)
+    th_code = models.CharField(max_length=50, unique=True, blank=True)
     th_type = models.CharField(max_length=50, choices=TransactionType.choices)
     th_payment_type = models.CharField(max_length=50, blank=True, null=True)
     
@@ -59,7 +59,7 @@ class TransactionHistory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self): 
-        return self.th_number
+        return self.th_code
     
     EXCLUDED_CATEGORIES = ["ROKOK"]
 
@@ -81,7 +81,7 @@ class TransactionHistory(models.Model):
         # Ensure th_date is a datetime object (combine with midnight time if it's a date object)
         if isinstance(self.th_date, datetime):
             th_date_aware = self.th_date
-        elif isinstance(self.th_date, date):  # Use 'date' from datetime module
+        elif isinstance(self.th_date, date):  
             th_date_aware = datetime.combine(self.th_date, time.min)
         else:
             th_date_aware = timezone.now()
@@ -95,11 +95,35 @@ class TransactionHistory(models.Model):
 
         # Use a transaction to ensure atomic behavior
         with transaction.atomic():
+            # Generate th_code based on transaction type and date
+            if not self.th_code:
+                prefix_map = {
+                    TransactionType.SALE: "SAL",
+                    TransactionType.PURCHASE: "PUR",
+                    TransactionType.RETURN_SALE: "RTS",
+                    TransactionType.RETURN_PURCHASE: "RTP",
+                    TransactionType.USAGE: "USG",
+                    TransactionType.TRANSFER: "TRF",
+                    TransactionType.PAYMENT: "PAY",
+                    TransactionType.RECEIPT: "REC",
+                    TransactionType.ADJUSTMENT: "ADJ",
+                    TransactionType.EXPENSE: "EXP",
+                    TransactionType.ORDERIN: "OIN",
+                    TransactionType.ORDEROUT: "OOU",
+                }
+                prefix = prefix_map.get(self.th_type, "TRX")  # Default to "TRX" if no match
+                today = timezone.now().date()
+                count_today = TransactionHistory.objects.filter(
+                    th_type=self.th_type,
+                    th_date__date=today
+                ).count()
+                self.th_code = f"{prefix}-{today.strftime('%Y%m%d')}-{count_today + 1:04d}"
+
             # Save the transaction first
             super().save(*args, **kwargs)
 
             # Calculate points only if not already set, and avoid duplicate saves
-            if not self.th_point:  # Only calculate points if it's not already set
+            if not self.th_point:  
                 self.th_point = self.calculate_points()
                 super().save(update_fields=["th_point"])  # Update only the points field
 
@@ -121,9 +145,17 @@ class TransItemDetail(models.Model):
 
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
     sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
+    disc = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    netto = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def __str__(self):
-        return f"{self.transaction.th_number} - {self.stock.stock_name}"
+        return f"{self.transaction.th_code} - {self.stock.stock_name}"
+    
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * (self.sell_price or 0)
+        self.netto = self.total - (self.quantity * (self.disc or 0))
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Transaction Item Detail"
@@ -148,7 +180,7 @@ class ARAP(models.Model):
 
     def __str__(self):
         type_str = "Piutang" if self.is_receivable else "Hutang"
-        return f"{type_str} - {self.transaction.th_number}"
+        return f"{type_str} - {self.transaction.th_code}"
 
     class Meta:
         verbose_name = "ARAP"

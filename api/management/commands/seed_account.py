@@ -35,7 +35,7 @@ class Command(BaseCommand):
         if not TransactionHistory.objects.exists():
             transactions = [
                 TransactionHistory(
-                    th_number=f'TH-{fake.unique.random_number(digits=5)}',
+                    th_code=f'TH-{fake.unique.random_number(digits=5)}',
                     th_type='SALE',
                     th_payment_type='Cash',
                     th_total=Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01')),

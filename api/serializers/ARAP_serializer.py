@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from ..models import ARAP, TransactionHistory
 
 
@@ -7,7 +8,7 @@ class ARAPSerializer(serializers.ModelSerializer):
     Serializer for ARAP (Accounts Receivable/Accounts Payable) model.
     Provides complete representation of ARAP records including calculated fields.
     """
-    transaction_number = serializers.CharField(source='transaction.th_number', read_only=True)
+    transaction_number = serializers.CharField(source='transaction.th_code', read_only=True)
     is_receivable_display = serializers.SerializerMethodField()
     remaining = serializers.DecimalField(source='remaining_amount', max_digits=15, decimal_places=2, read_only=True)
     
@@ -76,19 +77,19 @@ class ARAPPaymentSerializer(serializers.ModelSerializer):
         # Create a unique transaction number
         import datetime
         prefix = "REC" if arap.is_receivable else "PAY"
-        th_number = f"{prefix}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        th_code = f"{prefix}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         # Create the Transaction History record
         from django.db import transaction
         with transaction.atomic():
             # Create payment transaction
             payment_transaction = TransactionHistory.objects.create(
-                th_number=th_number,
+                th_code=th_code,
                 th_type=transaction_type,
                 th_payment_type="CASH",  # Default, can be adjusted based on your needs
                 th_total=payment_amount,
-                th_date=payment_date or datetime.datetime.now(),
-                th_note=payment_note or f"Payment for {arap.transaction.th_number}",
+                th_date=payment_date or timezone.now(),
+                th_note=payment_note or f"Payment for {arap.transaction.th_code}",
                 bank_id=bank_id,
                 customer=arap.transaction.customer,
                 supplier=arap.transaction.supplier,

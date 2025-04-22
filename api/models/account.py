@@ -43,7 +43,7 @@ class JournalEntry(models.Model):
     date = models.DateTimeField(default=timezone.now)
     
     def __str__(self):
-        return f"{self.transaction.th_number} - {self.account.name} - {self.date}"
+        return f"{self.transaction.th_code} - {self.account.name} - {self.date}"
     
     class Meta:
         verbose_name = "Journal Entry"

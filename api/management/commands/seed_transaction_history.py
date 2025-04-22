@@ -131,7 +131,7 @@ class Command(BaseCommand):
             supplier=supplier,
             customer=customer,
             cashier=cashier,
-            th_number=f'TH-{fake.unique.random_number(digits=5)}',
+            th_code=f'TH-{fake.unique.random_number(digits=5)}',
             th_type=random.choice(transaction_types),
             th_payment_type=random.choice(payment_types),
             th_disc=discount,

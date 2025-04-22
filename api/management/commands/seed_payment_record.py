@@ -51,7 +51,7 @@ class Command(BaseCommand):
         # Ensure there are some transaction histories
         if not TransactionHistory.objects.exists():
             TransactionHistory.objects.create(
-                th_number=f'TH-{random.randint(1000, 9999)}',
+                th_code=f'TH-{random.randint(1000, 9999)}',
                 th_total=Decimal(random.uniform(100, 10000))
             )
         

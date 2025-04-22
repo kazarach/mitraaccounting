@@ -4,12 +4,12 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from django.utils import timezone
-from django.db.models import Sum, Count, F, DecimalField
+from django.db.models import Sum, Count, F, DecimalField, Max
 from django.db.models.functions import Coalesce
 from datetime import timedelta, datetime 
 
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
-from ..models import TransactionHistory, TransItemDetail
+from ..models import TransactionHistory, TransItemDetail, TransactionType
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 
 import pytz

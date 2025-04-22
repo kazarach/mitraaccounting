@@ -33,7 +33,7 @@ class Payment(models.Model):
     reference_id = models.IntegerField(blank=True, null=True)
     
     def __str__(self):
-        return f"Payment {self.id} - {self.transaction.th_number} ({self.payment_type})"
+        return f"Payment {self.id} - {self.transaction.th_code} ({self.payment_type})"
     
     class Meta:
         verbose_name = "Payment"
