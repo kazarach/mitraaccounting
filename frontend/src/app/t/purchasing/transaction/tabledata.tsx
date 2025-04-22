@@ -40,7 +40,7 @@ import * as yup from "yup";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DistributorDD from '@/components/dropdown-normal/distributor_dd';
-import OperatorDD from '@/components/dropdown-normal/operator-dd';
+import OperatorDD from '@/components/dropdown-normal/operator_dd';
 import DatePick from '@/components/dropdown-normal/datePick_dd';
 
 
