@@ -27,8 +27,10 @@ import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
-import { OperatorDropdown } from '@/components/dropdown/operator-dropdown';
-import { MemberDropdown } from '@/components/dropdown/member-dropdown';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import { MemberDropdown } from '@/components/dropdown-checkbox/member-dropdown';
+import OperatorDD from '@/components/dropdown-normal/operator_dd';
+import MemberDD from '@/components/dropdown-normal/member-dd';
 
 const SellingReport = () => {
   const [data, setData] = useState([
@@ -99,14 +101,6 @@ const SellingReport = () => {
   const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
-  const [open2, setOpen2] = React.useState(false)
-  const [value2, setValue2] = React.useState("")
-  const [open3, setOpen3] = React.useState(false)
-  const [value3, setValue3] = React.useState("")
-  const [open4, setOpen4] = React.useState(false)
-  const [value4, setValue4] = React.useState("")
-  const [open5, setOpen5] = React.useState(false)
-  const [value5, setValue5] = React.useState("")
   const [open6, setOpen6] = React.useState(false)
   const [value6, setValue6] = React.useState("")
   const [open7, setOpen7] = React.useState(false)
@@ -149,11 +143,11 @@ const SellingReport = () => {
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="operator">Operator</Label>
-                  <OperatorDropdown />
+                  <OperatorDD />
               </div>                                    
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="member">Member</Label>
-                  <MemberDropdown />
+                  <MemberDD />
               </div>                                                                        
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Sales</Label>

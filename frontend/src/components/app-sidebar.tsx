@@ -103,8 +103,15 @@ const Menus = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openMainMenus, setOpenMainMenus] = useState<string | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    setIsLoggedIn(!!token);
+  }, []);
 
   // Buka menu sesuai path saat load
   useEffect(() => {
@@ -243,32 +250,42 @@ export function AppSidebar() {
       <SidebarFooter>
         <Popover>
           <PopoverTrigger asChild>
-            <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">Admin</Button>
+            <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">{isLoggedIn ? "Admin" : "Login"}</Button>
           </PopoverTrigger>
           <PopoverContent className="w-60">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium leading-none text-center">Admin</h4>
-                <p className="text-sm text-center text-muted-foreground">
-                  Welcome to MitraAccounting.
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <a href="/login">
-                <Button className="w-full cursor-pointer">
-                  Admin Page
-                </Button>
-                </a>
-                <a href="/login">
-                  <Button
-                    className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white cursor-pointer w-full"
-                  >
-                    Logout
-                  </Button>
-                </a>
-              </div>
-            </div>
-          </PopoverContent>
+      {isLoggedIn ? (
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none text-center">Admin</h4>
+            <p className="text-sm text-center text-muted-foreground">
+              Welcome to MitraAccounting.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <a href="/admin">
+              <Button className="w-full cursor-pointer">Admin Page</Button>
+            </a>
+            <Button
+              onClick={() => {
+                localStorage.removeItem("access");
+                localStorage.removeItem("refresh");
+                window.location.href = "/";
+              }}
+              className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white cursor-pointer w-full"
+            >
+              Logout
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center">
+          <p className="text-sm mb-2 text-muted-foreground">Silakan login terlebih dahulu</p>
+          <a href="/login">
+            <Button className="w-full">Login</Button>
+          </a>
+        </div>
+      )}
+    </PopoverContent>
         </Popover>
       </SidebarFooter>
     </Sidebar>
