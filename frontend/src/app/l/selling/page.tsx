@@ -110,7 +110,7 @@ const SellingReport = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Laporan Pembelian</CardTitle>
+          <CardTitle>Laporan Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4">
