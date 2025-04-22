@@ -36,13 +36,13 @@ const MemberDD = () => {
                     >
                         {value !== null
                             ? data.find((d) => d.id === value)?.username
-                            : 'Pilih Operator'}
+                            : 'Pilih Member'}
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0 border rounded-md">
                     <Command>
-                        <CommandInput placeholder="Pilih Operator" />
+                        <CommandInput placeholder="Pilih Member" />
                         <CommandList>
                             <CommandEmpty>Distributor Tidak Ditemukan.</CommandEmpty>
                             <CommandGroup>
