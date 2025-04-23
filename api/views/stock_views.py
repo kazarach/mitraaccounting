@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from decimal import Decimal, InvalidOperation
 from django.db.models import Sum, OuterRef, Subquery
 
-from ..models import Stock, TransItemDetail
+from ..models import Stock, TransItemDetail, TransactionType, TransactionHistory
 from ..serializers import StockSerializer, StockDetailSerializer
 from ..filters.stock_filters import StockFilter
 
@@ -471,40 +471,26 @@ class StockViewSet(viewsets.ModelViewSet):
         return Response(data)
     
     def _enhance_with_sales_data(self, stock_data, request):
-        """Add sales data to stock items based on TransItemDetail records"""
-        # Extract stock IDs
+        """Add sales and return data to stock items based on TransItemDetail records"""
         stock_ids = [item['id'] for item in stock_data]
-        
-        # Get date range parameters
+
         from django.utils import timezone
         import pytz
         from datetime import timedelta, datetime
-        from ..models import TransactionHistory  # Import here to avoid circular imports
-        
+
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         now_jakarta = timezone.now().astimezone(jakarta_tz)
         today = now_jakarta.date()
-        
-        # Define all the date ranges we want to include
+
         date_ranges = {
-            'today': {
-                'start_date': today,
-                'end_date': today
-            },
-            'week': {
-                'start_date': today - timedelta(days=6),  # Last 7 days
-                'end_date': today
-            },
-            'month': {
-                'start_date': today - timedelta(days=29),  # Last 30 days
-                'end_date': today
-            }
+            'today': {'start_date': today, 'end_date': today},
+            'week': {'start_date': today - timedelta(days=6), 'end_date': today},
+            'month': {'start_date': today - timedelta(days=29), 'end_date': today},
         }
-        
-        # Process custom date range if provided
+
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
-        
+
         if start_date_str and end_date_str:
             try:
                 custom_start = datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -514,50 +500,52 @@ class StockViewSet(viewsets.ModelViewSet):
                     'end_date': custom_end
                 }
             except ValueError:
-                # Ignore invalid date format
                 pass
-        
-        # Add any additional filters from request
+
         additional_filters = {}
         th_status = request.query_params.get('th_status')
         if th_status:
             additional_filters['th_status'] = th_status
-            
+
         cashier_id = request.query_params.get('cashier')
         if cashier_id and cashier_id.isdigit():
             additional_filters['cashier_id'] = int(cashier_id)
-        
-        # Calculate sales data for each date range
+
         for range_name, range_dates in date_ranges.items():
-            # Set up filter with date range
-            transaction_filter = {
-                'th_date__range': (range_dates['start_date'], range_dates['end_date'])
+            base_filter = {
+                'th_date__range': (range_dates['start_date'], range_dates['end_date']),
+                **additional_filters
             }
-            transaction_filter.update(additional_filters)
-            
-            # Get transactions for this date range
-            transactions = TransactionHistory.objects.filter(**transaction_filter)
-            
-            # Get sales data for these stocks within this date range
-            sales_data = TransItemDetail.objects.filter(
-                transaction__in=transactions,
-                stock_id__in=stock_ids
-            ).values(
-                'stock_id'
-            ).annotate(
-                total_quantity=Sum('quantity')
-            )
-            
-            # Create lookup dictionary
-            sales_by_stock = {item['stock_id']: item['total_quantity'] for item in sales_data}
-            
-            # Add sales data for this range to stock items
+
+            def get_quantity(th_type):
+                filter_with_type = {**base_filter, 'th_type': th_type}
+                trans = TransactionHistory.objects.filter(**filter_with_type)
+                data = TransItemDetail.objects.filter(
+                    transaction__in=trans,
+                    stock_id__in=stock_ids
+                ).values('stock_id').annotate(total_quantity=Sum('quantity'))
+                return {item['stock_id']: item['total_quantity'] for item in data}
+
+            sales_by_stock = get_quantity(TransactionType.SALE)
+            return_sales_by_stock = get_quantity(TransactionType.RETURN_SALE)
+            purchase_by_stock = get_quantity(TransactionType.PURCHASE)
+            return_purchase_by_stock = get_quantity(TransactionType.RETURN_PURCHASE)
+
             for stock in stock_data:
-                key_name = f'sales_quantity_{range_name}'
-                stock[key_name] = sales_by_stock.get(stock['id'], 0)
-                
-                # For backward compatibility, also set the original key if this is the requested range
+                sold = sales_by_stock.get(stock['id'], 0)
+                returned = return_sales_by_stock.get(stock['id'], 0)
+                purchased = purchase_by_stock.get(stock['id'], 0)
+                returned_purchase = return_purchase_by_stock.get(stock['id'], 0)
+                net_sales = sold - returned
+                net_purchases = purchased - returned_purchase
+
+                # Store all values
+                stock[f'sales_quantity_{range_name}'] = net_sales
+                stock[f'purchase_quantity_{range_name}'] = net_purchases
+
+                # Requested range (set directly)
                 requested_range = request.query_params.get('range', 'today')
                 if range_name == requested_range or (not requested_range and range_name == 'today'):
-                    stock['sales_quantity'] = stock[key_name]
-                    stock['is_fast_moving'] = stock[key_name] > 0
+                    stock['sales_quantity'] = net_sales
+                    stock['purchase_quantity'] = net_purchases
+                    stock['is_fast_moving'] = net_sales > 0
