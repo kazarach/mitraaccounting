@@ -1,82 +1,86 @@
 import { cn, fetcher } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import React from 'react'
-
-import { Command,CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
+import React from 'react';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { Button } from '../ui/button';
 import useSWR from 'swr';
-import Loading from '../loading';
 import SyncLoader from 'react-spinners/SyncLoader';
 
 type Operator = {
-    id: number
-    username: string
-}
+  id: number;
+  username: string;
+};
 
-const OperatorDD = () => {
-    const [open, setOpen] = React.useState(false)
-    const [value, setValue] = React.useState<number | null>(null)
-    const { data = [], error, isLoading } = useSWR<Operator[]>(
-        "http://127.0.0.1:8000/api/users/by_role/?role_id=3",
-        fetcher
-    )
+type OperatorDDProps = {
+  onChange?: (id: number | null) => void; // Menambahkan prop untuk mengirim ID operator ke parent
+};
 
-    if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>
-    if (error) return <p>Terjadi kesalahan saat memuat data.</p>
-    return (
-        <div>
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                    >
-                        {value !== null
-                            ? data.find((d) => d.id === value)?.username
-                            : 'Pilih Operator'}
-                        <ChevronsUpDown className="opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 border rounded-md">
-                    <Command>
-                        <CommandInput placeholder="Pilih Operator" />
-                        <CommandList>
-                            <CommandEmpty>Distributor Tidak Ditemukan.</CommandEmpty>
-                            <CommandGroup>
-                                {data.map((d) => (
-                                    <CommandItem
-                                        key={d.id}
-                                        value={d.username}
-                                        data-value={d.id}
-                                        onSelect={(currentLabel: string) => {
-                                            const selectedDistributor = data.find((dist) => dist.username === currentLabel);
-                                            if (selectedDistributor) {
-                                                setValue(selectedDistributor.id);
-                                            } else {
-                                                setValue(null);
-                                            }
-                                            setOpen(false);
-                                        }}
-                                    >
-                                        {d.username}
-                                        <Check
-                                            className={cn(
-                                                "ml-auto",
-                                                value === d.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
-        </div>
-    )
-}
+const OperatorDD = ({ onChange }: OperatorDDProps) => {
+  const [open, setOpen] = React.useState(false);
+  const [value, setValue] = React.useState<number | null>(null);
 
-export default OperatorDD
+  const { data = [], error, isLoading } = useSWR<Operator[]>(
+    'http://127.0.0.1:8000/api/users/by_role/?role_id=3',
+    fetcher
+  );
+
+  // Handle loading state
+  if (isLoading) return <SyncLoader color="#366cd6" size={5} />;
+  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
+
+  // Handle operator selection
+  const handleSelect = (username: string) => {
+    const selectedOperator = data.find((op) => op.username === username);
+    const selectedId = selectedOperator ? selectedOperator.id : null;
+    setValue(selectedId);
+    if (onChange) {
+      onChange(selectedId); // Kirim ID operator ke parent jika onChange ada
+    }
+    setOpen(false);
+  };
+
+  return (
+    <div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[200px] justify-between font-normal"
+          >
+            {value !== null
+              ? data.find((d) => d.id === value)?.username
+              : 'Pilih Operator'}
+            <ChevronsUpDown className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[200px] p-0 border rounded-md">
+          <Command>
+            <CommandInput placeholder="Pilih Operator" />
+            <CommandList>
+              <CommandEmpty>Operator Tidak Ditemukan.</CommandEmpty>
+              <CommandGroup>
+                {data.map((d) => (
+                  <CommandItem
+                    key={d.id}
+                    value={d.username}
+                    onSelect={() => handleSelect(d.username)}
+                  >
+                    {d.username}
+                    <Check
+                      className={cn('ml-auto', value === d.id ? 'opacity-100' : 'opacity-0')}
+                    />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
+export default OperatorDD;
