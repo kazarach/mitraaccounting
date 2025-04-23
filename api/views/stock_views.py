@@ -475,71 +475,89 @@ class StockViewSet(viewsets.ModelViewSet):
         # Extract stock IDs
         stock_ids = [item['id'] for item in stock_data]
         
-        # Get date range parameters (similar to fast_moving action)
+        # Get date range parameters
         from django.utils import timezone
         import pytz
         from datetime import timedelta, datetime
+        from ..models import TransactionHistory  # Import here to avoid circular imports
         
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         now_jakarta = timezone.now().astimezone(jakarta_tz)
         today = now_jakarta.date()
         
-        # Process date range parameters
+        # Define all the date ranges we want to include
+        date_ranges = {
+            'today': {
+                'start_date': today,
+                'end_date': today
+            },
+            'week': {
+                'start_date': today - timedelta(days=6),  # Last 7 days
+                'end_date': today
+            },
+            'month': {
+                'start_date': today - timedelta(days=29),  # Last 30 days
+                'end_date': today
+            }
+        }
+        
+        # Process custom date range if provided
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         
         if start_date_str and end_date_str:
             try:
-                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                custom_start = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                custom_end = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                date_ranges['custom'] = {
+                    'start_date': custom_start,
+                    'end_date': custom_end
+                }
             except ValueError:
-                # Default to today if invalid format
-                start_date = today
-                end_date = today
-        else:
-            # Use range parameter with default 'today'
-            range_type = request.query_params.get('range', 'today')
-            if range_type == 'week':
-                start_date = today - timedelta(days=today.weekday())
-            elif range_type == 'month':
-                start_date = today.replace(day=1)
-            else:  # 'today' or any other value
-                start_date = today
-            end_date = today
+                # Ignore invalid date format
+                pass
         
-        # Query sales data for these stocks within date range
-        from ..models import TransactionHistory  # Import here to avoid circular imports
-        
-        # First get valid transactions in the date range
-        transaction_filter = {'th_date__range': (start_date, end_date)}
-        
-        # Add any additional filters from request if needed
+        # Add any additional filters from request
+        additional_filters = {}
         th_status = request.query_params.get('th_status')
         if th_status:
-            transaction_filter['th_status'] = th_status
+            additional_filters['th_status'] = th_status
             
         cashier_id = request.query_params.get('cashier')
         if cashier_id and cashier_id.isdigit():
-            transaction_filter['cashier_id'] = int(cashier_id)
+            additional_filters['cashier_id'] = int(cashier_id)
         
-        transactions = TransactionHistory.objects.filter(**transaction_filter)
-        
-        # Now get sales data for the stocks
-        sales_data = TransItemDetail.objects.filter(
-            transaction__in=transactions,
-            stock_id__in=stock_ids
-        ).values(
-            'stock_id'
-        ).annotate(
-            total_quantity=Sum('quantity')
-        )
-        
-        # Create lookup dictionary
-        sales_by_stock = {item['stock_id']: item['total_quantity'] for item in sales_data}
-        
-        # Add sales data to stock items
-        for stock in stock_data:
-            stock['sales_quantity'] = sales_by_stock.get(stock['id'], 0)
-            # Calculate if this is a fast-moving item (optional)
-            # You could set a threshold or use percentile ranking
-            stock['is_fast_moving'] = stock['sales_quantity'] > 0  # Simple example
+        # Calculate sales data for each date range
+        for range_name, range_dates in date_ranges.items():
+            # Set up filter with date range
+            transaction_filter = {
+                'th_date__range': (range_dates['start_date'], range_dates['end_date'])
+            }
+            transaction_filter.update(additional_filters)
+            
+            # Get transactions for this date range
+            transactions = TransactionHistory.objects.filter(**transaction_filter)
+            
+            # Get sales data for these stocks within this date range
+            sales_data = TransItemDetail.objects.filter(
+                transaction__in=transactions,
+                stock_id__in=stock_ids
+            ).values(
+                'stock_id'
+            ).annotate(
+                total_quantity=Sum('quantity')
+            )
+            
+            # Create lookup dictionary
+            sales_by_stock = {item['stock_id']: item['total_quantity'] for item in sales_data}
+            
+            # Add sales data for this range to stock items
+            for stock in stock_data:
+                key_name = f'sales_quantity_{range_name}'
+                stock[key_name] = sales_by_stock.get(stock['id'], 0)
+                
+                # For backward compatibility, also set the original key if this is the requested range
+                requested_range = request.query_params.get('range', 'today')
+                if range_name == requested_range or (not requested_range and range_name == 'today'):
+                    stock['sales_quantity'] = stock[key_name]
+                    stock['is_fast_moving'] = stock[key_name] > 0
