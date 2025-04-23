@@ -183,21 +183,21 @@ class UserAccountViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        summary="Get users by role",
-        description="Get users filtered by their assigned role. Admin access required.",
+        summary="Get users by roles",
+        description="Get users filtered by their assigned roles. Admin access required.",
         parameters=[
             OpenApiParameter(
-                name='role_id',
-                description='ID of the role to filter users by',
+                name='role_ids',
+                description='Comma-separated list of role IDs to filter users by (e.g., role_ids=1,2,3)',
                 required=True,
-                type=int
+                type=str
             )
         ],
         responses={
             200: UserAccountSerializer(many=True),
             400: OpenApiExample(
-                'Missing role_id',
-                value={"error": "role_id parameter is required"},
+                'Missing or invalid role_ids',
+                value={"error": "role_ids parameter is required"},
                 response_only=True
             )
         },
@@ -207,15 +207,40 @@ class UserAccountViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAdminUser])
     def by_role(self, request):
         """
-        Get users filtered by role
+        Get users filtered by multiple roles (via comma-separated role_ids)
         """
-        role_id = request.query_params.get('role_id')
-        if not role_id:
+        role_ids = request.query_params.get('role_ids')
+        if not role_ids:
             return Response(
-                {"error": "role_id parameter is required"}, 
+                {"error": "role_ids parameter is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        users = UserAccount.objects.filter(role_id=role_id)
+        try:
+            role_ids_list = [int(rid.strip()) for rid in role_ids.split(',') if rid.strip().isdigit()]
+        except ValueError:
+            return Response({"error": "Invalid role_ids format"}, status=status.HTTP_400_BAD_REQUEST)
+
+        users = UserAccount.objects.filter(role_id__in=role_ids_list)
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        summary="Get users with role 'cashier' and above",
+        description="Returns users whose roles have level greater than or equal to 'cashier' level.",
+        responses={200: UserAccountSerializer(many=True)},
+        tags=["User"]
+    )
+    @action(detail=False, methods=['GET'], permission_classes=[permissions.IsAdminUser])
+    def cashier_and_above(self, request):
+        """
+        Get users who are 'cashier' or higher in role hierarchy
+        """
+        try:
+            cashier_role = UserRole.objects.get(name__iexact="cashier")
+            # Get users with role level >= cashier level
+            users = UserAccount.objects.filter(role__level__gte=cashier_role.level)
+            serializer = self.get_serializer(users, many=True)
+            return Response(serializer.data)
+        except UserRole.DoesNotExist:
+            return Response({"error": "cashier role not found"}, status=status.HTTP_404_NOT_FOUND)

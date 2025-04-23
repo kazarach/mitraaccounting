@@ -27,7 +27,6 @@ class TransactionType(models.TextChoices):
 class TransactionHistory(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, blank=True, null=True)
-    
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="cashier_transactions")  # For tracking cashier
     
     th_code = models.CharField(max_length=50, unique=True, blank=True)
