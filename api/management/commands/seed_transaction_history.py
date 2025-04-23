@@ -108,11 +108,11 @@ class Command(BaseCommand):
         Create a single transaction history with randomized but realistic data
         """
         # Randomly select related models, with some chance of being None
-        supplier = random.choice(list(Supplier.objects.all()) + [None])
-        customer = random.choice(list(Customer.objects.all()) + [None])
+        supplier = random.choice(list(Supplier.objects.all()))
+        customer = random.choice(list(Customer.objects.all()))
         User = get_user_model()  # Get the correct User model
-        cashier = random.choice(list(User.objects.all()) + [None])
-        bank = random.choice(list(Bank.objects.all()) + [None])
+        cashier = random.choice(list(User.objects.all()))
+        bank = random.choice(list(Bank.objects.all()))
         event_discount = random.choice(list(EventDisc.objects.all()) + [None])
         sales_order = random.choice(list(Sales.objects.all()) + [None])
 
