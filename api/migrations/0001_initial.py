@@ -342,7 +342,7 @@ class Migration(migrations.Migration):
                 ('th_note', models.TextField(blank=True, null=True)),
                 ('th_status', models.BooleanField(default=True)),
                 ('th_delivery', models.BooleanField(default=False)),
-                ('th_post', models.BooleanField(default=False)),
+                ('th_order', models.BooleanField(default=False)),
                 ('th_point', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),

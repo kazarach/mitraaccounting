@@ -51,7 +51,7 @@ class TransactionHistory(models.Model):
     
     th_status = models.BooleanField(default=True)
     th_delivery = models.BooleanField(default=False)
-    th_post = models.BooleanField(default=False)
+    th_order = models.BooleanField(default=False)
     
     th_point = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     

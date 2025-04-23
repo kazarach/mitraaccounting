@@ -19,7 +19,7 @@ class TransactionHistoryFilter(django_filters.FilterSet):
             'bank',
             'event_discount',
             'th_delivery',
-            'th_post',
+            'th_order',
             'th_so',
             'start_date',
             'end_date',

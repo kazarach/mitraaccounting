@@ -9,6 +9,7 @@ class ARAPSerializer(serializers.ModelSerializer):
     Provides complete representation of ARAP records including calculated fields.
     """
     transaction_number = serializers.CharField(source='transaction.th_code', read_only=True)
+    transaction_supplier = serializers.CharField(source='transaction.supplier', read_only=True)
     is_receivable_display = serializers.SerializerMethodField()
     remaining = serializers.DecimalField(source='remaining_amount', max_digits=15, decimal_places=2, read_only=True)
     
@@ -18,6 +19,7 @@ class ARAPSerializer(serializers.ModelSerializer):
             'id',
             'transaction',
             'transaction_number',
+            'transaction_supplier',
             'is_receivable',
             'is_receivable_display',
             'total_amount',
@@ -94,7 +96,7 @@ class ARAPPaymentSerializer(serializers.ModelSerializer):
                 customer=arap.transaction.customer,
                 supplier=arap.transaction.supplier,
                 th_status=True,
-                th_post=True,
+                th_order=True,
             )
             
             # Update the ARAP record

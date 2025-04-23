@@ -145,7 +145,7 @@ class Command(BaseCommand):
             event_discount=event_discount,
             th_so=sales_order,
             th_delivery=random.random() > 0.5,
-            th_post=random.random() > 0.5,
+            th_order=random.random() > 0.5,
         )
 
         # REMOVE THESE TWO LINES - don't save or calculate points here
