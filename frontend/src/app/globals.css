@@ -241,3 +241,9 @@
   background: white; /* or your desired background color */
   z-index: 10; /* Ensure it stays above other content */
 }
+
+.table-striped tbody tr:nth-child(even) {
+  background-color: #f6f6f9; /* contoh warna striping */
+}
+
+

@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input"
 import { fetcher } from "@/lib/utils"
 import useSWR from "swr"
 
-export function OperatorDropdown() {
+export function CashierDropdown() {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/cashier_and_above/", fetcher);
+  const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/by_role/?role_ids=5", fetcher);
 
+  // Menangani status loading dan error
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
@@ -25,6 +26,7 @@ export function OperatorDropdown() {
     )
   }
 
+  // Filter data berdasarkan pencarian
   const filteredItems = Array.isArray(data)
   ? data.filter((item: { username: string }) =>
       item.username.toLowerCase().includes(search.toLowerCase())
@@ -54,7 +56,7 @@ export function OperatorDropdown() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-52 justify-between font-normal">
-          {selected.length > 0 ? `${selected.length} selected` : "Pilih Operator"}
+          {selected.length > 0 ? `${selected.length} selected` : "Pilih Member"}
           <ChevronsUpDown />
         </Button>
       </PopoverTrigger>
@@ -75,7 +77,7 @@ export function OperatorDropdown() {
         </div>
         <ScrollArea className="h-40">
           {filteredItems.length > 0 ? (
-            filteredItems.map((item: { id: number; username: string; role: { name: string } }) => (
+            filteredItems.map((item: { id: number; username: string }) => (
               <label
                 key={item.id}
                 className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
@@ -84,7 +86,7 @@ export function OperatorDropdown() {
                   checked={selected.includes(item.id)}
                   onCheckedChange={() => toggleItem(item.id)}
                 />
-                <span>{item.username} ({item.role.name})</span>
+                <span>{item.username}</span>
               </label>
             ))
           ) : (

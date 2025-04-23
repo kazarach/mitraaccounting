@@ -10,12 +10,16 @@ import { Input } from "@/components/ui/input"
 import { fetcher } from "@/lib/utils"
 import useSWR from "swr"
 
-export function OperatorDropdown() {
+export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => void }) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/cashier_and_above/", fetcher);
 
+  useEffect(() => {
+    onChange(selected);
+  }, [selected, onChange]);
+  
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 

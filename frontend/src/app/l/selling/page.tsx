@@ -28,79 +28,61 @@ import MemberDD from '@/components/dropdown-normal/member_dd';
 import { DateRange } from "react-day-picker";
 import SalesDD from '@/components/dropdown-normal/sales_dd';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import { OperatorDropdownLS } from './operator-dropdown';
 
 const SellingReport = () => {
   const [data, setData] = useState<any[]>([]);
 
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/transactions/report/?status=true&transaction_type=SALE");
-      const json = await response.json();
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
+  const [summary, setSummary] = useState<any>(null);
 
-      if (!json.results) return;
+  useEffect(() => {
+    const fetchData = async () => {
+      let url = "http://127.0.0.1:8000/api/transactions/report/?transaction_type=SALE";
+  
+      // Cek kalau tanggal sudah dipilih, tambahkan ke URL
+      if (date?.from && date?.to) {
+        const start = date.from.toLocaleDateString("sv-SE");
+        const end = date.to.toLocaleDateString("sv-SE");
+        url += `&start_date=${start}&end_date=${end}`;
+      }
+      if (selectedOperators.length > 0) {
+        url += `&cashier=${selectedOperators.join(",")}`; // atau hanya ambil ids[0] kalau API-nya satu id saja
+      }       
+  
+      try {
+        const response = await fetch(url);
+        const json = await response.json();
+  
+        if (!json.results) return;
 
-      const transformedData = json.results.map((transaction: any) => {
-        const totalQuantity = transaction.items.reduce((sum: number, item: any) => sum + parseFloat(item.quantity), 0);
-        const subtotal = parseFloat(transaction.th_total);
-        const discount = parseFloat(transaction.th_disc);
-      
-        return {
+        const transformedData = json.results.map((transaction: any) => ({
           id: transaction.id,
           tanggal: new Date(transaction.th_date).toLocaleDateString(),
-          noFaktur: transaction.th_number,
+          noFaktur: transaction.th_code,
           member: transaction.supplier_name,
           pelanggan: transaction.customer_name,
           operator: transaction.cashier_username,
           kode: transaction.stock_code,
-          jumlah_barang: totalQuantity,
-          subtotal: subtotal,
-          diskon_total: discount,
+          total: transaction.total,
           sales: transaction.bank_name,
-          netto: subtotal - discount,
+          netto: transaction.netto,
           status: transaction.th_status ? "Sukses" : "Batal",
-          items: transaction.items, // Tambahkan detail items
-        };
-      });      
+          items: transaction.items,
+        }));      
 
       setData(transformedData);
+      setSummary(json.summary);  // Tambahkan state untuk summary jika perlu
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     }
   };
 
   fetchData();
-}, []);
+}, [date, selectedOperators]);
 
-
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
-
-  ]
-
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 7),
-  });
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
 
@@ -150,12 +132,13 @@ useEffect(() => {
                         onSelect={setDate}
                         numberOfMonths={2}
                       />
+                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
               </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="operator">Operator</Label>
-                  <OperatorDD />
+                  <OperatorDropdownLS onChange={(ids) => setSelectedOperators(ids)} />
               </div>                                    
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="member">Member</Label>
@@ -192,7 +175,7 @@ useEffect(() => {
             </div>
 
             <div className="rounded-md border overflow-auto">
-              <Table>
+              <Table className='table-striped'>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tanggal</TableHead>
@@ -211,57 +194,64 @@ useEffect(() => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-  {data.map((item) => (
-    <React.Fragment key={item.id}>
-      {/* Baris utama transaksi */}
-      <TableRow className="bg-muted/20">
-        <TableCell>{item.tanggal}</TableCell>
-        <TableCell className="text-left">{item.noFaktur}</TableCell>
-        <TableCell className="text-left">{item.pelanggan}</TableCell>
-        <TableCell className="text-left">{item.operator}</TableCell>
-        <TableCell className="text-left">{item.sales}</TableCell>
-        <TableCell className="text-left">
-          {item.items[0]?.stock_code ?? "-"}
-        </TableCell>
-        <TableCell className="text-left">
-          {item.items[0]?.stock_name ?? "-"}
-        </TableCell>
-        <TableCell className="text-left">
-          {item.items[0]?.quantity ?? "-"}
-        </TableCell>
-        <TableCell className="text-left">Rp {item.items[0]?.sell_price ?? "-"}</TableCell>
-        <TableCell className="text-left">{item.subtotal.toLocaleString()}</TableCell>
-        <TableCell className="text-left">Rp {item.diskon_total.toLocaleString()}</TableCell>
-        <TableCell className="text-left">
-          {isNaN(item.netto) ? "-" : item.netto.toLocaleString()}
-        </TableCell>
-        <TableCell className="text-left">{item.status}</TableCell>
-      </TableRow>
+                  {data.map((item) => (
+                    <React.Fragment key={item.id}>
+                      {/* Baris utama transaksi */}
+                      <TableRow>
+                        <TableCell>{item.tanggal}</TableCell>
+                        <TableCell className="text-left">{item.noFaktur}</TableCell>
+                        <TableCell className="text-left">{item.pelanggan}</TableCell>
+                        <TableCell className="text-left">{item.operator}</TableCell>
+                        <TableCell className="text-left">{item.sales}</TableCell>
+                        <TableCell className="text-left">
+                          {item.items[0]?.stock_code ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {item.items[0]?.stock_name ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {item.items[0]?.quantity.toLocaleString("id-ID") ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-left">Rp {item.items[0]?.sell_price.toLocaleString("id-ID") ?? "-"}</TableCell>
+                        <TableCell className="text-left">Rp {item.items[0]?.total.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-left">
+                          Rp {item.items[0]?.disc ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          Rp {item.items[0]?.netto.toLocaleString("id-ID")}
+                        </TableCell>
+                        <TableCell className="text-left">{item.status}</TableCell>
+                      </TableRow>
 
-      {/* Baris untuk setiap item */}
-      {item.items.slice(1).map((itm: any, index: number) => (
-        <TableRow key={index}>
-          <TableCell colSpan={5}></TableCell>
-          <TableCell className="text-left">{itm.stock_code}</TableCell>
-          <TableCell className="text-left">{itm.stock_name}</TableCell>
-          <TableCell className="text-left">{itm.quantity}</TableCell>
-          <TableCell className="text-left">Rp {itm.sell_price}</TableCell>
-          <TableCell className="text-left">Rp {item.subtotal}</TableCell>
-          <TableCell className="text-left">Rp {item.diskon_total}</TableCell>
-          <TableCell className="text-left">
-          {isNaN(item.netto) ? "-" : item.netto.toLocaleString()}
-          </TableCell>
-          <TableCell className="text-left">{item.status}</TableCell>
-        </TableRow>
-      ))}
-    </React.Fragment>
-  ))}
-</TableBody>
-
+                            {/* Baris untuk setiap item */}
+                            {item.items.slice(1).map((itm: any, index: number) => (
+                              <TableRow key={index}>
+                                <TableCell colSpan={5}></TableCell>
+                                <TableCell className="text-left">{itm.stock_code}</TableCell>
+                                <TableCell className="text-left">{itm.stock_name}</TableCell>
+                                <TableCell className="text-left">{itm.quantity}</TableCell>
+                                <TableCell className="text-left">Rp {itm.sell_price}</TableCell>
+                                <TableCell className="text-left">Rp {itm.total}</TableCell>
+                                <TableCell className="text-left">Rp {itm.disc}</TableCell>
+                                <TableCell className="text-left">
+                                Rp {item.items[0]?.netto.toLocaleString("id-ID")}
+                                </TableCell>
+                                <TableCell className="text-left">{item.status}</TableCell>
+                              </TableRow>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </TableBody>
               </Table>
             </div>
+
           <div className='flex gap-2 justify-end '>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
+          </div>
+          <div>
+            <h1 className='font-semibold'>
+              Total Transaksi : {summary?.total_transactions ?? 0}
+            </h1>
           </div>
           </div>
         </CardContent>

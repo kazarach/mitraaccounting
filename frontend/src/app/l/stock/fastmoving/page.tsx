@@ -186,7 +186,7 @@ const FastMoving = () => {
 
             {!isLoading && !error && (
               <div className="rounded-md border overflow-auto">
-                <Table>
+                <Table className='table-striped'>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nomor</TableHead>
