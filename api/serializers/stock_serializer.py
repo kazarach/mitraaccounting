@@ -8,7 +8,7 @@ class StockSerializer(serializers.ModelSerializer):
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     rack_name = serializers.CharField(source='rack.name', read_only=True)
-    unit_name = serializers.CharField(source='unit.name', read_only=True)
+    unit_name = serializers.CharField(source='unit.unit_code', read_only=True)
     parent_stock_name = serializers.CharField(source='parent_stock.name', read_only=True)
     is_low_stock = serializers.SerializerMethodField()
     available_quantity = serializers.SerializerMethodField()
