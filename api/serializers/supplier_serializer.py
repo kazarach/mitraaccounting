@@ -5,11 +5,16 @@ class SupplierSerializer(serializers.ModelSerializer):
     """
     Serializer for displaying supplier information.
     """
+    children = serializers.SerializerMethodField()
+
     class Meta:
         model = Supplier
         fields = '__all__'
         read_only_fields = ['id']
 
+    def get_children(self, obj):
+        return SupplierSerializer(obj.get_children(), many=True).data
+    
 class SupplierCreateUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating and updating suppliers.

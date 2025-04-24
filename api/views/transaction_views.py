@@ -9,7 +9,7 @@ from django.db.models.functions import Coalesce
 from datetime import timedelta, datetime 
 
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
-from ..models import TransactionHistory, TransItemDetail, TransactionType
+from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 
 import pytz
@@ -108,9 +108,9 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             ),
             OpenApiParameter(name='start_date', type=str, required=False, description='Format: YYYY-MM-DD'),
             OpenApiParameter(name='end_date', type=str, required=False, description='Format: YYYY-MM-DD'),
-            OpenApiParameter(name='cashier', type=int, required=False, description='Filter by cashier ID'),
-            OpenApiParameter(name='customer', type=int, required=False, description='Filter by customer ID'),
-            OpenApiParameter(name='supplier', type=int, required=False, description='Filter by supplier ID'),
+            OpenApiParameter(name='cashier', type=str, required=False, description='Filter by cashier ID'),
+            OpenApiParameter(name='customer', type=str, required=False, description='Filter by customer ID'),
+            OpenApiParameter(name='supplier', type=str, required=False, description='Filter by supplier ID'),
             OpenApiParameter(name='status', type=bool, required=False, description='Filter by transaction status'),
             OpenApiParameter(
                 name='group_by',
@@ -160,15 +160,32 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(th_type=transaction_type)
             
         # Apply additional filters
+        def _parse_multi_param(param):
+            return [int(x) for x in param.split(',') if x.strip().isdigit()]
+        
         if 'cashier' in request.query_params:
-            queryset = queryset.filter(cashier_id=request.query_params.get('cashier'))
-            
+            cashier_ids = _parse_multi_param(request.query_params.get('cashier'))
+            queryset = queryset.filter(cashier_id__in=cashier_ids)
+
         if 'customer' in request.query_params:
-            queryset = queryset.filter(customer_id=request.query_params.get('customer'))
-            
+            customer_ids = _parse_multi_param(request.query_params.get('customer'))
+            queryset = queryset.filter(customer_id__in=customer_ids)
+
         if 'supplier' in request.query_params:
-            queryset = queryset.filter(supplier_id=request.query_params.get('supplier'))
-            
+            supplier_ids = _parse_multi_param(request.query_params.get('supplier'))
+            all_supplier_ids = set()
+            for supplier_id in supplier_ids:
+                try:
+                    supplier = Supplier.objects.get(id=supplier_id)
+                    # Get this supplier and all its descendants
+                    descendants = supplier.get_descendants(include_self=True)
+                    all_supplier_ids.update(descendants.values_list('id', flat=True))
+                except Supplier.DoesNotExist:
+                    continue  # Skip if supplier doesn't exist
+
+            if all_supplier_ids:
+                queryset = queryset.filter(supplier_id__in=all_supplier_ids)
+
         if 'status' in request.query_params:
             status_param = request.query_params.get('status').lower()
             status_value = True if status_param in ('true', '1', 'yes') else False
