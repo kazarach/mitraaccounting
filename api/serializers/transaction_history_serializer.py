@@ -3,6 +3,8 @@ from ..models import TransactionHistory, TransItemDetail, ARAP
 
 
 class TransItemDetailSerializer(serializers.ModelSerializer):
+    unit = serializers.CharField(source='stock.unit.unit_code', read_only=True)
+
     class Meta:
         model = TransItemDetail
         fields = [
@@ -11,6 +13,7 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'stock_name',
             'stock_price_buy',
             'quantity',
+            'unit',
             'sell_price',
             'disc',
             'total',
@@ -20,7 +23,7 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
     items = TransItemDetailSerializer(many=True)
-    supplier_name = serializers.StringRelatedField(source='supplier', read_only=True)
+    supplier_name = serializers.SerializerMethodField()
     customer_name = serializers.StringRelatedField(source='customer', read_only=True)
     cashier_username = serializers.StringRelatedField(source='cashier', read_only=True)
     bank_name = serializers.StringRelatedField(source='bank', read_only=True)
@@ -30,6 +33,11 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
         model = TransactionHistory
         fields = '__all__'
 
+    def get_supplier_name(self, obj):
+        if obj.supplier:
+            return obj.supplier.name
+        return None
+    
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         transaction = TransactionHistory.objects.create(**validated_data)
