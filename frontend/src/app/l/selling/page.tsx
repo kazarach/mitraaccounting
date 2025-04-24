@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -20,16 +19,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Search } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
-import { format, addDays } from 'date-fns';
-import OperatorDD from '@/components/dropdown-normal/operator_dd';
+import { format } from 'date-fns';
 import MemberDD from '@/components/dropdown-normal/member_dd';
 import { DateRange } from "react-day-picker";
 import SalesDD from '@/components/dropdown-normal/sales_dd';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 import { OperatorDropdownLS } from './operator-dropdown';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const SellingReport = () => {
   const [data, setData] = useState<any[]>([]);
@@ -58,9 +56,26 @@ const SellingReport = () => {
   
         if (!json.results) return;
 
+        type TransactionItem ={
+          id: number;
+          tanggal: string;
+          th_date: Date;
+          noFaktur: string;
+          member: string;
+          pelanggan: string;
+          operator: string;
+          kode: string;
+          total: number;
+          sales: string;
+          netto: number;
+          status: string;
+          items: any[];
+        }
+
         const transformedData = json.results.map((transaction: any) => ({
           id: transaction.id,
           tanggal: new Date(transaction.th_date).toLocaleDateString(),
+          th_date: new Date(transaction.th_date),
           noFaktur: transaction.th_code,
           member: transaction.supplier_name,
           pelanggan: transaction.customer_name,
@@ -71,7 +86,7 @@ const SellingReport = () => {
           netto: transaction.netto,
           status: transaction.th_status ? "Sukses" : "Batal",
           items: transaction.items,
-        }));      
+        })).sort((a: TransactionItem, b: TransactionItem) => a.th_date.getTime() - b.th_date.getTime());    
 
       setData(transformedData);
       setSummary(json.summary);  // Tambahkan state untuk summary jika perlu
@@ -174,35 +189,36 @@ const SellingReport = () => {
               </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table className='table-striped'>
+            <ScrollArea>
+              <div className="max-w-[1000px] max-h-[300px]">
+                <Table className="table-striped">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead className="text-left">No. Faktur</TableHead>
-                    <TableHead className="text-left">Pelanggan</TableHead>
-                    <TableHead className="text-left">Operator</TableHead>
-                    <TableHead className="text-left">Sales</TableHead>
-                    <TableHead className="text-left">Kode</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Harga Jual</TableHead>
-                    <TableHead className="text-left">Total Harga Barang</TableHead>
-                    <TableHead className="text-left">Diskon</TableHead>
-                    <TableHead className="text-left">Netto</TableHead>
-                    <TableHead className="text-left">Status</TableHead>
+                    <TableHead className='table-header'>Tanggal</TableHead>
+                    <TableHead className="table-header text-left">No. Faktur</TableHead>
+                    <TableHead className="table-header text-left">Pelanggan</TableHead>
+                    <TableHead className="table-header text-left">Operator</TableHead>
+                    <TableHead className="table-header text-left">Sales</TableHead>
+                    <TableHead className="table-header text-left">Kode</TableHead>
+                    <TableHead className="table-header text-left">Nama Barang</TableHead>
+                    <TableHead className="table-header text-left">Jumlah Barang</TableHead>
+                    <TableHead className="table-header text-left">Harga Jual</TableHead>
+                    <TableHead className="table-header text-left">Total Harga Barang</TableHead>
+                    <TableHead className="table-header text-left">Diskon</TableHead>
+                    <TableHead className="table-header text-left">Netto</TableHead>
+                    <TableHead className="table-header text-left">Status</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody >
                   {data.map((item) => (
                     <React.Fragment key={item.id}>
                       {/* Baris utama transaksi */}
                       <TableRow>
-                        <TableCell>{item.tanggal}</TableCell>
-                        <TableCell className="text-left">{item.noFaktur}</TableCell>
-                        <TableCell className="text-left">{item.pelanggan}</TableCell>
-                        <TableCell className="text-left">{item.operator}</TableCell>
-                        <TableCell className="text-left">{item.sales}</TableCell>
+                        <TableCell className='table-header2'>{item.tanggal}</TableCell>
+                        <TableCell className="table-header2 text-left">{item.noFaktur}</TableCell>
+                        <TableCell className="table-header2 text-left">{item.pelanggan}</TableCell>
+                        <TableCell className="table-header2 text-left">{item.operator}</TableCell>
+                        <TableCell className="table-header2 text-left">{item.sales}</TableCell>
                         <TableCell className="text-left">
                           {item.items[0]?.stock_code ?? "-"}
                         </TableCell>
@@ -244,14 +260,14 @@ const SellingReport = () => {
                       </TableBody>
               </Table>
             </div>
+            <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
-          <div className='flex gap-2 justify-end '>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
-          </div>
-          <div>
+          <div className='flex gap-2 justify-between '>
             <h1 className='font-semibold'>
               Total Transaksi : {summary?.total_transactions ?? 0}
             </h1>
+            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
         </CardContent>

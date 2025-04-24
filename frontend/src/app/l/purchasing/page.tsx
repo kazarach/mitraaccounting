@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   Table,
@@ -27,80 +27,87 @@ import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { distributors } from '@/data/product';
+import { DateRange } from 'react-day-picker';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
+import { DistributorDropdownLP } from './distributor-dropdown';
 
 const PurchasingReport = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
+  const [data, setData] = useState<any[]>([]);
+
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      let url = "http://127.0.0.1:8000/api/transactions/report/?transaction_type=PAYMENT";
+  
+      // Cek kalau tanggal sudah dipilih, tambahkan ke URL
+      if (date?.from && date?.to) {
+        const start = date.from.toLocaleDateString("sv-SE");
+        const end = date.to.toLocaleDateString("sv-SE");
+        url += `&start_date=${start}&end_date=${end}`;
+      }
+      if (selectedDistributors.length > 0) {
+        url += `&supplier=${selectedDistributors.join(",")}`; // atau hanya ambil ids[0] kalau API-nya satu id saja
+      }       
+  
+      try {
+        const response = await fetch(url);
+        const json = await response.json();
+  
+        if (!json.results) return;
+
+        type TransactionItem ={
+          id: number;
+          tanggal: string;
+          th_date: Date;
+          noFaktur: string;
+          supplier: string;
+          member: string;
+          pelanggan: string;
+          operator: string;
+          kode: string;
+          total: number;
+          sales: string;
+          netto: number;
+          status: string;
+          items: any[];
+          diskon_trans: number;
+        }
+
+        const transformedData: TransactionItem[]= json.results.map((transaction: any): TransactionItem => ({
+          id: transaction.id,
+          tanggal: new Date(transaction.th_date).toLocaleDateString(),
+          th_date: new Date(transaction.th_date),
+          noFaktur: transaction.th_code,
+          supplier: transaction.supplier_name,
+          member: transaction.supplier_name,
+          pelanggan: transaction.customer_name,
+          operator: transaction.cashier_username,
+          kode: transaction.stock_code,
+          total: transaction.total,
+          sales: transaction.bank_name,
+          netto: transaction.netto,
+          status: transaction.th_status ? "Sukses" : "Batal",
+          items: transaction.items,
+          diskon_trans: transaction.th_disc,
+        })).sort((a: TransactionItem, b: TransactionItem) => a.th_date.getTime() - b.th_date.getTime());     
+
+      setData(transformedData);
+      setSummary(json.summary);  // Tambahkan state untuk summary jika perlu
+    } catch (error) {
+      console.error("Gagal mengambil data:", error);
     }
-  ]
-  );
+  };
 
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
+  fetchData();
+}, [date, selectedDistributors]);
 
-  ]
-
-  const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
-  const [open2, setOpen2] = React.useState(false)
-  const [value2, setValue2] = React.useState("")
-  const [open3, setOpen3] = React.useState(false)
-  const [value3, setValue3] = React.useState("")
 
   return (
     <div className="flex justify-left w-full pt-4">
@@ -113,133 +120,52 @@ const PurchasingReport = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
+                <Label htmlFor="date-range">Tanggal</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="date-range"
                         variant={"outline"}
                         className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
+                          "w-[300px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date?.from ? (
+                          date.to ? (
+                            <>
+                              {format(date.from, "LLL dd, y")} -{" "}
+                              {format(date.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(date.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pilih Tanggal</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
                         selected={date}
                         onSelect={setDate}
-                        initialFocus
+                        numberOfMonths={2}
                       />
+                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
-                </div>
+              </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Distributor"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue(selectedDistributor.value);
-                                  } else {
-                                    setValue("");
-                                  }
-                                  setOpen(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <DistributorDropdownLP onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Kategori</Label>
-                  <Popover open={open2} onOpenChange={setOpen2}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Kategori"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue2(selectedDistributor.value);
-                                  } else {
-                                    setValue2("");
-                                  }
-                                  setOpen2(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <DistributorDropdown/>
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>
@@ -254,51 +180,83 @@ const PurchasingReport = () => {
               </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
+            <ScrollArea>
+            <div className="max-w-[1000px] max-h-[400px]">
+              <Table className="table-striped">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead className="text-left">No. Faktur</TableHead>
-                    <TableHead className="text-left">Kode</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Satuan</TableHead>
-                    <TableHead className="text-left">Harga</TableHead>
-                    <TableHead className="text-left">Diskon</TableHead>
-                    <TableHead className="text-left">Diskon</TableHead>
-                    <TableHead className="text-left">Diskon</TableHead>
-                    <TableHead className="text-left">Netto</TableHead>
-                    <TableHead className="text-left">Keterangan</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className='table-header'>Tanggal</TableHead>
+                    <TableHead className="table-header text-left">No. Faktur</TableHead>
+                    <TableHead className="table-header text-left">Distributor</TableHead>
+                    <TableHead className="table-header text-left">Kode</TableHead>
+                    <TableHead className="table-header text-left">Nama Barang</TableHead>
+                    <TableHead className="table-header text-left">Jumlah Barang</TableHead>
+                    <TableHead className="table-header text-left">Satuan</TableHead>
+                    <TableHead className="table-header text-left">Harga Beli</TableHead>
+                    <TableHead className="table-header text-left">Diskon Satuan</TableHead>
+                    <TableHead className="table-header text-left">Diskon Transaksi</TableHead>
+                    <TableHead className="table-header text-left">Netto</TableHead>
+                    <TableHead className="table-header text-left">Keterangan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.harga_beli}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
-                      </TableCell>           
+                    <React.Fragment key={item.id}>
+                    <TableRow>
+                      <TableCell className='table-header2'>{item.tanggal}</TableCell>
+                      <TableCell className="table-header2 text-left">{item.noFaktur}</TableCell>
+                      <TableCell className="table-header2 text-left">{item.supplier}</TableCell>
+                      <TableCell className="text-left">
+                        {item.items[0]?.stock_code ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {item.items[0]?.stock_name ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {item.items[0]?.quantity.toLocaleString("id-ID") ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">{item.items[0]?.unit}</TableCell>
+                      <TableCell className="text-left">
+                        Rp {item.items[0]?.stock_price_buy.toLocaleString("id-ID") ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        Rp {item.items[0]?.disc.toLocaleString("id-ID") ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">Rp {item.diskon_trans ?? "0"}</TableCell>
+                      <TableCell className="text-left">
+                        Rp {item.items[0]?.netto.toLocaleString("id-ID") ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-left">{item.satuan}</TableCell>        
                     </TableRow>
+                      {/* Baris untuk setiap item */}
+                      {item.items.slice(1).map((itm: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell colSpan={3}></TableCell>
+                          <TableCell className="text-left">{itm.stock_code}</TableCell>
+                          <TableCell className="text-left">{itm.stock_name}</TableCell>
+                          <TableCell className="text-left">{itm.quantity}</TableCell>
+                          <TableCell className="text-left">{itm.unit}</TableCell>
+                          <TableCell className="text-left">Rp {itm.stock_price_buy}</TableCell>
+                          <TableCell className="text-left">Rp {itm.disc}</TableCell>
+                          <TableCell className="text-left">Rp {item.th_disc ?? "0"}</TableCell>
+                          <TableCell className="text-left">
+                          Rp {item.items[0]?.netto.toLocaleString("id-ID")}
+                          </TableCell>
+                          {/* <TableCell className="text-left">{item.status}</TableCell> */}
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
             </div>
-          <div className='flex gap-2 justify-end '>
+            <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+
+          <div className='flex gap-2 justify-between '>
+            <h1 className='font-semibold'>
+              Total Transaksi : {summary?.total_transactions ?? 0}
+            </h1>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>
