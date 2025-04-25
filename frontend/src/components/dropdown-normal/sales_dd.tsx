@@ -32,7 +32,7 @@ const SalesDD = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-[150px] h-[30px] justify-between font-normal"
                     >
                         {value !== null
                             ? data.find((d) => d.id === value)?.username
@@ -40,7 +40,7 @@ const SalesDD = () => {
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 border rounded-md">
+                <PopoverContent className="w-[200px] p-0 z-20 border rounded-md">
                     <Command>
                         <CommandInput placeholder="Pilih Sales" />
                         <CommandList>
