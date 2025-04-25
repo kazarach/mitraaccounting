@@ -32,7 +32,7 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionHistory
         fields = '__all__'
-
+    
     def get_supplier_name(self, obj):
         if obj.supplier:
             return obj.supplier.name

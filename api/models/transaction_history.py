@@ -145,6 +145,7 @@ class TransItemDetail(models.Model):
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
     sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
     disc = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    disc_percent = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     netto = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
@@ -152,35 +153,21 @@ class TransItemDetail(models.Model):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
     def save(self, *args, **kwargs):
+        # Calculate total before discounts
         self.total = self.quantity * (self.sell_price or 0)
-        self.netto = self.total - (self.quantity * (self.disc or 0))
+        
+        # Calculate item discount amount (if disc_percent is provided)
+        if self.disc_percent and not self.disc:
+            self.disc = (self.sell_price * self.disc_percent) / 100
+        
+        # Calculate netto (after item discount)
+        discount_amount = self.quantity * (self.disc or 0)
+        self.netto = self.total - discount_amount
+        
         super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Transaction Item Detail"
         verbose_name_plural = "Transaction Item Details"
 
-class ARAP(models.Model):
-    transaction = models.OneToOneField(TransactionHistory, on_delete=models.CASCADE, related_name='arap')
-    
-    is_receivable = models.BooleanField()  # True = Piutang (receivable), False = Hutang (payable)
-    total_amount = models.DecimalField(max_digits=15, decimal_places=2)
-    amount_paid = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    
-    due_date = models.DateField(null=True, blank=True)
-    is_settled = models.BooleanField(default=False)
 
-    def remaining_amount(self):
-        return self.total_amount - self.amount_paid
-
-    def save(self, *args, **kwargs):
-        self.is_settled = self.amount_paid >= self.total_amount
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        type_str = "Piutang" if self.is_receivable else "Hutang"
-        return f"{type_str} - {self.transaction.th_code}"
-
-    class Meta:
-        verbose_name = "ARAP"
-        verbose_name_plural = "ARAPs"

@@ -2,10 +2,10 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Sum, Count, Case, When, DecimalField
+from django.db.models import Q, Sum, Count, Case, When, DecimalField, F, Value
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
-from ..models import ARAP, TransactionHistory, TransactionType
-from ..serializers import ARAPSerializer, ARAPPaymentSerializer, TransactionHistorySerializer
+from ..models import ARAP, ARAPTransaction, TransactionHistory, TransactionType
+from ..serializers import ARAPSerializer, ARAPTransactionSerializer, ARAPPaymentSerializer, TransactionHistorySerializer, ARAPSummarySerializer
 
 
 @extend_schema_view(
@@ -54,108 +54,104 @@ class ARAPViewSet(viewsets.ModelViewSet):
     queryset = ARAP.objects.all()
     serializer_class = ARAPSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['is_receivable', 'is_settled', 'due_date']
-    search_fields = ['transaction__th_code', 'transaction__th_note', 
-                     'transaction__supplier__supplier_name', 'transaction__customer__customer_name']
-    ordering_fields = ['due_date', 'total_amount', 'amount_paid', 'transaction__th_date']
+    filterset_fields = ['is_receivable', 'supplier', 'customer']
+    search_fields = ['supplier__name', 'customer__name']
+    ordering_fields = ['total_amount', 'total_paid']
     
     def get_queryset(self):
         """
         Extends the base queryset with additional filtering options from query parameters.
         """
-        queryset = ARAP.objects.all()
+        queryset = ARAP.objects.all().prefetch_related('transactions')
         
-        # Filter by transaction type
-        transaction_type = self.request.query_params.get('transaction_type')
-        if transaction_type:
-            queryset = queryset.filter(transaction__th_type=transaction_type)
+        # Filter by entity type
+        is_receivable = self.request.query_params.get('is_receivable')
+        if is_receivable is not None:
+            is_receivable = is_receivable.lower() == 'true'
+            queryset = queryset.filter(is_receivable=is_receivable)
         
-        # Filter by date range
+        # Filter by settled status
+        is_settled = self.request.query_params.get('is_settled')
+        if is_settled is not None:
+            # For settled status, we need to check if total_paid >= total_amount
+            is_settled = is_settled.lower() == 'true'
+            if is_settled:
+                queryset = queryset.filter(total_paid__gte=F('total_amount'))
+            else:
+                queryset = queryset.filter(total_paid__lt=F('total_amount'))
+            
+        # Filter by date range for transactions
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
         if start_date and end_date:
-            queryset = queryset.filter(transaction__th_date__range=[start_date, end_date])
+            queryset = queryset.filter(transactions__due_date__range=[start_date, end_date]).distinct()
         
-        # Filter by customer or supplier
-        customer_id = self.request.query_params.get('customer_id')
-        supplier_id = self.request.query_params.get('supplier_id')
-        if customer_id:
-            queryset = queryset.filter(transaction__customer_id=customer_id)
-        if supplier_id:
-            queryset = queryset.filter(transaction__supplier_id=supplier_id)
-            
         # Filter overdue records
         overdue = self.request.query_params.get('overdue')
         if overdue and overdue.lower() == 'true':
             from django.utils import timezone
             today = timezone.now().date()
             queryset = queryset.filter(
-                Q(due_date__lt=today) & 
-                Q(is_settled=False)
-            )
+                transactions__due_date__lt=today,
+                total_paid__lt=F('total_amount')
+            ).distinct()
             
         return queryset
     
     @extend_schema(
-        summary="Record payment against ARAP",
-        description="Record a payment against an ARAP record and update its payment status.",
-        request={"application/json": {"type": "object", "properties": {"amount": {"type": "number"}}}},
-        responses={200: ARAPSerializer},
-        tags=["ARAP"]
-    )
-    @action(detail=True, methods=['post'])
-    def add_payment(self, request, pk=None):
-        """
-        Record a payment against an ARAP record.
-        Expects 'amount' in the request data.
-        """
-        arap = self.get_object()
-        amount = request.data.get('amount')
-        
-        if not amount:
-            return Response(
-                {"error": "Payment amount is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            amount = float(amount)
-        except ValueError:
-            return Response(
-                {"error": "Invalid amount format"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Update the amount paid
-        arap.amount_paid += amount
-        arap.save()  # This will also update is_settled via model's save method
-        
-        return Response(self.get_serializer(arap).data)
-    
-    @extend_schema(
-        summary="Get receivables only",
-        description="Get all accounts receivable records.",
-        responses={200: ARAPSerializer(many=True)},
+        summary="Get ARAP by supplier",
+        description="Get ARAP records grouped by supplier.",
+        responses={200: ARAPSummarySerializer(many=True)},
         tags=["ARAP"]
     )
     @action(detail=False, methods=['get'])
-    def receivables(self, request):
-        """Get all accounts receivable"""
-        queryset = self.get_queryset().filter(is_receivable=True)
-        serializer = self.get_serializer(queryset, many=True)
+    def by_supplier(self, request):
+        """
+        Get ARAP data grouped by supplier.
+        """
+        supplier_summary = ARAP.objects.filter(
+            is_receivable=False,
+            supplier__isnull=False
+        ).values(
+            'supplier'
+        ).annotate(
+            entity_id=F('supplier'),
+            entity_name=F('supplier__name'),
+            total_amount=Sum('total_amount'),
+            total_paid=Sum('total_paid'),
+            remaining=Sum(F('total_amount') - F('total_paid')),
+            transaction_count=Count('transactions')
+        ).order_by('supplier__name')
+        
+        serializer = ARAPSummarySerializer(supplier_summary, many=True)
         return Response(serializer.data)
     
     @extend_schema(
-        summary="Get payables only",
-        description="Get all accounts payable records.",
-        responses={200: ARAPSerializer(many=True)},
+        summary="Get ARAP by customer",
+        description="Get ARAP records grouped by customer.",
+        responses={200: ARAPSummarySerializer(many=True)},
         tags=["ARAP"]
     )
     @action(detail=False, methods=['get'])
-    def payables(self, request):
-        """Get all accounts payable"""
-        queryset = self.get_queryset().filter(is_receivable=False)
-        serializer = self.get_serializer(queryset, many=True)
+    def by_customer(self, request):
+        """
+        Get ARAP data grouped by customer.
+        """
+        customer_summary = ARAP.objects.filter(
+            is_receivable=True,
+            customer__isnull=False
+        ).values(
+            'customer'
+        ).annotate(
+            entity_id=F('customer'),
+            entity_name=F('customer__name'),
+            total_amount=Sum('total_amount'),
+            total_paid=Sum('total_paid'),
+            remaining=Sum(F('total_amount') - F('total_paid')),
+            transaction_count=Count('transactions')
+        ).order_by('customer__name')
+        
+        serializer = ARAPSummarySerializer(customer_summary, many=True)
         return Response(serializer.data)
     
     @extend_schema(
@@ -190,14 +186,14 @@ class ARAPViewSet(viewsets.ModelViewSet):
             ),
             receivables_paid=Sum(
                 Case(
-                    When(is_receivable=True, then='amount_paid'),
+                    When(is_receivable=True, then='total_paid'),
                     default=0,
                     output_field=DecimalField()
                 )
             ),
             payables_paid=Sum(
                 Case(
-                    When(is_receivable=False, then='amount_paid'),
+                    When(is_receivable=False, then='total_paid'),
                     default=0,
                     output_field=DecimalField()
                 )
@@ -214,12 +210,12 @@ class ARAPViewSet(viewsets.ModelViewSet):
             ),
             settled_count=Count(
                 Case(
-                    When(is_settled=True, then=1)
+                    When(total_paid__gte=F('total_amount'), then=1)
                 )
             ),
             outstanding_count=Count(
                 Case(
-                    When(is_settled=False, then=1)
+                    When(total_paid__lt=F('total_amount'), then=1)
                 )
             )
         )
@@ -239,42 +235,100 @@ class ARAPViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
+    list=extend_schema(
+        summary="List ARAP transactions",
+        description="Get a list of all ARAP transaction records.",
+        responses={200: ARAPTransactionSerializer(many=True)},
+        tags=["ARAP Transactions"]
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve ARAP transaction",
+        description="Get detailed information about a specific ARAP transaction.",
+        responses={200: ARAPTransactionSerializer},
+        tags=["ARAP Transactions"]
+    ),
+)
+class ARAPTransactionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing ARAP transaction records.
+    """
+    queryset = ARAPTransaction.objects.all()
+    serializer_class = ARAPTransactionSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['arap', 'due_date']
+    ordering_fields = ['due_date', 'amount', 'paid']
+    
+    def get_queryset(self):
+        queryset = ARAPTransaction.objects.all()
+        
+        # Filter by ARAP ID
+        arap_id = self.request.query_params.get('arap_id')
+        if arap_id:
+            queryset = queryset.filter(arap_id=arap_id)
+            
+        # Filter by amount range
+        min_amount = self.request.query_params.get('min_amount')
+        max_amount = self.request.query_params.get('max_amount')
+        if min_amount:
+            queryset = queryset.filter(amount__gte=min_amount)
+        if max_amount:
+            queryset = queryset.filter(amount__lte=max_amount)
+            
+        # Filter by due date range
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date and end_date:
+            queryset = queryset.filter(due_date__range=[start_date, end_date])
+            
+        # Filter by settlement status
+        is_settled = self.request.query_params.get('is_settled')
+        if is_settled is not None:
+            is_settled = is_settled.lower() == 'true'
+            if is_settled:
+                queryset = queryset.filter(paid__gte=F('amount'))
+            else:
+                queryset = queryset.filter(paid__lt=F('amount'))
+                
+        return queryset
+
+
+@extend_schema_view(
     create=extend_schema(
         summary="Create ARAP payment",
-        description="Create a payment transaction for an ARAP record.",
+        description="Create a payment transaction for an ARAP transaction record.",
         request=ARAPPaymentSerializer,
-        responses={201: ARAPSerializer},
+        responses={201: ARAPTransactionSerializer},
         tags=["ARAP Payments"]
     )
 )
 class ARAPPaymentViewSet(viewsets.GenericViewSet):
     """
-    ViewSet for handling payment operations on ARAP records.
+    ViewSet for handling payment operations on ARAP transaction records.
     Provides functionality to create payments and view payment history.
     """
-    queryset = ARAP.objects.all()
+    queryset = ARAPTransaction.objects.all()
     serializer_class = ARAPPaymentSerializer
     
     def create(self, request):
         """
-        Create a payment for an ARAP record.
+        Create a payment for an ARAP transaction record.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payment_transaction = serializer.save()
         
-        # Return the updated ARAP record
-        arap_id = request.data.get('arap_id')
-        arap = ARAP.objects.get(id=arap_id)
-        return Response(ARAPSerializer(arap).data, status=status.HTTP_201_CREATED)
+        # Return the updated ARAP transaction record
+        arap_transaction_id = request.data.get('arap_transaction_id')
+        arap_transaction = ARAPTransaction.objects.get(id=arap_transaction_id)
+        return Response(ARAPTransactionSerializer(arap_transaction).data, status=status.HTTP_201_CREATED)
     
     @extend_schema(
         summary="Get payment history",
-        description="Get payment history for a specific ARAP record.",
+        description="Get payment history for a specific ARAP transaction record.",
         parameters=[
             OpenApiParameter(
-                name="arap_id",
-                description="ARAP record ID",
+                name="arap_transaction_id",
+                description="ARAP transaction ID",
                 required=True,
                 type=int
             )
@@ -285,28 +339,31 @@ class ARAPPaymentViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=['get'])
     def payment_history(self, request):
         """
-        Get payment history for a specific ARAP record.
+        Get payment history for a specific ARAP transaction record.
         """
-        arap_id = request.query_params.get('arap_id')
-        if not arap_id:
+        arap_transaction_id = request.query_params.get('arap_transaction_id')
+        if not arap_transaction_id:
             return Response(
-                {"error": "arap_id parameter is required"}, 
+                {"error": "arap_transaction_id parameter is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
             
         try:
-            arap = ARAP.objects.get(id=arap_id)
-        except ARAP.DoesNotExist:
+            arap_transaction = ARAPTransaction.objects.get(id=arap_transaction_id)
+        except ARAPTransaction.DoesNotExist:
             return Response(
-                {"error": "ARAP record not found"}, 
+                {"error": "ARAP transaction record not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
             
-        # Get all payment transactions for this ARAP
+        # Get the parent ARAP record to determine payment type
+        arap = arap_transaction.arap
+        
+        # Get all payment transactions for this ARAP transaction
         transaction_type = TransactionType.RECEIPT if arap.is_receivable else TransactionType.PAYMENT
         payments = TransactionHistory.objects.filter(
             th_type=transaction_type,
-            th_note__icontains=arap.transaction.th_code
+            th_note__icontains=f"transaction #{arap_transaction_id}"
         ).order_by('-th_date')
         
         return Response(TransactionHistorySerializer(payments, many=True).data)
