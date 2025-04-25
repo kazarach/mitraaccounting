@@ -26,7 +26,7 @@ export const tableSlice = createSlice({
       const table = state[action.payload.tableName];
       const rowToAdd = action.payload.row;
     
-      const existingRowIndex = table.findIndex((row) => row.name === rowToAdd.name);
+      const existingRowIndex = table.findIndex((row) => row.stock_code === rowToAdd.stock_code);
     
       if (existingRowIndex !== -1) {
         table[existingRowIndex].quantity += rowToAdd.quantity;

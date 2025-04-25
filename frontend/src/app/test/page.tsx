@@ -147,7 +147,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
     getSortedRowModel: getSortedRowModel(),
   });
 
-  if (isLoading) return <p><Loading/></p>;
+  if (isLoading) return <Loading/>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
   return (
