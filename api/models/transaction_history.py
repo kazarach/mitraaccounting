@@ -35,7 +35,6 @@ class TransactionHistory(models.Model):
     
     th_disc = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     th_ppn = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    th_round = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     th_dp = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     th_total = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     
@@ -126,6 +125,12 @@ class TransactionHistory(models.Model):
                 self.th_point = self.calculate_points()
                 super().save(update_fields=["th_point"])  # Update only the points field
 
+            # Calculate th_total by summing netto from all related TransItemDetails
+            self.th_total = sum(item.netto for item in self.items.all())
+
+            # Save the updated th_total value
+            super().save(update_fields=["th_total"])
+
     class Meta:
         verbose_name = "Transaction History"
         verbose_name_plural = "Transaction Histories"
@@ -144,8 +149,9 @@ class TransItemDetail(models.Model):
 
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
     sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
-    disc = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    disc_percent = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    disc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
+    disc_percent = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
+    disc_percent2 = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
     total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     netto = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
@@ -153,16 +159,27 @@ class TransItemDetail(models.Model):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
     def save(self, *args, **kwargs):
-        # Calculate total before discounts
         self.total = self.quantity * (self.sell_price or 0)
+        price_after_disc1 = (self.sell_price or 0) * (1 - (self.disc_percent or 0) / 100)
+        price_after_disc2 = price_after_disc1 * (1 - (self.disc_percent2 or 0) / 100)
+        final_price = price_after_disc2 - (self.disc or 0)
+        netto = self.quantity * final_price
+
+        if self.transaction.th_disc:
+            netto -= netto * (self.transaction.th_disc / 100)
+
+        if self.transaction.th_ppn:
+            netto += netto * (self.transaction.th_ppn / 100)
+
+        self.netto = netto
+
+        if self.quantity > 0:
+            final_price_buy = self.netto / self.quantity
+        else:
+            final_price_buy = 0  # Avoid division by zero
         
-        # Calculate item discount amount (if disc_percent is provided)
-        if self.disc_percent and not self.disc:
-            self.disc = (self.sell_price * self.disc_percent) / 100
-        
-        # Calculate netto (after item discount)
-        discount_amount = self.quantity * (self.disc or 0)
-        self.netto = self.total - discount_amount
+        self.stock.price_buy = final_price_buy
+        self.stock.save()
         
         super().save(*args, **kwargs)
 

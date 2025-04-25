@@ -122,9 +122,9 @@ class Command(BaseCommand):
 
         # Generate values
         total = Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01'))
-        discount = Decimal(random.uniform(0, float(total * Decimal('0.2')))).quantize(Decimal('0.01')) if random.random() > 0.5 else None
-        ppn = (total * Decimal('0.1')).quantize(Decimal('0.01')) if random.random() > 0.3 else None
-        round_amount = Decimal(random.uniform(0, 10)).quantize(Decimal('0.01')) if random.random() > 0.7 else None
+        discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
+        discount = random.choice(discount_values) if random.random() > 0.5 else None
+        ppn = 11
 
         # Create transaction history object
         transaction = TransactionHistory(
@@ -136,7 +136,6 @@ class Command(BaseCommand):
             th_payment_type=random.choice(payment_types),
             th_disc=discount,
             th_ppn=ppn,
-            th_round=round_amount,
             th_total=total,
             th_date=current_date,  # Set the transaction date to the current date in the loop
             th_note=fake.sentence() if random.random() > 0.5 else None,
@@ -147,10 +146,6 @@ class Command(BaseCommand):
             th_delivery=random.random() > 0.5,
             th_order=random.random() > 0.5,
         )
-
-        # REMOVE THESE TWO LINES - don't save or calculate points here
-        # transaction.save()
-        # transaction.th_point = transaction.calculate_points()
 
         return transaction
 
@@ -166,6 +161,10 @@ class Command(BaseCommand):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
             sell_price = (stock.price_buy * Decimal(random.uniform(1.1, 1.5))).quantize(Decimal('0.01'))
+            discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
+            discount_percent = random.choice(discount_values) if random.random() > 0.5 else None
+            disc_values = [Decimal(x) for x in range(0, 1001, 50)]
+            discount = random.choice(disc_values) if random.random() > 0.5 else None
 
             transaction_items.append(
                 TransItemDetail(
@@ -175,7 +174,10 @@ class Command(BaseCommand):
                     stock_name=stock.name,
                     stock_price_buy=stock.price_buy,
                     quantity=quantity,
-                    sell_price=sell_price
+                    sell_price=sell_price,
+                    disc=discount,
+                    disc_percent=discount_percent,
+                    disc_percent2=discount_percent,
                 )
             )
 
