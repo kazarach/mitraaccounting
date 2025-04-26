@@ -39,7 +39,7 @@ import {
 import apiFetch from '@/lib/apiClient';
 
 const SellingReport = () => {
-  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const { state } = useSidebar();
   const [data, setData] = useState<any[]>([]);
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedOperators, setSelectedOperators] = useState<number[]>([]);

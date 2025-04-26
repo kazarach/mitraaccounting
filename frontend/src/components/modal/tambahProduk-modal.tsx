@@ -39,12 +39,12 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
   const [distributor, setDistributor] = useState<number[]>([]);
-
-  // 🔥 Build URL dinamis berdasarkan distributor yang dipilih
   const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
-  const apiUrl = `http://100.82.207.117:8000/api/stock/?include_sales=true${supplierParam}`;
+  // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
-  const { data, error, isLoading, mutate } = useSWR(apiUrl, fetcher);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL_LOCAL!
+  console.log(API_URL)
+  const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?include_sales=true${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
     const newItem = {
