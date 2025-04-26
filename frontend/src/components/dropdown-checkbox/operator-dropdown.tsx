@@ -14,7 +14,7 @@ export function OperatorDropdown() {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const { data, error, isLoading } = useSWR("http://127.0.0.1:8000/api/users/cashier_and_above/", fetcher);
+  const { data, error, isLoading } = useSWR("http://100.82.207.117:8000/api/users/cashier_and_above/", fetcher);
 
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>;

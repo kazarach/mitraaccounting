@@ -56,7 +56,7 @@ export function LoginForm({
     });
 
     const { trigger, isMutating } = useSWRMutation(
-        "http://127.0.0.1:8000/api/token/",
+        "http://100.82.207.117:8000/api/token/",
         loginRequest
     );
 

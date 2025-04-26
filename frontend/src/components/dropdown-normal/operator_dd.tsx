@@ -21,7 +21,7 @@ const OperatorDD = ({ onChange }: OperatorDDProps) => {
   const [value, setValue] = React.useState<number | null>(null);
 
   const { data = [], error, isLoading } = useSWR<Operator[]>(
-    'http://127.0.0.1:8000/api/users/by_role/?role_ids=4',
+    'http://100.82.207.117:8000/api/users/by_role/?role_ids=4',
     fetcher
   );
 

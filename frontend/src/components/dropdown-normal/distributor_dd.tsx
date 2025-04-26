@@ -22,7 +22,7 @@ type Supplier = {
 const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
     const [open, setOpen] = React.useState(false);
     const { data = [], error, isLoading } = useSWR<Supplier[]>(
-        "http://127.0.0.1:8000/api/suppliers/",
+        "http://100.82.207.117:8000/api/suppliers/",
         fetcher
     );
 

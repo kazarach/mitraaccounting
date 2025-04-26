@@ -42,9 +42,9 @@ const FastMoving = () => {
 
   const { data, error, isLoading } = useSWR(
     startDate && endDate
-      ? `http://127.0.0.1:8000/api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
+      ? `http://100.82.207.117:8000/api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
       : range
-      ? `http://127.0.0.1:8000/api/trans-items/fast_moving/?range=${range}`
+      ? `http://100.82.207.117:8000/api/trans-items/fast_moving/?range=${range}`
       : null,  // Jika tidak ada parameter apapun, jangan lakukan fetch
     fetcher
   );

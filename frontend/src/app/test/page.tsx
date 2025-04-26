@@ -40,7 +40,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
-  const { data, error, isLoading, mutate } = useSWR("http://127.0.0.1:8000/api/stock/", fetcher);
+  const { data, error, isLoading, mutate } = useSWR("http://100.82.207.117:8000/api/stock/", fetcher);
 
   const handleAddProduct = (product: any) => {
     const quantity = quantities[product.id] ?? 1;

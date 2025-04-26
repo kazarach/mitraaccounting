@@ -21,7 +21,7 @@ export function DistributorDropdownLP({ onChange }: { onChange: (ids: number[]) 
   const [search, setSearch] = useState("")
 
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    "http://127.0.0.1:8000/api/suppliers/",
+    "http://100.82.207.117:8000/api/suppliers/",
     fetcher
   )
 

@@ -42,7 +42,7 @@ const PurchasingReport = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      let url = "http://127.0.0.1:8000/api/transactions/report/?transaction_type=PAYMENT";
+      let url = "http://100.82.207.117:8000/api/transactions/report/?transaction_type=PAYMENT";
   
       // Cek kalau tanggal sudah dipilih, tambahkan ke URL
       if (date?.from && date?.to) {

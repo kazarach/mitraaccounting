@@ -38,7 +38,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
-  const { data, error, isLoading, mutate } = useSWR("http://127.0.0.1:8000/api/stock/", fetcher);
+  const { data, error, isLoading, mutate } = useSWR("http://100.82.207.117:8000/api/stock/", fetcher);
 
   const handleAddProduct = (product: any) => {
     const newItem = {

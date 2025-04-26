@@ -46,7 +46,7 @@ const SellingReport = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      let url = "http://127.0.0.1:8000/api/transactions/report/?transaction_type=SALE";
+      let url = "http://100.82.207.117:8000/api/transactions/report/?transaction_type=SALE";
       if (date?.from && date?.to) {
         const start = date.from.toLocaleDateString("sv-SE");
         const end = date.to.toLocaleDateString("sv-SE");
