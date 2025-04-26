@@ -57,7 +57,6 @@ const formSchema = z.object({
     }),
     // items: z.array(z.object({
     //     stock: z.number(),
-    //     jumlah_pesanan: z.number(),
     //     quantity: z.number(),
     //     stock_price_buy: z.number(),
     //     unit: z.number(),
