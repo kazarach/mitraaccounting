@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,7 +15,11 @@ type Supplier = {
   name: string
 }
 
-export function DistributorDropdown() {
+type DistributorDropdownProps = {
+  onChange?: (selectedIds: number[]) => void
+}
+
+export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -30,35 +34,52 @@ export function DistributorDropdown() {
 
   const toggleItem = (id: number) => {
     setSelected(prev =>
-      prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
-    )
+      prev.includes(id)
+        ? prev.filter(v => v !== id)
+        : [...prev, id]
+    );
   }
 
-  const filteredItems = items.filter((item) =>
+  useEffect(() => {
+    if (onChange) {
+      onChange(selected);
+    }
+  }, [selected, onChange]);
+
+
+  const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  const allFilteredSelected = filteredItems.every((item) =>
+  const allFilteredSelected = filteredItems.every(item =>
     selected.includes(item.id)
   )
 
   const toggleSelectAll = () => {
-    if (allFilteredSelected) {
-      setSelected(prev =>
-        prev.filter(id => !filteredItems.find(item => item.id === id))
-      )
-    } else {
-      setSelected(prev => [
-        ...prev,
-        ...filteredItems
-          .filter(item => !prev.includes(item.id))
-          .map(item => item.id),
-      ])
-    }
+    setSelected(prev => {
+      let newSelected: number[]
+      if (allFilteredSelected) {
+        newSelected = prev.filter(id => !filteredItems.find(item => item.id === id))
+      } else {
+        newSelected = [
+          ...prev,
+          ...filteredItems
+            .filter(item => !prev.includes(item.id))
+            .map(item => item.id),
+        ]
+      }
+
+      if (onChange) {
+        onChange(newSelected)
+      }
+
+      return newSelected
+    })
   }
 
   const clearAll = () => {
     setSelected([])
+    if (onChange) onChange([])
   }
 
   return (
