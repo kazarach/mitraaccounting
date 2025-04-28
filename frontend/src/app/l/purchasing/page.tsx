@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSidebar } from "@/components/ui/sidebar";
 
 import {
   Table,
@@ -32,8 +33,11 @@ import { DateRange } from 'react-day-picker';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { DistributorDropdownLP } from './distributor-dropdown';
+import apiFetch from '@/lib/apiClient';
+import { ColumnDef, ColumnResizeDirection, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 const PurchasingReport = () => {
+  const { state } = useSidebar(); // "expanded" | "collapsed"
   const [data, setData] = useState<any[]>([]);
 
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -42,61 +46,42 @@ const PurchasingReport = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      let url = "http://100.82.207.117:8000/api/transactions/report/?transaction_type=PAYMENT";
+      let endpoint = "transactions/report/?transaction_type=PURCHASE";
   
       // Cek kalau tanggal sudah dipilih, tambahkan ke URL
       if (date?.from && date?.to) {
         const start = date.from.toLocaleDateString("sv-SE");
         const end = date.to.toLocaleDateString("sv-SE");
-        url += `&start_date=${start}&end_date=${end}`;
+        endpoint += `&start_date=${start}&end_date=${end}`;
       }
       if (selectedDistributors.length > 0) {
-        url += `&supplier=${selectedDistributors.join(",")}`; // atau hanya ambil ids[0] kalau API-nya satu id saja
+        endpoint += `&supplier=${selectedDistributors.join(",")}`; // atau hanya ambil ids[0] kalau API-nya satu id saja
       }       
+      console.log('url: ', endpoint)
   
       try {
-        const response = await fetch(url);
-        const json = await response.json();
+        const json = await apiFetch(endpoint);
   
-        if (!json.results) return;
+        const flatData = json.results.flatMap((transaction: any) =>
+          transaction.items.map((item: any, index: number) => ({
+            id: `${transaction.id}-${index}`,
+            tanggal: index === 0 ? new Date(transaction.th_date).toLocaleDateString() : '',
+            noFaktur: index === 0 ? transaction.th_code : '',
+            pelanggan: index === 0 ? transaction.supplier_name : '',
+            distributor: index === 0 ? transaction.cashier_username : '',
+            sales: index === 0 ? transaction.bank_name : '',
+            kode: item.stock_code,
+            namaBarang: item.stock_name,
+            jumlah: item.quantity,
+            harga: item.sell_price,
+            totalHarga: item.total,
+            diskon: item.disc,
+            netto: item.netto,
+            status: transaction.th_status,
+          }))
+        );
 
-        type TransactionItem ={
-          id: number;
-          tanggal: string;
-          th_date: Date;
-          noFaktur: string;
-          supplier: string;
-          member: string;
-          pelanggan: string;
-          operator: string;
-          kode: string;
-          total: number;
-          sales: string;
-          netto: number;
-          status: string;
-          items: any[];
-          diskon_trans: number;
-        }
-
-        const transformedData: TransactionItem[]= json.results.map((transaction: any): TransactionItem => ({
-          id: transaction.id,
-          tanggal: new Date(transaction.th_date).toLocaleDateString(),
-          th_date: new Date(transaction.th_date),
-          noFaktur: transaction.th_code,
-          supplier: transaction.supplier_name,
-          member: transaction.supplier_name,
-          pelanggan: transaction.customer_name,
-          operator: transaction.cashier_username,
-          kode: transaction.stock_code,
-          total: transaction.total,
-          sales: transaction.bank_name,
-          netto: transaction.netto,
-          status: transaction.th_status ? "Sukses" : "Batal",
-          items: transaction.items,
-          diskon_trans: transaction.th_disc,
-        })).sort((a: TransactionItem, b: TransactionItem) => a.th_date.getTime() - b.th_date.getTime());     
-
-      setData(transformedData);
+      setData(flatData);
       setSummary(json.summary);  // Tambahkan state untuk summary jika perlu
     } catch (error) {
       console.error("Gagal mengambil data:", error);
@@ -106,15 +91,51 @@ const PurchasingReport = () => {
   fetchData();
 }, [date, selectedDistributors]);
 
+const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "Tanggal", accessorKey: "tanggal"},
+    { header: "No. Faktur", accessorKey: "noFaktur"},
+    { header: "Distributor", accessorKey: "distributor" },
+    { header: "Sales", accessorKey: "sales" },
+    { header: "Kode", accessorKey: "kode"},
+    { header: "Nama Barang", accessorKey: "namaBarang" },
+    { header: "Jumlah Barang", accessorKey: "jumlah" },
+    { header: "Harga Jual", accessorKey: "harga" },
+    { header: "Total Harga Barang", accessorKey: "totalHarga" },
+    { header: "Diskon", accessorKey: "diskon", size: 200 },
+    { header: "Netto", accessorKey: "netto" },
+    { header: "Status", accessorKey: "status" },
+  ], []);
+
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  
+    const table = useReactTable({
+      data,
+      columns,
+      defaultColumn: {
+        size: 150,        // ⬅️ Default semua kolom 200px
+        minSize: 10,    // minimum size column saat resize
+      maxSize: 1000,
+      },
+      getCoreRowModel: getCoreRowModel(),
+      columnResizeDirection,
+      enableColumnResizing: true,
+      columnResizeMode: 'onChange'
+    });
+
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
 
   return (
-    <div className="flex justify-left w-full pt-4">
-      <Card className="w-full mx-4">
-        <CardHeader>
-          <CardTitle>Laporan Pembelian</CardTitle>
-        </CardHeader>
+    <div className="flex justify-left w-auto px-4 pt-4">
+          <Card
+          className={cn(
+            state === "expanded" ? "min-w-[180vh]" : "w-full",
+            "min-h-[calc(100vh-100px)] transition-all duration-300"
+          )}
+        >
+            {/* <CardHeader>
+              <CardTitle>Laporan Penjualan</CardTitle>
+            </CardHeader> */}
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
@@ -181,76 +202,84 @@ const PurchasingReport = () => {
             </div>
 
             <ScrollArea>
-            <div className="max-w-[1000px] max-h-[400px]">
-              <Table className="table-striped">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className='table-header'>Tanggal</TableHead>
-                    <TableHead className="table-header text-left">No. Faktur</TableHead>
-                    <TableHead className="table-header text-left">Distributor</TableHead>
-                    <TableHead className="table-header text-left">Kode</TableHead>
-                    <TableHead className="table-header text-left">Nama Barang</TableHead>
-                    <TableHead className="table-header text-left">Jumlah Barang</TableHead>
-                    <TableHead className="table-header text-left">Satuan</TableHead>
-                    <TableHead className="table-header text-left">Harga Beli</TableHead>
-                    <TableHead className="table-header text-left">Diskon Satuan</TableHead>
-                    <TableHead className="table-header text-left">Diskon Transaksi</TableHead>
-                    <TableHead className="table-header text-left">Netto</TableHead>
-                    <TableHead className="table-header text-left">Keterangan</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((item) => (
-                    <React.Fragment key={item.id}>
-                    <TableRow>
-                      <TableCell className='table-header2'>{item.tanggal}</TableCell>
-                      <TableCell className="table-header2 text-left">{item.noFaktur}</TableCell>
-                      <TableCell className="table-header2 text-left">{item.supplier}</TableCell>
-                      <TableCell className="text-left">
-                        {item.items[0]?.stock_code ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        {item.items[0]?.stock_name ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        {item.items[0]?.quantity.toLocaleString("id-ID") ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">{item.items[0]?.unit}</TableCell>
-                      <TableCell className="text-left">
-                        Rp {item.items[0]?.stock_price_buy.toLocaleString("id-ID") ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        Rp {item.items[0]?.disc.toLocaleString("id-ID") ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">Rp {item.diskon_trans ?? "0"}</TableCell>
-                      <TableCell className="text-left">
-                        Rp {item.items[0]?.netto.toLocaleString("id-ID") ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>        
-                    </TableRow>
-                      {/* Baris untuk setiap item */}
-                      {item.items.slice(1).map((itm: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell colSpan={3}></TableCell>
-                          <TableCell className="text-left">{itm.stock_code}</TableCell>
-                          <TableCell className="text-left">{itm.stock_name}</TableCell>
-                          <TableCell className="text-left">{itm.quantity}</TableCell>
-                          <TableCell className="text-left">{itm.unit}</TableCell>
-                          <TableCell className="text-left">Rp {itm.stock_price_buy}</TableCell>
-                          <TableCell className="text-left">Rp {itm.disc}</TableCell>
-                          <TableCell className="text-left">Rp {item.th_disc ?? "0"}</TableCell>
-                          <TableCell className="text-left">
-                          Rp {item.items[0]?.netto.toLocaleString("id-ID")}
-                          </TableCell>
-                          {/* <TableCell className="text-left">{item.status}</TableCell> */}
-                        </TableRow>
+              <div className="max-h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
+                <table className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <thead className="bg-gray-100 sticky top-0 z-10" style={{ position: 'relative', height: '40px' }}>
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <tr key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <th
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '40px',
+                              minHeight: '40px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
+                            />
+                          )}
+                        </th>
                       ))}
-                    </React.Fragment>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-            <ScrollBar orientation="horizontal" />
+                </thead>
+
+                  <tbody>
+                    {table.getRowModel().rows.map((row, rowIndex) => (
+                      <tr
+                      key={row.id}
+                      style={{ position: 'relative', height: '40px' }} // ⬅️ wajib
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <td
+                          key={cell.id}
+                          style={{
+                            position: 'absolute',
+                            left: cell.column.getStart(), // ⬅️ posisi horizontal berdasarkan react-table
+                            width: cell.column.getSize(),
+                            height: '100%',
+                            // backgroundColor: 'red',
+                            top: '17px'
+                          }}
+                          className={cn(
+                            "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                            rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                          )}
+                        >
+                          <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '40px',
+                              minHeight: '40px',
+                            }}
+                            title={String(cell.getValue() ?? '')}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        </td>
+                        
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
           <div className='flex gap-2 justify-between '>

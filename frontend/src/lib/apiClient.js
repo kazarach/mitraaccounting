@@ -1,6 +1,7 @@
 // apiClient.js
 
-const BASE_URL = "http://100.82.207.117:8000/api/";
+// const BASE_URL = "http://100.82.207.117:8000/api/";
+const BASE_URL = "http://127.0.0.1:8000/api/";
 
 function getAccessToken() {
   return localStorage.getItem('access');

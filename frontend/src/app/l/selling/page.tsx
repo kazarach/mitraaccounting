@@ -3,14 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSidebar } from "@/components/ui/sidebar";
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-import {
   Card,
   CardContent,
   CardHeader,
@@ -37,6 +29,9 @@ import {
   ColumnResizeDirection
 } from '@tanstack/react-table';
 import apiFetch from '@/lib/apiClient';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/utils'
+import { TableBody, TableCell, TableHead, TableHeader, TableRow, Table } from '@/components/ui/table';
 
 const SellingReport = () => {
   const { state } = useSidebar();
@@ -44,49 +39,49 @@ const SellingReport = () => {
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      let endpoint = "transactions/report/?transaction_type=SALE";
-      if (date?.from && date?.to) {
-        const start = date.from.toLocaleDateString("sv-SE");
-        const end = date.to.toLocaleDateString("sv-SE");
-        endpoint += `&start_date=${start}&end_date=${end}`;
-      }
-      if (selectedOperators.length > 0) {
-        endpoint += `&cashier=${selectedOperators.join(",")}`;
-      }
-      try {
-        const json = await apiFetch(endpoint);
+  const API_URL = process.env.NEXT_PUBLIC_API_URLS!;
+  console.log(API_URL)
 
-        const flatData = json.results.flatMap((transaction: any) =>
-          transaction.items.map((item: any, index: number) => ({
-            id: `${transaction.id}-${index}`,
-            tanggal: index === 0 ? new Date(transaction.th_date).toLocaleDateString() : '',
-            noFaktur: index === 0 ? transaction.th_code : '',
-            pelanggan: index === 0 ? transaction.customer_name : '',
-            operator: index === 0 ? transaction.cashier_username : '',
-            sales: index === 0 ? transaction.bank_name : '',
-            kode: item.stock_code,
-            namaBarang: item.stock_name,
-            jumlah: item.quantity,
-            harga: item.sell_price,
-            totalHarga: item.total,
-            diskon: item.disc,
-            netto: item.netto,
-            status: transaction.th_status,
-          }))
-        );
-
-        setData(flatData);
-        setSummary(json.summary);
-      } catch (error) {
-        console.error("Gagal mengambil data:", error);
-      }
-    };
-
-    fetchData();
+  const queryParams = useMemo(() => {
+    let params = `transaction_type=SALE`;
+    if (date?.from && date?.to) {
+      const start = date.from.toLocaleDateString("sv-SE");
+      const end = date.to.toLocaleDateString("sv-SE");
+      params += `&start_date=${start}&end_date=${end}`;
+    }
+    if (selectedOperators.length > 0) {
+      params += `&cashier=${selectedOperators.join(",")}`;
+    }
+    return params;
   }, [date, selectedOperators]);
+
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/report/?${queryParams}`, fetcher);
+
+  // Transform data
+  const flatData = useMemo(() => {
+    if (!json?.results) return [];
+
+    return json.results.flatMap((transaction: any) =>
+      transaction.items.map((item: any, index: number) => ({
+        id: `${transaction.id}-${index}`,
+        tanggal: index === 0 ? format(new Date(transaction.th_date), "dd/MM/yyyy") : '',
+        noFaktur: index === 0 ? transaction.th_code : '',
+        pelanggan: index === 0 ? transaction.customer_name : '',
+        operator: index === 0 ? transaction.cashier_username : '',
+        sales: index === 0 ? transaction.bank_name : '',
+        kode: item.stock_code,
+        namaBarang: item.stock_name,
+        jumlah: item.quantity,
+        harga: item.sell_price,
+        totalHarga: item.total,
+        diskon: item.disc,
+        netto: item.netto,
+        status: transaction.th_status,
+      }))
+    );
+  }, [json]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal"},
@@ -103,15 +98,13 @@ const SellingReport = () => {
     { header: "Status", accessorKey: "status" },
   ], []);
 
-  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
-
   const table = useReactTable({
-    data,
+    data: flatData, // pakai flatData langsung
     columns,
     defaultColumn: {
-      size: 150,        // ⬅️ Default semua kolom 200px
-      minSize: 10,    // minimum size column saat resize
-    maxSize: 1000,
+      size: 150,
+      minSize: 10,
+      maxSize: 1000,
     },
     getCoreRowModel: getCoreRowModel(),
     columnResizeDirection,
@@ -119,9 +112,8 @@ const SellingReport = () => {
     columnResizeMode: 'onChange'
   });
   
-
-  const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("")
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Gagal mengambil data.</p>;
 
   return (
     <div className="flex justify-left w-auto px-4 pt-4">
@@ -194,7 +186,7 @@ const SellingReport = () => {
                   <Label htmlFor="waktu">Status</Label>
                   <Select>
                     <SelectTrigger className="w-[150px] h-[30px]">
-                      <SelectValue placeholder="Pilih Status" />
+                      <SelectValue placeholder="Semua" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="day">Hari Ini</SelectItem>
@@ -218,12 +210,12 @@ const SellingReport = () => {
 
             <ScrollArea>
               <div className="max-h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
-                <table className="w-max text-sm border-separate border-spacing-0 min-w-full">
-                <thead className="bg-gray-100 sticky top-0 z-10" style={{ position: 'relative', height: '40px' }}>
+                <Table className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" style={{ position: 'relative', height: '40px' }}>
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
                       {headerGroup.headers.map(header => (
-                        <th
+                        <TableHead
                           key={header.id}
                           style={{
                             position: 'absolute',
@@ -250,28 +242,26 @@ const SellingReport = () => {
                               className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
                             />
                           )}
-                        </th>
+                        </TableHead>
                       ))}
-                    </tr>
+                    </TableRow>
                   ))}
-                </thead>
+                </TableHeader>
 
-                  <tbody>
+                  <TableBody>
                     {table.getRowModel().rows.map((row, rowIndex) => (
-                      <tr
+                      <TableRow
                       key={row.id}
                       style={{ position: 'relative', height: '40px' }} // ⬅️ wajib
                       >
                         {row.getVisibleCells().map(cell => (
-                          <td
+                          <TableCell
                           key={cell.id}
                           style={{
                             position: 'absolute',
                             left: cell.column.getStart(), // ⬅️ posisi horizontal berdasarkan react-table
                             width: cell.column.getSize(),
                             height: '100%',
-                            // backgroundColor: 'red',
-                            top: '17px'
                           }}
                           className={cn(
                             "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
@@ -286,13 +276,13 @@ const SellingReport = () => {
                             title={String(cell.getValue() ?? '')}>
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </div>
-                        </td>
+                        </TableCell>
                         
                         ))}
-                      </tr>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>

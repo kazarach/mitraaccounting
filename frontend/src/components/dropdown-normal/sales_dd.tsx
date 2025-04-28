@@ -36,7 +36,7 @@ const SalesDD = () => {
                     >
                         {value !== null
                             ? data.find((d) => d.id === value)?.username
-                            : 'Pilih Sales'}
+                            : 'Semua'}
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>
