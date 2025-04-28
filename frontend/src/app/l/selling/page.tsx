@@ -119,7 +119,7 @@ const SellingReport = () => {
     <div className="flex justify-left w-auto px-4 pt-4">
       <Card
       className={cn(
-        state === "expanded" ? "min-w-[180vh]" : "w-full",
+        state === "expanded" ? "min-w-[calc(100vw-290px)]" : "w-full",
         "min-h-[calc(100vh-100px)] transition-all duration-300"
       )}
     >
