@@ -4,6 +4,7 @@ from ..models.rack import Rack
 from ..models.supplier import Supplier
 from ..models.unit import Unit
 from ..models.warehouse import Warehouse
+from ..models.transaction_history import TransItemDetail
 
 class Stock(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -24,7 +25,8 @@ class Stock(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     is_online = models.BooleanField(default=False)
-    
+    # last_buy_date = models.DateTimeField(blank=True, null=True)
+    # last_sell_date = models.DateTimeField(blank=True, null=True)
     # Unit handling - each Stock has a unit
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, 
                              blank=True, null=True, related_name='stocks')
@@ -59,7 +61,129 @@ class Stock(models.Model):
 
     def is_really_online(self):
         return self.is_online and (self.category is None or getattr(self.category, 'spc_online', True))
+    
+    def last_buy(self):
+        """
+        Returns the date of the last purchase transaction for this stock.
+        
+        Returns:
+            str or None: String representation of the date of the last purchase,
+                        or None if no purchase transaction exists.
+        """
+        from django.db.models import Q
+        
+        # Find the last purchase transaction
+        last_buy_item = TransItemDetail.objects.filter(
+            stock=self,
+            transaction__th_type='PURCHASE',
+            transaction__th_status=True
+        ).select_related('transaction').order_by('-transaction__th_date').first()
+        
+        if last_buy_item:
+            # Return formatted date string
+            return last_buy_item.transaction.th_date.strftime('%Y-%m-%d')
+        return None
 
+    def last_sell(self):
+        """
+        Returns the date of the last sale transaction for this stock.
+        
+        Returns:
+            str or None: String representation of the date of the last sale,
+                        or None if no sale transaction exists.
+        """
+        # Find the last sale transaction
+        last_sell_item = TransItemDetail.objects.filter(
+            stock=self,
+            transaction__th_type='SALE',
+            transaction__th_status=True
+        ).select_related('transaction').order_by('-transaction__th_date').first()
+        
+        if last_sell_item:
+            # Return formatted date string
+            return last_sell_item.transaction.th_date.strftime('%Y-%m-%d')
+        return None
+    # def get_last_transaction_dates(self):
+    #     """
+    #     Returns just the dates of the last buy and sell transactions for this stock item.
+        
+    #     Returns:
+    #         dict: A dictionary containing last_buy_date and last_sell_date
+    #     """
+    #     from django.db import models
+        
+    #     # Find the last buy transaction date (PURCHASE type)
+    #     last_buy_date = TransItemDetail.objects.filter(
+    #         stock=self,
+    #         transaction__th_type='PURCHASE',
+    #         transaction__th_status=True
+    #     ).select_related('transaction').order_by('-transaction__th_date').values_list(
+    #         'transaction__th_date', flat=True).first()
+        
+    #     # Find the last sell transaction date (SALE type)
+    #     last_sell_date = TransItemDetail.objects.filter(
+    #         stock=self,
+    #         transaction__th_type='SALE',
+    #         transaction__th_status=True
+    #     ).select_related('transaction').order_by('-transaction__th_date').values_list(
+    #         'transaction__th_date', flat=True).first()
+        
+    #     return {
+    #         'last_buy_date': last_buy_date,
+    #         'last_sell_date': last_sell_date
+    #     }
+
+    # def days_since_last_transaction(self):
+    #     """
+    #     Calculate the number of days since the last buy and sell transactions.
+        
+    #     Returns:
+    #         dict: A dictionary containing days since last buy and last sell
+    #     """
+    #     import datetime
+    #     from django.utils import timezone
+        
+    #     transaction_dates = self.get_last_transaction_dates()
+    #     today = timezone.now().date()
+    #     result = {}
+        
+    #     if transaction_dates['last_buy_date']:
+    #         last_buy_date = transaction_dates['last_buy_date'].date()
+    #         result['days_since_last_buy'] = (today - last_buy_date).days
+    #     else:
+    #         result['days_since_last_buy'] = None
+        
+    #     if transaction_dates['last_sell_date']:
+    #         last_sell_date = transaction_dates['last_sell_date'].date()
+    #         result['days_since_last_sell'] = (today - last_sell_date).days
+    #     else:
+    #         result['days_since_last_sell'] = None
+        
+    #     return result
+    
+    # def update_last_transaction_dates(self):
+    #     """
+    #     Updates the stock with the dates of the last transactions.
+        
+    #     Returns:
+    #         bool: True if updated successfully, False otherwise
+    #     """
+    #     dates = self.get_last_transaction_dates()
+    #     updated = False
+    
+    #     if dates['last_buy_date'] and (not self.last_buy_date or dates['last_buy_date'] > self.last_buy_date):
+    #         self.last_buy_date = dates['last_buy_date']
+    #         updated = True
+        
+    #     if dates['last_sell_date'] and (not self.last_sell_date or dates['last_sell_date'] > self.last_sell_date):
+    #         self.last_sell_date = dates['last_sell_date']
+    #         updated = True
+        
+    #     if updated:
+    #         self.save(update_fields=['last_buy_date', 'last_sell_date'])
+        
+    #     return updated
+    
     # AUTO CONV - unchanged from your current code
     def get_related_stocks(self):
         """Get all stocks related to this one (parent, siblings, children)"""
