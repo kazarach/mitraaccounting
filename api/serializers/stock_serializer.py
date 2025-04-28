@@ -16,7 +16,8 @@ class StockSerializer(serializers.ModelSerializer):
     is_really_online = serializers.SerializerMethodField()
     last_buy = serializers.SerializerMethodField()
     last_sell = serializers.SerializerMethodField()
-    
+    prices = StockPriceSerializer(many=True, source='sales_prices')
+
     class Meta:
         model = Stock
         fields = ['id', 'code', 'barcode', 'name', 'quantity', 'margin', 'hpp', 
@@ -25,7 +26,8 @@ class StockSerializer(serializers.ModelSerializer):
                   'rack', 'rack_name', 'updated_at', 'is_active', 'is_online',
                   'unit', 'unit_name', 'parent_stock', 'parent_stock_name', 
                   'parent_conversion', 'is_low_stock', 'available_quantity',
-                  'is_really_active', 'is_really_online', 'last_buy', 'last_sell']
+                  'is_really_active', 'is_really_online', 'last_buy', 'last_sell',
+                  'prices']
     
     def get_is_low_stock(self, obj):
         return obj.is_low_stock()

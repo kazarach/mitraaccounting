@@ -1,52 +1,17 @@
 {
-  "arap": [
+  "items": [
     {
-      "id": 1,
-      "supplier": 2,
-      "cust": null, #because its payable
-      "total_amount": 10000,
-      "total_paid": 3000,
-      "is_receivable": false
-      "transaction": [
-        {
-        "id":3,
-        "amount": 2000,
-        "paid": 0,
-        "due_date": "2025-07-12",
-        "is_settled": false,
-      },
-        {
-        "id":7,
-        "amount": 8000,
-        "paid": 3000,
-        "due_date": "2025-07-12",
-        "is_settled": false,
-      },
-      ],
-    },
-    {
-      "id": 2,
-      "supplier": null, #because its receivable
-      "cust": 5, 
-      "total_amount": 10000,
-      "total_paid": 3000,
-      "is_receivable": false
-      "transaction": [
-        {
-        "id":5,
-        "amount": 2000,
-        "paid": 0,
-        "due_date": "2025-07-12",
-        "is_settled": false,
-      },
-        {
-        "id":10,
-        "amount": 8000,
-        "paid": 3000,
-        "due_date": "2025-07-12",
-        "is_settled": false,
-      },
-      ],
-    },
-  ]
+      "stock": 5,
+      "stock_code": "string",
+      "stock_name": "string",
+      "stock_price_buy": "10",
+      "quantity": "10.",
+      "disc": "0."
+    }
+  ],
+  "th_type": "SALE",
+  "th_date": "2025-04-28T09:12:27.887Z",
+  "th_status": true,
+  "customer": 3,
+  "cashier": 1
 }

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from .member_type import MemberType
 from django.conf import settings
+from .stock_price import PriceCategory
 
 class Customer(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -10,8 +11,11 @@ class Customer(models.Model):
     telp = models.CharField(max_length=50, blank=True, null=True)
     contact = models.CharField(max_length=100, blank=True, null=True)
     npwp = models.CharField(max_length=50, blank=True, null=True)
-    platform = models.CharField(max_length=50, blank=True, null=True)
 
+    price_category = models.ForeignKey(PriceCategory, on_delete=models.SET_NULL, 
+                                     related_name='customers',
+                                     blank=True, null=True)
+    
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     discount_type = models.CharField(max_length=20, blank=True, null=True)
     due_period = models.IntegerField(blank=True, null=True)
@@ -26,9 +30,11 @@ class Customer(models.Model):
     credit_term_days = models.IntegerField(default=14)
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
     def __str__(self):
         return self.name
-
+    
     class Meta:
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
+

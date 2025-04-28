@@ -1,5 +1,6 @@
 from django.db import models, transaction
 from django.utils import timezone
+from decimal import Decimal
 from datetime import datetime, date, time  
 from django.contrib.auth.models import User
 from .supplier import Supplier
@@ -8,6 +9,7 @@ from .bank import Bank
 from .event_discount import EventDisc
 from .sales import Sales
 from .stock import Stock
+from .stock_price import PriceCategory, StockPrice
 from django.conf import settings
 
 class TransactionType(models.TextChoices):
@@ -27,6 +29,8 @@ class TransactionType(models.TextChoices):
 class TransactionHistory(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, blank=True, null=True)
+    # price_category = models.ForeignKey(PriceCategory, on_delete=models.SET_NULL, blank=True, null=True)
+
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="cashier_transactions")  # For tracking cashier
     
     th_code = models.CharField(max_length=50, unique=True, blank=True)
@@ -159,29 +163,71 @@ class TransItemDetail(models.Model):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
     def save(self, *args, **kwargs):
-        self.total = self.quantity * (self.sell_price or 0)
-        price_after_disc1 = (self.sell_price or 0) * (1 - (self.disc_percent or 0) / 100)
-        price_after_disc2 = price_after_disc1 * (1 - (self.disc_percent2 or 0) / 100)
-        final_price = price_after_disc2 - (self.disc or 0)
-        netto = self.quantity * final_price
+        if self.transaction.th_type == TransactionType.SALE:
+            price_category = self.transaction.customer.price_category if self.transaction.customer else None
+            if price_category:
+                # Retrieve the selling price based on the price category for the stock
+                stock_price = StockPrice.objects.filter(
+                    stock_id=self.stock,
+                    price_category_id=price_category
+                ).first()
 
-        if self.transaction.th_disc:
-            netto -= netto * (self.transaction.th_disc / 100)
+                if stock_price:
+                    self.sell_price = stock_price.price_sell  # Set the price_sell based on price category
+                else:
+                    self.sell_price = self.stock.hpp  # Fallback to stock's hpp if no stock price is found
+            else:
+                self.sell_price = self.stock.hpp
+            # Code block for selling (only for SALE transactions)
+            self.total = self.quantity * (self.sell_price or 0)
+            price_after_disc1 = (self.sell_price or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
+            price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
+            final_price = price_after_disc2 - (self.disc or 0)
+            netto = self.quantity * final_price
 
-        if self.transaction.th_ppn:
-            netto += netto * (self.transaction.th_ppn / 100)
+            if self.transaction.th_disc:
+                netto -= netto * (self.transaction.th_disc / 100)
 
-        self.netto = netto
+            if self.transaction.th_ppn:
+                netto += netto * (self.transaction.th_ppn / 100)
 
-        if self.quantity > 0:
-            final_price_buy = self.netto / self.quantity
-        else:
-            final_price_buy = 0  # Avoid division by zero
-        
-        self.stock.price_buy = final_price_buy
-        self.stock.save()
-        
+            self.netto = netto
+
+            if self.quantity > 0:
+                final_price_sell = self.netto / self.quantity
+            else:
+                final_price_sell = 0
+            
+            self.sell_price = final_price_sell
+            
+
+        elif self.transaction.th_type == TransactionType.PURCHASE:
+            # Code block for buying (only for PURCHASE transactions)
+            self.total = self.quantity * (self.stock_price_buy or 0)
+            price_after_disc1 = (self.stock_price_buy or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
+            price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
+            final_price = price_after_disc2 - (self.disc or 0)
+            netto = self.quantity * final_price
+
+            if self.transaction.th_disc:
+                netto -= netto * (self.transaction.th_disc / 100)
+
+            if self.transaction.th_ppn:
+                netto += netto * (self.transaction.th_ppn / 100)
+
+            self.netto = netto
+
+            if self.quantity > 0:
+                final_price_buy = self.netto / self.quantity
+            else:
+                final_price_buy = 0
+            
+            # For purchasing, set the stock's hpp based on the purchase price
+            self.stock.hpp = final_price_buy
+            self.stock.save()
+
         super().save(*args, **kwargs)
+
 
     class Meta:
         verbose_name = "Transaction Item Detail"

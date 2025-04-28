@@ -15,6 +15,7 @@ class Command(BaseCommand):
             'seed_rack',
             'seed_supplier',
             'seed_account',
+            'seed_price_category',
             'seed_bank',
             'seed_customer',
             'seed_log_drawer',
@@ -22,6 +23,7 @@ class Command(BaseCommand):
             'seed_sales',
 
             'seed_stock',
+            'seed_stock_price',
             'seed_stock_assembly',
 
             'seed_transaction_history',
