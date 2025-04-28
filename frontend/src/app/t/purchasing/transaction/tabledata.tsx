@@ -390,7 +390,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <DialogTrigger asChild>
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                                 </DialogTrigger>
-                                <DialogContent className="w-[80vw] max-h-[90vh]">
+                                <DialogContent className="w-[70vw] max-h-[90vh]">
                                     <TpModal />
                                 </DialogContent>
                             </Dialog>

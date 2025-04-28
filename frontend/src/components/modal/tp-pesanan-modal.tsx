@@ -21,10 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, fetcher } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Plus, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { toast } from 'sonner';
@@ -34,34 +35,59 @@ import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/ta
 import { ColumnDef, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from '@tanstack/react-table';
 import { distributors, operators, pesananList, products } from '@/data/product';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import useSWR from 'swr';
+import Loading from '../loading';
+import { DateRange } from 'react-day-picker';
 
 const TpModal = () => {
   const [search, setSearch] = useState("");
-  const [date, setDate] = React.useState<Date>()
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [open, setOpen] = React.useState(false)
   const [open2, setOpen2] = React.useState(false)
   const [value, setValue] = React.useState("")
   const [value2, setValue2] = React.useState("")
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!
+  const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
+  const end = date?.to ? format(date.to, "yyyy-MM-dd") : undefined;  
+  const { data, error, isLoading} = useSWR(() => {
+    if (!start || !end) return `${API_URL}api/transactions/?th_order=true&th_type=PURCHASE`;
+    return `${API_URL}api/transactions/?th_order=true&th_type=PURCHASE&start_date=${start}&end_date=${end}`;
+  }, fetcher);
+  
+  
+
+
   const handleAddProduct = () => {
     toast.success(" Berhasil Ditambahkan")
   };
 
-  const columns: ColumnDef<typeof pesananList[number]>[] = [
-    { accessorKey: "noFaktur", header: "No Faktur" },
-    { accessorKey: "tanggal", header: "Tanggal" },
+  const columns: ColumnDef<any>[] = [
+    { accessorKey: "th_code", header: "No Faktur", meta: { width: 120 } },
     {
-      accessorKey: "total",
+      accessorKey: "th_date",
+      header: "Tanggal",
+      cell: ({ getValue }) => {
+        const rawValue = getValue();
+        if (!rawValue || typeof rawValue !== 'string') return "-";
+        const parsedDate = new Date(rawValue);
+        if (isNaN(parsedDate.getTime())) return "-";
+        return format(parsedDate, "d MMMM yyyy", { locale: id });
+      },
+    },
+
+    { accessorKey: "supplier_name", header: "Pemasok" },
+    {
+      accessorKey: "th_total",
       header: "Total",
       cell: ({ getValue }) => `Rp${Number(getValue()).toLocaleString("id-ID")}`,
     },
     {
-      accessorKey: "DP",
+      accessorKey: "th_dp",
       header: "DP",
       cell: ({ getValue }) => `Rp${Number(getValue()).toLocaleString("id-ID")}`,
     },
-    { accessorKey: "pemasok", header: "Pemasok" },
-    { accessorKey: "operator", header: "Operator" },
+    { accessorKey: "cashier_username", header: "Operator" },
     {
       accessorKey: "action",
       header: "Action",
@@ -74,7 +100,7 @@ const TpModal = () => {
     },
   ];
   const table = useReactTable({
-    data: pesananList,
+    data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -93,23 +119,38 @@ const TpModal = () => {
           <Popover>
             <PopoverTrigger asChild>
               <Button
+                id="date-range"
                 variant={"outline"}
                 className={cn(
-                  "w-[200px] justify-start text-left font-normal",
-
+                  "w-[200px]  justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "dd/L/y")} -{" "}
+                      {format(date.to, "dd/L/y")}
+                    </>
+                  ) : (
+                    format(date.from, "dd/L/y")
+                  )
+                ) : (
+                  <span>Pilih Tanggal</span>
+                )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
                 selected={date}
                 onSelect={setDate}
-                initialFocus
+                numberOfMonths={2}
               />
+              <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
             </PopoverContent>
           </Popover>
           <div className="flex flex-col space-y-2">
@@ -164,7 +205,7 @@ const TpModal = () => {
             </Popover>
           </div>
           <div className="flex flex-col space-y-2">
-            
+
             <Popover open={open2} onOpenChange={setOpen2}>
               <PopoverTrigger asChild>
                 <Button
@@ -231,7 +272,16 @@ const TpModal = () => {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="text-left">
+                    <TableHead key={header.id} className={cn(
+                      "text-left truncate w-[90px]",
+                      header.id === "th_code" && "w-[100px]",
+                      header.id === "th_date" && "w-[100px]",
+                      header.id === "supplier_name" && "w-[150px]",
+                      header.id === "th_total" && "w-[150px]",
+                      header.id === "th_dp" && "w-[150px]",
+                      header.id === "cashier_username" && "w-[150px]",
+                      header.id === "action" && "w-[20px]"
+                    )}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -239,10 +289,33 @@ const TpModal = () => {
               ))}
             </TableHeader>
             <TableBody className="overflow-y-auto max-h-[60vh]">
-              {table.getRowModel().rows.map((row) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center">
+                    <Loading />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center text-red-500">
+
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} className="bg-white">
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-left">
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "text-left truncate w-[90px]",
+                        cell.column.id === "th_code" && "w-[100px]",
+                        cell.column.id === "th_date" && "w-[100px]",
+                        cell.column.id === "supplier_name" && "w-[150px]",
+                        cell.column.id === "th_total" && "w-[150px]",
+                        cell.column.id === "th_dp" && "w-[150px]",
+                        cell.column.id === "action" && "w-[20px]"
+                      )}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

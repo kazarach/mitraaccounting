@@ -42,8 +42,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL_LOCAL!
-  console.log(API_URL)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?include_sales=true${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
