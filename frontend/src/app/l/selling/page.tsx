@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Search } from 'lucide-react';
+import { CalendarIcon, Search, Trash, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import MemberDD from '@/components/dropdown-normal/member_dd';
@@ -32,13 +32,13 @@ import apiFetch from '@/lib/apiClient';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/utils'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow, Table } from '@/components/ui/table';
+import Loading from '@/components/loading';
 
 const SellingReport = () => {
   const { state } = useSidebar();
-  const [data, setData] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
-  const [summary, setSummary] = useState<any>(null);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -83,6 +83,17 @@ const SellingReport = () => {
     );
   }, [json]);
 
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return flatData;
+    const lowerSearch = searchQuery.toLowerCase();
+    
+    return flatData.filter((item: any) =>
+      Object.values(item).some(value =>
+        String(value).toLowerCase().includes(lowerSearch)
+      )
+    );
+  }, [flatData, searchQuery]);
+
   const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal"},
     { header: "No. Faktur", accessorKey: "noFaktur"},
@@ -99,7 +110,7 @@ const SellingReport = () => {
   ], []);
 
   const table = useReactTable({
-    data: flatData, // pakai flatData langsung
+    data: filteredData, // pakai filteredData, bukan flatData langsung!
     columns,
     defaultColumn: {
       size: 150,
@@ -112,8 +123,8 @@ const SellingReport = () => {
     columnResizeMode: 'onChange'
   });
   
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Gagal mengambil data.</p>;
+  // if (isLoading) return <p>Loading...</p>;
+  // if (error) return <p>Gagal mengambil data.</p>;
 
   return (
     <div className="flex justify-left w-auto px-4 pt-4">
@@ -132,6 +143,7 @@ const SellingReport = () => {
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="date-range">Tanggal</Label>
+                <div className='flex'>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -156,6 +168,7 @@ const SellingReport = () => {
                           <span>Semua</span>
                         )}
                       </Button>
+                      
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
@@ -169,6 +182,15 @@ const SellingReport = () => {
                       <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-[30px] h-[30px] ml-1"
+                    onClick={() => setDate(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  </div>
               </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="operator">Operator</Label>
@@ -203,15 +225,21 @@ const SellingReport = () => {
                         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                       )}>
                   <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ border: 'none', outline: 'none', flex: '1' }}
+                  />
                 </div>
               </div>
             </div>
 
-            <ScrollArea>
-              <div className="max-h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
-                <Table className="w-max text-sm border-separate border-spacing-0 min-w-full">
-                <TableHeader className="bg-gray-100 sticky top-0 z-10" style={{ position: 'relative', height: '40px' }}>
+            <ScrollArea className="h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
                     <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
                       {headerGroup.headers.map(header => (
@@ -222,13 +250,13 @@ const SellingReport = () => {
                             left: header.getStart(),   // ⬅️ posisi horizontal
                             width: header.getSize(),   // ⬅️ width sesuai header
                           }}
-                          className="text-left p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
                         >
                           <div
                             className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
                             style={{
-                              lineHeight: '40px',
-                              minHeight: '40px',
+                              lineHeight: '20px',
+                              minHeight: '20px',
                             }}
                             title={String(header.column.columnDef.header ?? '')}
                           >
@@ -248,49 +276,68 @@ const SellingReport = () => {
                   ))}
                 </TableHeader>
 
-                  <TableBody>
-                    {table.getRowModel().rows.map((row, rowIndex) => (
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
-                      key={row.id}
-                      style={{ position: 'relative', height: '40px' }} // ⬅️ wajib
+                        key={row.id}
+                        style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (
                           <TableCell
-                          key={cell.id}
-                          style={{
-                            position: 'absolute',
-                            left: cell.column.getStart(), // ⬅️ posisi horizontal berdasarkan react-table
-                            width: cell.column.getSize(),
-                            height: '100%',
-                          }}
-                          className={cn(
-                            "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
-                            rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
-                          )}
-                        >
-                          <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            key={cell.id}
                             style={{
-                              lineHeight: '40px',
-                              minHeight: '40px',
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
                             }}
-                            title={String(cell.getValue() ?? '')}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </div>
-                        </TableCell>
-                        
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
                         ))}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
           <div className='flex gap-2 justify-between'>
-            <h1 className='font-semibold'>
-              Total Transaksi : {summary?.total_transactions ?? 0}
-            </h1>
+          <h1 className='font-semibold'>
+            Total Transaksi : {json?.summary?.total_transactions ?? 0}
+          </h1>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
 
