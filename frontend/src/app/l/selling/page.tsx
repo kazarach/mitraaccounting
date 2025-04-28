@@ -41,7 +41,7 @@ const SellingReport = () => {
   const [summary, setSummary] = useState<any>(null);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URLS!;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
