@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Search, Trash, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -33,43 +33,48 @@ import { DateRange } from 'react-day-picker';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { DistributorDropdownLP } from './distributor-dropdown';
-import apiFetch from '@/lib/apiClient';
+import { fetcher } from '@/lib/utils'
 import { ColumnDef, ColumnResizeDirection, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import useSWR from 'swr';
+import Loading from '@/components/loading';
 
 const PurchasingReport = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
-  const [data, setData] = useState<any[]>([]);
-
+  const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      let endpoint = "transactions/report/?transaction_type=PURCHASE";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  console.log(API_URL)
+
+  const queryParams = useMemo(() => {
+    let params = `transaction_type=PURCHASE`;
+    if (date?.from && date?.to) {
+      const start = date.from.toLocaleDateString("sv-SE");
+      const end = date.to.toLocaleDateString("sv-SE");
+      params += `&start_date=${start}&end_date=${end}`;
+    }
+    if (selectedDistributors.length > 0) {
+      params += `&cashier=${selectedDistributors.join(",")}`;
+    }
+    return params;
+  }, [date, selectedDistributors]);
+
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/report/?${queryParams}`, fetcher);
+
+  // Transform data
+    const flatData = useMemo(() => {
+      if (!json?.results) return [];
   
-      // Cek kalau tanggal sudah dipilih, tambahkan ke URL
-      if (date?.from && date?.to) {
-        const start = date.from.toLocaleDateString("sv-SE");
-        const end = date.to.toLocaleDateString("sv-SE");
-        endpoint += `&start_date=${start}&end_date=${end}`;
-      }
-      if (selectedDistributors.length > 0) {
-        endpoint += `&supplier=${selectedDistributors.join(",")}`; // atau hanya ambil ids[0] kalau API-nya satu id saja
-      }       
-      console.log('url: ', endpoint)
-  
-      try {
-        const json = await apiFetch(endpoint);
-  
-        const flatData = json.results.flatMap((transaction: any) =>
-          transaction.items.map((item: any, index: number) => ({
-            id: `${transaction.id}-${index}`,
+      return json.results.flatMap((transaction: any) =>
+        transaction.items.map((item: any, index: number) => ({
+          id: `${transaction.id}-${index}`,
             tanggal: index === 0 ? new Date(transaction.th_date).toLocaleDateString() : '',
             noFaktur: index === 0 ? transaction.th_code : '',
-            pelanggan: index === 0 ? transaction.supplier_name : '',
-            distributor: index === 0 ? transaction.cashier_username : '',
-            sales: index === 0 ? transaction.bank_name : '',
+            distributor: index === 0 ? transaction.supplier_name : '',
+            sales: index === 0 ? transaction.cashier_username : '',
             kode: item.stock_code,
             namaBarang: item.stock_name,
             jumlah: item.quantity,
@@ -78,18 +83,20 @@ const PurchasingReport = () => {
             diskon: item.disc,
             netto: item.netto,
             status: transaction.th_status,
-          }))
+        }))
+      );
+    }, [json]);
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return flatData;
+        const lowerSearch = searchQuery.toLowerCase();
+        
+        return flatData.filter((item: any) =>
+          Object.values(item).some(value =>
+            String(value).toLowerCase().includes(lowerSearch)
+          )
         );
-
-      setData(flatData);
-      setSummary(json.summary);  // Tambahkan state untuk summary jika perlu
-    } catch (error) {
-      console.error("Gagal mengambil data:", error);
-    }
-  };
-
-  fetchData();
-}, [date, selectedDistributors]);
+      }, [flatData, searchQuery]);
 
 const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal"},
@@ -101,15 +108,13 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Jumlah Barang", accessorKey: "jumlah" },
     { header: "Harga Jual", accessorKey: "harga" },
     { header: "Total Harga Barang", accessorKey: "totalHarga" },
-    { header: "Diskon", accessorKey: "diskon", size: 200 },
+    { header: "Diskon", accessorKey: "diskon" },
     { header: "Netto", accessorKey: "netto" },
     { header: "Status", accessorKey: "status" },
   ], []);
-
-  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   
     const table = useReactTable({
-      data,
+      data: filteredData,
       columns,
       defaultColumn: {
         size: 150,        // ⬅️ Default semua kolom 200px
@@ -121,9 +126,6 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
       enableColumnResizing: true,
       columnResizeMode: 'onChange'
     });
-
-  const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("")
 
   return (
     <div className="flex justify-left w-auto px-4 pt-4">
@@ -142,30 +144,32 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="date-range">Tanggal</Label>
+                <div className='flex'>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         id="date-range"
                         variant={"outline"}
                         className={cn(
-                          "w-[300px] justify-start text-left font-normal",
+                          "w-[200px] h-[30px] justify-start text-left font-normal",
                           !date && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
                         {date?.from ? (
                           date.to ? (
                             <>
-                              {format(date.from, "LLL dd, y")} -{" "}
-                              {format(date.to, "LLL dd, y")}
+                              {format(date.from, "dd/L/y")} -{" "}
+                              {format(date.to, "dd/L/y")}
                             </>
                           ) : (
-                            format(date.from, "LLL dd, y")
+                            format(date.from, "dd/L/y")
                           )
                         ) : (
-                          <span>Pilih Tanggal</span>
+                          <span>Semua</span>
                         )}
                       </Button>
+                      
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
@@ -179,6 +183,15 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
                       <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-[30px] h-[30px] ml-1"
+                    onClick={() => setDate(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  </div>
               </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
@@ -186,7 +199,7 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Kategori</Label>
-                  <DistributorDropdown/>
+                  {/* <DistributorDropdown/> */}
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>
@@ -196,32 +209,38 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
                         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                       )}>
                   <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ border: 'none', outline: 'none', flex: '1' }}
+                  />
                 </div>
               </div>
             </div>
 
-            <ScrollArea>
-              <div className="max-h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
-                <table className="w-max text-sm border-separate border-spacing-0 min-w-full">
-                <thead className="bg-gray-100 sticky top-0 z-10" style={{ position: 'relative', height: '40px' }}>
+            <ScrollArea className="h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
                       {headerGroup.headers.map(header => (
-                        <th
+                        <TableHead
                           key={header.id}
                           style={{
                             position: 'absolute',
                             left: header.getStart(),   // ⬅️ posisi horizontal
                             width: header.getSize(),   // ⬅️ width sesuai header
                           }}
-                          className="text-left p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
                         >
                           <div
                             className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
                             style={{
-                              lineHeight: '40px',
-                              minHeight: '40px',
+                              lineHeight: '20px',
+                              minHeight: '20px',
                             }}
                             title={String(header.column.columnDef.header ?? '')}
                           >
@@ -235,56 +254,73 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
                               className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
                             />
                           )}
-                        </th>
+                        </TableHead>
                       ))}
-                    </tr>
+                    </TableRow>
                   ))}
-                </thead>
+                </TableHeader>
 
-                  <tbody>
-                    {table.getRowModel().rows.map((row, rowIndex) => (
-                      <tr
-                      key={row.id}
-                      style={{ position: 'relative', height: '40px' }} // ⬅️ wajib
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (
-                          <td
-                          key={cell.id}
-                          style={{
-                            position: 'absolute',
-                            left: cell.column.getStart(), // ⬅️ posisi horizontal berdasarkan react-table
-                            width: cell.column.getSize(),
-                            height: '100%',
-                            // backgroundColor: 'red',
-                            top: '17px'
-                          }}
-                          className={cn(
-                            "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
-                            rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
-                          )}
-                        >
-                          <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                          <TableCell
+                            key={cell.id}
                             style={{
-                              lineHeight: '40px',
-                              minHeight: '40px',
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
                             }}
-                            title={String(cell.getValue() ?? '')}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </div>
-                        </td>
-                        
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
                         ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
           <div className='flex gap-2 justify-between '>
             <h1 className='font-semibold'>
-              Total Transaksi : {summary?.total_transactions ?? 0}
+            Total Transaksi : {json?.summary?.total_transactions ?? 0}
             </h1>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
