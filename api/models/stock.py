@@ -4,7 +4,6 @@ from ..models.rack import Rack
 from ..models.supplier import Supplier
 from ..models.unit import Unit
 from ..models.warehouse import Warehouse
-from ..models.transaction_history import TransItemDetail
 
 class Stock(models.Model):
     code = models.CharField(max_length=50, unique=True)
@@ -70,7 +69,8 @@ class Stock(models.Model):
             str or None: String representation of the date of the last purchase,
                         or None if no purchase transaction exists.
         """
-        from django.db.models import Q
+        # Import here to avoid circular import
+        from ..models.transaction_history import TransItemDetail
         
         # Find the last purchase transaction
         last_buy_item = TransItemDetail.objects.filter(
@@ -92,6 +92,9 @@ class Stock(models.Model):
             str or None: String representation of the date of the last sale,
                         or None if no sale transaction exists.
         """
+        # Import here to avoid circular import
+        from ..models.transaction_history import TransItemDetail
+        
         # Find the last sale transaction
         last_sell_item = TransItemDetail.objects.filter(
             stock=self,
