@@ -190,7 +190,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'My API',
+    'TITLE': 'API PANASSS',
     'DESCRIPTION': 'API documentation for My Django App',
     'VERSION': '1.0.0',
     # Add more customizations if needed

@@ -31,6 +31,14 @@ from ..filters.stock_filters import StockFilter
                 location=OpenApiParameter.QUERY
             ),
             OpenApiParameter(
+                name='transaction_type',
+                description='PURCHASE, SALE',
+                required=False,
+                type=str,
+                enum=['PURCHASE', 'SALE'],
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
                 name='range',
                 description='Date range for sales data: today, week, month',
                 required=False,
@@ -456,6 +464,7 @@ class StockViewSet(viewsets.ModelViewSet):
         # Check if we need to include sales data and order quantities
         include_sales = request.query_params.get('include_sales', '').lower() == 'true'
         include_orders = request.query_params.get('include_orders', '').lower() == 'true'
+        transaction_type = request.query_params.get('transaction_type', 'PURCHASE').upper()  # Default to 'PURCHASE'
         
         # Get paginated results if pagination is enabled
         page = self.paginate_queryset(queryset)
@@ -466,13 +475,13 @@ class StockViewSet(viewsets.ModelViewSet):
             # Add sales data if requested
             if include_sales:
                 self._enhance_with_sales_data(data, request)
-                
+            
             # Add order quantities if requested
             if include_orders:
-                self._enhance_with_order_quantities(data)
-                
-            return self.get_paginated_response(data)
+                self._enhance_with_order_quantities(data, transaction_type)
             
+            return self.get_paginated_response(data)
+        
         # Handle non-paginated results
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
@@ -480,57 +489,62 @@ class StockViewSet(viewsets.ModelViewSet):
         # Add sales data if requested
         if include_sales:
             self._enhance_with_sales_data(data, request)
-            
+        
         # Add order quantities if requested
         if include_orders:
-            self._enhance_with_order_quantities(data)
-            
+            self._enhance_with_order_quantities(data, transaction_type)
+        
         return Response(data)
-    
-    def _enhance_with_order_quantities(self, stock_data):
-            """Add detailed orders data to stock items based on TransItemDetail records"""
-            stock_ids = [item['id'] for item in stock_data]
-            
-            # Get all purchase orders with th_order=True
-            purchase_orders = TransactionHistory.objects.filter(
-                th_type=TransactionType.PURCHASE,
-                th_order=True
-            )
-            
-            # Get order quantities by stock_id
-            ordered_quantities = TransItemDetail.objects.filter(
-                transaction__in=purchase_orders,
-                stock_id__in=stock_ids
-            ).values('stock_id').annotate(
-                total_quantity=Sum('quantity'),
-                oldest_order_date=Min('transaction__th_date'),
-                newest_order_date=Max('transaction__th_date'),
-                order_count=Count('transaction', distinct=True)
-            )
-            
-            # Convert to dictionary for easy lookup
-            ordered_data = {item['stock_id']: {
-                'quantity': item['total_quantity'],
-                'oldest_order_date': item['oldest_order_date'],
-                'newest_order_date': item['newest_order_date'],
-                'order_count': item['order_count']
-            } for item in ordered_quantities}
-            
-            # Add the ordered data to each stock
-            for stock in stock_data:
-                stock_id = stock['id']
-                if stock_id in ordered_data:
-                    stock['ordered_quantity'] = ordered_data[stock_id]['quantity']
-                    stock['oldest_order_date'] = ordered_data[stock_id]['oldest_order_date']
-                    stock['newest_order_date'] = ordered_data[stock_id]['newest_order_date']
-                    stock['order_count'] = ordered_data[stock_id]['order_count']
-                    stock['has_pending_orders'] = True
-                else:
-                    stock['ordered_quantity'] = 0
-                    stock['oldest_order_date'] = None
-                    stock['newest_order_date'] = None
-                    stock['order_count'] = 0
-                    stock['has_pending_orders'] = False
+
+    def _enhance_with_order_quantities(self, stock_data, transaction_type):
+        """Add detailed orders data to stock items based on TransItemDetail records"""
+        stock_ids = [item['id'] for item in stock_data]
+        
+        # Get all purchase or sale orders based on the transaction_type
+        transaction_filter = {
+            'th_type': transaction_type
+        }
+        
+        transaction_history = TransactionHistory.objects.filter(
+            **transaction_filter,
+            th_order=True
+        )
+        
+        # Get order quantities by stock_id
+        ordered_quantities = TransItemDetail.objects.filter(
+            transaction__in=transaction_history,
+            stock_id__in=stock_ids
+        ).values('stock_id').annotate(
+            total_quantity=Sum('quantity'),
+            oldest_order_date=Min('transaction__th_date'),
+            newest_order_date=Max('transaction__th_date'),
+            order_count=Count('transaction', distinct=True)
+        )
+        
+        # Convert to dictionary for easy lookup
+        ordered_data = {item['stock_id']: {
+            'quantity': item['total_quantity'],
+            'oldest_order_date': item['oldest_order_date'],
+            'newest_order_date': item['newest_order_date'],
+            'order_count': item['order_count']
+        } for item in ordered_quantities}
+        
+        # Add the ordered data to each stock
+        for stock in stock_data:
+            stock_id = stock['id']
+            if stock_id in ordered_data:
+                stock['ordered_quantity'] = ordered_data[stock_id]['quantity']
+                stock['oldest_order_date'] = ordered_data[stock_id]['oldest_order_date']
+                stock['newest_order_date'] = ordered_data[stock_id]['newest_order_date']
+                stock['order_count'] = ordered_data[stock_id]['order_count']
+                stock['has_pending_orders'] = True
+            else:
+                stock['ordered_quantity'] = 0
+                stock['oldest_order_date'] = None
+                stock['newest_order_date'] = None
+                stock['order_count'] = 0
+                stock['has_pending_orders'] = False
+
 
     # def _enhance_with_detailed_orders(self, stock_data):
     #         """
