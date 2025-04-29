@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from decimal import Decimal, InvalidOperation
-from django.db.models import Sum, OuterRef, Subquery
+from django.db.models import Sum, OuterRef, Subquery, Max, F, Min, Count
+from django.db.models.functions import Coalesce
 
 from ..models import Stock, TransItemDetail, TransactionType, TransactionHistory
 from ..serializers import StockSerializer, StockDetailSerializer
@@ -18,6 +19,13 @@ from ..filters.stock_filters import StockFilter
             OpenApiParameter(
                 name='include_sales',
                 description='Include sales quantity data for each stock item',
+                required=False,
+                type=bool,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='include_orders',
+                description='Include ordered quantity data for each stock item',
                 required=False,
                 type=bool,
                 location=OpenApiParameter.QUERY
@@ -441,12 +449,13 @@ class StockViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Invalid quantity'}, status=400)
         
     def list(self, request, *args, **kwargs):
-        """Override list method to include sales data when requested"""
+        """Override list method to include sales data and order quantities when requested"""
         # Get filtered queryset using existing filters
         queryset = self.filter_queryset(self.get_queryset())
         
-        # Check if we need to include sales data
+        # Check if we need to include sales data and order quantities
         include_sales = request.query_params.get('include_sales', '').lower() == 'true'
+        include_orders = request.query_params.get('include_orders', '').lower() == 'true'
         
         # Get paginated results if pagination is enabled
         page = self.paginate_queryset(queryset)
@@ -458,6 +467,10 @@ class StockViewSet(viewsets.ModelViewSet):
             if include_sales:
                 self._enhance_with_sales_data(data, request)
                 
+            # Add order quantities if requested
+            if include_orders:
+                self._enhance_with_order_quantities(data)
+                
             return self.get_paginated_response(data)
             
         # Handle non-paginated results
@@ -468,8 +481,102 @@ class StockViewSet(viewsets.ModelViewSet):
         if include_sales:
             self._enhance_with_sales_data(data, request)
             
+        # Add order quantities if requested
+        if include_orders:
+            self._enhance_with_order_quantities(data)
+            
         return Response(data)
     
+    def _enhance_with_order_quantities(self, stock_data):
+            """Add detailed orders data to stock items based on TransItemDetail records"""
+            stock_ids = [item['id'] for item in stock_data]
+            
+            # Get all purchase orders with th_order=True
+            purchase_orders = TransactionHistory.objects.filter(
+                th_type=TransactionType.PURCHASE,
+                th_order=True
+            )
+            
+            # Get order quantities by stock_id
+            ordered_quantities = TransItemDetail.objects.filter(
+                transaction__in=purchase_orders,
+                stock_id__in=stock_ids
+            ).values('stock_id').annotate(
+                total_quantity=Sum('quantity'),
+                oldest_order_date=Min('transaction__th_date'),
+                newest_order_date=Max('transaction__th_date'),
+                order_count=Count('transaction', distinct=True)
+            )
+            
+            # Convert to dictionary for easy lookup
+            ordered_data = {item['stock_id']: {
+                'quantity': item['total_quantity'],
+                'oldest_order_date': item['oldest_order_date'],
+                'newest_order_date': item['newest_order_date'],
+                'order_count': item['order_count']
+            } for item in ordered_quantities}
+            
+            # Add the ordered data to each stock
+            for stock in stock_data:
+                stock_id = stock['id']
+                if stock_id in ordered_data:
+                    stock['ordered_quantity'] = ordered_data[stock_id]['quantity']
+                    stock['oldest_order_date'] = ordered_data[stock_id]['oldest_order_date']
+                    stock['newest_order_date'] = ordered_data[stock_id]['newest_order_date']
+                    stock['order_count'] = ordered_data[stock_id]['order_count']
+                    stock['has_pending_orders'] = True
+                else:
+                    stock['ordered_quantity'] = 0
+                    stock['oldest_order_date'] = None
+                    stock['newest_order_date'] = None
+                    stock['order_count'] = 0
+                    stock['has_pending_orders'] = False
+
+    def _enhance_with_detailed_orders(self, stock_data):
+            """
+            Add more detailed order information including latest orders
+            Note: This is a more expensive query that fetches actual order details
+            """
+            from django.db.models import Min
+            
+            stock_ids = [item['id'] for item in stock_data]
+            
+            # Get all the purchase orders with th_order=True that contain these stocks
+            for stock in stock_data:
+                stock_id = stock['id']
+                
+                # Get order summary data  
+                order_summary = TransItemDetail.objects.filter(
+                    transaction__th_type=TransactionType.PURCHASE,
+                    transaction__th_order=True,
+                    stock_id=stock_id
+                ).aggregate(
+                    total_quantity=Coalesce(Sum('quantity'), 0),
+                    latest_order_date=Max('transaction__th_date')
+                )
+                
+                # Add summary data to stock
+                stock['ordered_quantity'] = order_summary['total_quantity'] 
+                stock['latest_order_date'] = order_summary['latest_order_date']
+                stock['has_pending_orders'] = order_summary['total_quantity'] > 0
+                
+                # Get latest order information (optional)
+                if order_summary['latest_order_date']:
+                    latest_order_item = TransItemDetail.objects.filter(
+                        transaction__th_type=TransactionType.PURCHASE,
+                        transaction__th_order=True,
+                        stock_id=stock_id,
+                        transaction__th_date=order_summary['latest_order_date']
+                    ).select_related('transaction', 'transaction__supplier').first()
+                    
+                    if latest_order_item:
+                        stock['latest_order'] = {
+                            'code': latest_order_item.transaction.th_code,
+                            'date': latest_order_item.transaction.th_date,
+                            'supplier': latest_order_item.transaction.supplier.name if latest_order_item.transaction.supplier else None,
+                            'quantity': latest_order_item.quantity
+                        }
+
     def _enhance_with_sales_data(self, stock_data, request):
         """Add sales and return data to stock items based on TransItemDetail records"""
         stock_ids = [item['id'] for item in stock_data]

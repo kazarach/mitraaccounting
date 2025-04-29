@@ -23,8 +23,6 @@ class TransactionType(models.TextChoices):
     RECEIPT = 'RECEIPT', 'Receipt'
     ADJUSTMENT = 'ADJUSTMENT', 'Adjustment'
     EXPENSE = 'EXPENSE', 'Expense'
-    ORDERIN = 'ORDERIN', 'Order In'
-    ORDEROUT = 'ORDEROUT', 'Order Out'
     
 class TransactionHistory(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
