@@ -532,50 +532,50 @@ class StockViewSet(viewsets.ModelViewSet):
                     stock['order_count'] = 0
                     stock['has_pending_orders'] = False
 
-    def _enhance_with_detailed_orders(self, stock_data):
-            """
-            Add more detailed order information including latest orders
-            Note: This is a more expensive query that fetches actual order details
-            """
-            from django.db.models import Min
+    # def _enhance_with_detailed_orders(self, stock_data):
+    #         """
+    #         Add more detailed order information including latest orders
+    #         Note: This is a more expensive query that fetches actual order details
+    #         """
+    #         from django.db.models import Min
             
-            stock_ids = [item['id'] for item in stock_data]
+    #         stock_ids = [item['id'] for item in stock_data]
             
-            # Get all the purchase orders with th_order=True that contain these stocks
-            for stock in stock_data:
-                stock_id = stock['id']
+    #         # Get all the purchase orders with th_order=True that contain these stocks
+    #         for stock in stock_data:
+    #             stock_id = stock['id']
                 
-                # Get order summary data  
-                order_summary = TransItemDetail.objects.filter(
-                    transaction__th_type=TransactionType.PURCHASE,
-                    transaction__th_order=True,
-                    stock_id=stock_id
-                ).aggregate(
-                    total_quantity=Coalesce(Sum('quantity'), 0),
-                    latest_order_date=Max('transaction__th_date')
-                )
+    #             # Get order summary data  
+    #             order_summary = TransItemDetail.objects.filter(
+    #                 transaction__th_type=TransactionType.PURCHASE,
+    #                 transaction__th_order=True,
+    #                 stock_id=stock_id
+    #             ).aggregate(
+    #                 total_quantity=Coalesce(Sum('quantity'), 0),
+    #                 latest_order_date=Max('transaction__th_date')
+    #             )
                 
-                # Add summary data to stock
-                stock['ordered_quantity'] = order_summary['total_quantity'] 
-                stock['latest_order_date'] = order_summary['latest_order_date']
-                stock['has_pending_orders'] = order_summary['total_quantity'] > 0
+    #             # Add summary data to stock
+    #             stock['ordered_quantity'] = order_summary['total_quantity'] 
+    #             stock['latest_order_date'] = order_summary['latest_order_date']
+    #             stock['has_pending_orders'] = order_summary['total_quantity'] > 0
                 
-                # Get latest order information (optional)
-                if order_summary['latest_order_date']:
-                    latest_order_item = TransItemDetail.objects.filter(
-                        transaction__th_type=TransactionType.PURCHASE,
-                        transaction__th_order=True,
-                        stock_id=stock_id,
-                        transaction__th_date=order_summary['latest_order_date']
-                    ).select_related('transaction', 'transaction__supplier').first()
+    #             # Get latest order information (optional)
+    #             if order_summary['latest_order_date']:
+    #                 latest_order_item = TransItemDetail.objects.filter(
+    #                     transaction__th_type=TransactionType.PURCHASE,
+    #                     transaction__th_order=True,
+    #                     stock_id=stock_id,
+    #                     transaction__th_date=order_summary['latest_order_date']
+    #                 ).select_related('transaction', 'transaction__supplier').first()
                     
-                    if latest_order_item:
-                        stock['latest_order'] = {
-                            'code': latest_order_item.transaction.th_code,
-                            'date': latest_order_item.transaction.th_date,
-                            'supplier': latest_order_item.transaction.supplier.name if latest_order_item.transaction.supplier else None,
-                            'quantity': latest_order_item.quantity
-                        }
+    #                 if latest_order_item:
+    #                     stock['latest_order'] = {
+    #                         'code': latest_order_item.transaction.th_code,
+    #                         'date': latest_order_item.transaction.th_date,
+    #                         'supplier': latest_order_item.transaction.supplier.name if latest_order_item.transaction.supplier else None,
+    #                         'quantity': latest_order_item.quantity
+                        # }
 
     def _enhance_with_sales_data(self, stock_data, request):
         """Add sales and return data to stock items based on TransItemDetail records"""
