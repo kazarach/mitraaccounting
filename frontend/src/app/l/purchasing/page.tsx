@@ -1,11 +1,10 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSidebar } from "@/components/ui/sidebar";
 
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -14,36 +13,28 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
-import { distributors } from '@/data/product';
 import { DateRange } from 'react-day-picker';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { DistributorDropdownLP } from './distributor-dropdown';
 import { fetcher } from '@/lib/utils'
 import { ColumnDef, ColumnResizeDirection, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import useSWR from 'swr';
 import Loading from '@/components/loading';
+import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
 
 const PurchasingReport = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
   const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
-  const [summary, setSummary] = useState<any>(null);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -71,7 +62,7 @@ const PurchasingReport = () => {
       return json.results.flatMap((transaction: any) =>
         transaction.items.map((item: any, index: number) => ({
           id: `${transaction.id}-${index}`,
-            tanggal: index === 0 ? new Date(transaction.th_date).toLocaleDateString() : '',
+            tanggal: index === 0 ? format(new Date(transaction.th_date), "dd/MM/yyyy") : '',
             noFaktur: index === 0 ? transaction.th_code : '',
             distributor: index === 0 ? transaction.supplier_name : '',
             sales: index === 0 ? transaction.cashier_username : '',
@@ -98,7 +89,7 @@ const PurchasingReport = () => {
         );
       }, [flatData, searchQuery]);
 
-const columns = useMemo<ColumnDef<any>[]>(() => [
+  const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal"},
     { header: "No. Faktur", accessorKey: "noFaktur"},
     { header: "Distributor", accessorKey: "distributor" },
@@ -199,7 +190,7 @@ const columns = useMemo<ColumnDef<any>[]>(() => [
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Kategori</Label>
-                  {/* <DistributorDropdown/> */}
+                  <CategoryDropdown/>
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>

@@ -1,10 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -13,181 +12,109 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar"
-import { format } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { cn, fetcher } from '@/lib/utils';
+import { Search } from 'lucide-react';
+import { ColumnDef, ColumnResizeDirection, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { useSidebar } from '@/components/ui/sidebar';
+import { DateRange } from 'react-day-picker';
+import useSWR from 'swr';
+import Loading from '@/components/loading';
+import { ScrollBar, ScrollArea } from '@/components/ui/scroll-area';
+import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
 
 const MonitoringReport = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
+  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  console.log(API_URL)
+
+  const queryParams = useMemo(() => {
+    let params = `include_orders=true&transaction_type=SALE`;
+    if (date?.from && date?.to) {
+      const start = date.from.toLocaleDateString("sv-SE");
+      const end = date.to.toLocaleDateString("sv-SE");
+      params += `&start_date=${start}&end_date=${end}`;
     }
-  ]
-  );
+    return params;
+  }, [date]);
 
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/stock/?${queryParams}`, fetcher);
 
-  ]
+  // Transform data
+  const flatData = useMemo(() => {
+    if (!json) return [];
+  
+    return json.map((product: any) => ({
+      id: product.id,
+      distributor: product.supplier_name, 
+      sales: product.cashier_username,    
+      kode: product.code,                 
+      namaBarang: product.name,           
+      jumlah: product.quantity,           
+      satuan: product.unit_name,
+      pesanan: product.ordered_quantity,
+      kurangStok: product.available_quantity - product.ordered_quantity
+    }));
+  }, [json]);
+  
+      const filteredData = useMemo(() => {
+          if (!searchQuery) return flatData;
+          const lowerSearch = searchQuery.toLowerCase();
+          
+          return flatData.filter((item: any) =>
+            Object.values(item).some(value =>
+              String(value).toLowerCase().includes(lowerSearch)
+            )
+          );
+        }, [flatData, searchQuery]);
 
-  const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
-  const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("")
-  const [open2, setOpen2] = React.useState(false)
-  const [value2, setValue2] = React.useState("")
-  const [open3, setOpen3] = React.useState(false)
-  const [value3, setValue3] = React.useState("")
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+      { header: "Kode", accessorKey: "kode"},
+      { header: "Nama Barang", accessorKey: "namaBarang", size: 400 },
+      { header: "Jumlah Barang", accessorKey: "jumlah" },
+      { header: "Satuan", accessorKey: "satuan"},
+      { header: "Dalam Pesanan", accessorKey: "pesanan", size: 200 },
+      { header: "Kurang Stok", accessorKey: "kurangStok" },
+    ], []);
+
+    const table = useReactTable({
+          data: filteredData,
+          columns,
+          defaultColumn: {
+            size: 150,        // ⬅️ Default semua kolom 200px
+            minSize: 10,    // minimum size column saat resize
+          maxSize: 1000,
+          },
+          getCoreRowModel: getCoreRowModel(),
+          columnResizeDirection,
+          enableColumnResizing: true,
+          columnResizeMode: 'onChange'
+        });
 
   return (
-    <div className="flex justify-left w-full pt-4">
-      <Card className="w-full mx-4">
-        <CardHeader>
+    <div className="flex justify-left w-auto px-4 pt-4">
+      <Card
+        className={cn(
+          state === "expanded" ? "min-w-[180vh]" : "w-full",
+          "min-h-[calc(100vh-100px)] transition-all duration-300"
+        )}
+      >
+        {/* <CardHeader>
           <CardTitle>Pantauan Stock dan Pesanan Penjualan</CardTitle>
-        </CardHeader>
+        </CardHeader> */}
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
-                        )}
-                      >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Kategori</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Kategori"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue(selectedDistributor.value);
-                                  } else {
-                                    setValue("");
-                                  }
-                                  setOpen(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <CategoryDropdown/>
                 </div>
               </div>
               <div className='flex items-end gap-2'>
@@ -202,41 +129,109 @@ const MonitoringReport = () => {
               </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Barcode</TableHead>
-                    <TableHead className="text-left">Code</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
-                    <TableHead className="text-left">Jumlah Barang</TableHead>
-                    <TableHead className="text-left">Satuan</TableHead>
-                    <TableHead className="text-left">Dalam Pesanan</TableHead>
-                    <TableHead className="text-left">Kurang Stok</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.harga_beli}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
-                      </TableCell>           
+            <ScrollArea className="h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '20px',
+                              minHeight: '20px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
+                            />
+                          )}
+                        </TableHead>
+                      ))}
                     </TableRow>
                   ))}
+                </TableHeader>
+
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        style={{ position: 'relative', height: '35px' }}
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
+                            }}
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-            </div>
-          <div className='flex gap-2 justify-end '>
+              </div>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" className='z-40' />
+            </ScrollArea>
+            
+          <div className='flex gap-2 justify-between '>
+            <h1 className='font-semibold'>
+            Total Transaksi : {json?.summary?.total_transactions ?? 0}
+            </h1>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>

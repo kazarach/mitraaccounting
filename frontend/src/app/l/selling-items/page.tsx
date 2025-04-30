@@ -1,10 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -13,88 +12,113 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Search, Trash } from 'lucide-react';
+import { cn, fetcher } from '@/lib/utils';
+import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { useSidebar } from '@/components/ui/sidebar';
+import { distributors } from '@/data/product';
+import { ColumnResizeDirection, ColumnDef, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
+import { DateRange } from 'react-day-picker';
+import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Loading from '@/components/loading';
+import { OperatorDropdownSI } from './operator-dropdown';
+import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
+import { DistributorDropdownSI } from './distributor-dropdown';
 
-const SellingReport = () => {
-  const [data, setData] = useState([
-    {
-      "id": 1,
-      "produk": "Susu Coklat Bubuk",
-      "jumlah_pesanan": 10,
-      "jumlah_barang": 10,
-      "isi_packing": 24,
-      "satuan": "Kardus",
-      "harga_beli": 150000,
-      "diskon_persen": 5,
-      "diskon_rupiah": 7500,
-      "subtotal": 142500
-    },
-    {
-      "id": 2,
-      "produk": "Teh Hijau Organik",
-      "jumlah_pesanan": 5,
-      "jumlah_barang": 5,
-      "isi_packing": 12,
-      "satuan": "Pack",
-      "harga_beli": 200000,
-      "diskon_persen": 10,
-      "diskon_rupiah": 20000,
-      "subtotal": 180000
-    },
-    {
-      "id": 3,
-      "produk": "Kopi Arabika",
-      "jumlah_pesanan": 8,
-      "jumlah_barang": 8,
-      "isi_packing": 6,
-      "satuan": "Kardus",
-      "harga_beli": 800000,
-      "diskon_persen": 15,
-      "diskon_rupiah": 120000,
-      "subtotal": 680000
+const SellingItems = () => {
+  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  console.log(API_URL)
+
+  const queryParams = useMemo(() => {
+    let params = `th_type=SALE`;
+    if (date?.from && date?.to) {
+      const start = date.from.toLocaleDateString("sv-SE");
+      const end = date.to.toLocaleDateString("sv-SE");
+      params += `&start_date=${start}&end_date=${end}`;
     }
-  ]
-  );
+    if (selectedDistributors.length > 0) {
+      params += `&cashier=${selectedDistributors.join(",")}`;
+    }
+    if (selectedOperators.length > 0) {
+      params += `&cashier=${selectedOperators.join(",")}`;
+    }
+    return params;
+  }, [date, selectedDistributors, selectedOperators]);
 
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
 
-  ]
+  // Transform data
+    const flatData = useMemo(() => {
+      if (!json) return [];
+  
+      return json.flatMap((transaction: any) =>
+        transaction.items.map((item: any, index: number) => ({
+          id: `${transaction.id}-${index}`,
+            tanggal: index === 0 ? format(new Date(transaction.th_date), "dd/MM/yyyy") : '',
+            noFaktur: index === 0 ? transaction.th_code : '',
+            distributor: index === 0 ? transaction.supplier_name : '',
+            sales: index === 0 ? transaction.cashier_username : '',
+            kode: item.stock_code,
+            namaBarang: item.stock_name,
+            jumlah: item.quantity,
+            harga: item.sell_price,
+            totalHarga: item.total,
+            jmlJual: transaction.th_total
+        }))
+      );
+    }, [json]);
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return flatData;
+        const lowerSearch = searchQuery.toLowerCase();
+        
+        return flatData.filter((item: any) =>
+          Object.values(item).some(value =>
+            String(value).toLowerCase().includes(lowerSearch)
+          )
+        );
+      }, [flatData, searchQuery]);
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "Kode", accessorKey: "kode"},
+    { header: "Nama Barang", accessorKey: "namaBarang" },
+    { header: "Harga Jual", accessorKey: "harga" },
+    { header: "Jumlah Penjualan", accessorKey: "jmlJual"},
+    { header: "Penjualan Bruto", accessorKey: "bruto"},
+    { header: "Jumlah Pembelian", accessorKey: "jmlBeli" },
+    { header: "Pembelian Bruto", accessorKey: "belibruto" },
+    { header: "Jumlah Barang", accessorKey: "jumlah" },
+  ], []);
+
+  const table = useReactTable({
+        data: filteredData,
+        columns,
+        defaultColumn: {
+          size: 150,        // ⬅️ Default semua kolom 200px
+          minSize: 10,    // minimum size column saat resize
+        maxSize: 1000,
+        },
+        getCoreRowModel: getCoreRowModel(),
+        columnResizeDirection,
+        enableColumnResizing: true,
+        columnResizeMode: 'onChange'
+      });
 
   const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
   const [open2, setOpen2] = React.useState(false)
@@ -111,195 +135,82 @@ const SellingReport = () => {
   const [value7, setValue7] = React.useState("")
 
   return (
-    <div className="flex justify-left w-full pt-4">
-      <Card className="w-full mx-4">
-        <CardHeader>
-          <CardTitle>Laporan Penjualan per Barang</CardTitle>
-        </CardHeader>
+    <div className="flex justify-left w-auto px-4 pt-4">
+          <Card
+          className={cn(
+            state === "expanded" ? "min-w-[180vh]" : "w-full",
+            "min-h-[calc(100vh-100px)] transition-all duration-300"
+          )}
+        >
+            {/* <CardHeader>
+              <CardTitle>Laporan Penjualan</CardTitle>
+            </CardHeader> */}
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
+                <Label htmlFor="date-range">Tanggal</Label>
+                <div className='flex'>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="date-range"
                         variant={"outline"}
                         className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
+                          "w-[200px] h-[30px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
+                        {date?.from ? (
+                          date.to ? (
+                            <>
+                              {format(date.from, "dd/L/y")} -{" "}
+                              {format(date.to, "dd/L/y")}
+                            </>
+                          ) : (
+                            format(date.from, "dd/L/y")
+                          )
+                        ) : (
+                          <span>Semua</span>
+                        )}
                       </Button>
+                      
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
                         selected={date}
                         onSelect={setDate}
-                        initialFocus
+                        numberOfMonths={2}
                       />
+                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
-                </div>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-[30px] h-[30px] ml-1"
+                    onClick={() => setDate(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  </div>
+              </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Operator</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Operator"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue(selectedDistributor.value);
-                                  } else {
-                                    setValue("");
-                                  }
-                                  setOpen(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <OperatorDropdownSI onChange={(ids) => setSelectedOperators(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Kategori</Label>
-                  <Popover open={open2} onOpenChange={setOpen2}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Kategori"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue2(selectedDistributor.value);
-                                  } else {
-                                    setValue2("");
-                                  }
-                                  setOpen2(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <CategoryDropdown/>
                 </div>                  
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Distributor</Label>
-                  <Popover open={open3} onOpenChange={setOpen3}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value3)?.label
-                          : "Pilih Distributor"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue3(selectedDistributor.value);
-                                  } else {
-                                    setValue3("");
-                                  }
-                                  setOpen3(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <DistributorDropdownSI onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>                  
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Sales</Label>
@@ -309,11 +220,11 @@ const SellingReport = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-[150px] h-[30px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value4)?.label
-                          : "Pilih Sales"}
+                          : "Semua"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -361,11 +272,11 @@ const SellingReport = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-[150px] h-[30px] justify-between font-normal"
                       >
                         {value
                           ? distributors.find((d) => d.value === value5)?.label
-                          : "Pilih Pelanggan"}
+                          : "Semua"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -418,40 +329,104 @@ const SellingReport = () => {
               </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Kode</TableHead>
-                    <TableHead className="text-left">Barcode</TableHead>
-                    <TableHead className="text-left">Nama Barang</TableHead>
-                    <TableHead className="text-left">Jumlah Penjualan</TableHead>
-                    <TableHead className="text-left">Penjualan Bruto</TableHead>
-                    <TableHead className="text-left">Jumlah Pembelian</TableHead>
-                    <TableHead className="text-left">Pembelian Bruto</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="text-left">{item.jumlah_pesanan}</TableCell>
-                      <TableCell className="text-left"><input type="number" className='text-right w-24 bg-gray-100 rounded-sm' placeholder='0' /></TableCell>
-                      <TableCell className="text-left">{item.isi_packing}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-left">{item.harga_beli}</TableCell>
-                      <TableCell className="text-left">{item.satuan}</TableCell>
-                      <TableCell className="text-right">
-                        <Button className='bg-red-500 hover:bg-red-600 size-7'>
-                          <Trash></Trash>
-                        </Button>
-                      </TableCell>           
+            <ScrollArea className="h-[calc(100vh-310px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '20px',
+                              minHeight: '20px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
+                            />
+                          )}
+                        </TableHead>
+                      ))}
                     </TableRow>
                   ))}
+                </TableHeader>
+
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        style={{ position: 'relative', height: '35px' }}
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
+                            }}
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" className='z-40' />
+            </ScrollArea>
           <div className='flex gap-2 justify-end '>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
@@ -462,4 +437,4 @@ const SellingReport = () => {
   );
 };
 
-export default SellingReport; 
+export default SellingItems; 
