@@ -24,27 +24,34 @@ import useSWR from 'swr';
 import Loading from '@/components/loading';
 import { ScrollBar, ScrollArea } from '@/components/ui/scroll-area';
 import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const MonitoringReport = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
   const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [orderType, setOrderType] = useState<string>("sell"); // Default value is 'sell'
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
 
+  // Dynamically build the query params based on the selected order type
   const queryParams = useMemo(() => {
-    let params = `include_orders=true&transaction_type=SALE`;
+    let params = `include_orders=true&transaction_type=${orderType === "buy" ? "PURCHASE" : "SALE"}`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
       params += `&start_date=${start}&end_date=${end}`;
     }
     return params;
-  }, [date]);
+  }, [date, orderType]); // Ensure queryParams updates when orderType changes
 
-  const { data: json, error, isLoading } = useSWR(`${API_URL}api/stock/?${queryParams}`, fetcher);
+  // Fetch the data using SWR with the dynamic queryParams
+  const { data: json, error, isLoading } = useSWR(
+    `${API_URL}api/stock/?${queryParams}`,
+    fetcher
+  );
 
   // Transform data
   const flatData = useMemo(() => {
@@ -63,16 +70,16 @@ const MonitoringReport = () => {
     }));
   }, [json]);
   
-      const filteredData = useMemo(() => {
-          if (!searchQuery) return flatData;
-          const lowerSearch = searchQuery.toLowerCase();
-          
-          return flatData.filter((item: any) =>
-            Object.values(item).some(value =>
-              String(value).toLowerCase().includes(lowerSearch)
-            )
-          );
-        }, [flatData, searchQuery]);
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return flatData;
+    const lowerSearch = searchQuery.toLowerCase();
+    
+    return flatData.filter((item: any) =>
+      Object.values(item).some(value =>
+        String(value).toLowerCase().includes(lowerSearch)
+      )
+    );
+  }, [flatData, searchQuery]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
       { header: "Kode", accessorKey: "kode"},
@@ -84,18 +91,22 @@ const MonitoringReport = () => {
     ], []);
 
     const table = useReactTable({
-          data: filteredData,
-          columns,
-          defaultColumn: {
-            size: 150,        // ⬅️ Default semua kolom 200px
-            minSize: 10,    // minimum size column saat resize
-          maxSize: 1000,
-          },
-          getCoreRowModel: getCoreRowModel(),
-          columnResizeDirection,
-          enableColumnResizing: true,
-          columnResizeMode: 'onChange'
-        });
+      data: filteredData,
+      columns,
+      defaultColumn: {
+        size: 150,        // ⬅️ Default semua kolom 200px
+        minSize: 10,    // minimum size column saat resize
+      maxSize: 1000,
+      },
+      getCoreRowModel: getCoreRowModel(),
+      columnResizeDirection,
+      enableColumnResizing: true,
+      columnResizeMode: 'onChange'
+    });
+
+    const handleSelectChange = (value: string) => {
+      setOrderType(value); // Update order type when dropdown value changes
+    };
 
   return (
     <div className="flex justify-left w-auto px-4 pt-4">
@@ -113,19 +124,37 @@ const MonitoringReport = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Kategori</Label>
-                  <CategoryDropdown/>
+                <Label htmlFor="distributor">Kategori</Label>
+                <CategoryDropdown/>
+              </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="waktu">Pesanan</Label>
+                  <Select value={orderType} onValueChange={handleSelectChange}>
+                    <SelectTrigger className="w-[150px] h-[30px]">
+                      <SelectValue placeholder="Penjualan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sell">Penjualan</SelectItem>
+                      <SelectItem value="buy">Pembelian</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className='flex items-end gap-2'>
               <div className={cn(
-                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                      )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
-                </div>
+                      "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                      "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                      "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                    )}>
+                <Search size={20} style={{ marginRight: '10px' }} />
+                <input
+                  type="text"
+                  placeholder="Cari"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ border: 'none', outline: 'none', flex: '1' }}
+                />
+              </div>
               </div>
             </div>
 
@@ -229,9 +258,6 @@ const MonitoringReport = () => {
             </ScrollArea>
             
           <div className='flex gap-2 justify-between '>
-            <h1 className='font-semibold'>
-            Total Transaksi : {json?.summary?.total_transactions ?? 0}
-            </h1>
             <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
           </div>
           </div>

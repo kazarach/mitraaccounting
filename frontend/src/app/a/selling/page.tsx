@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   Table,
@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
+import { cn, fetcher } from '@/lib/utils';
+import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -31,35 +31,130 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
+import { DistributorDropdownAS } from './distributor-dropdown';
+import { MemberDropdownAS } from './member-dropdown';
+import { useSidebar } from '@/components/ui/sidebar';
+import { distributors } from '@/data/product';
+import { ColumnResizeDirection, ColumnDef, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
+import { DateRange } from 'react-day-picker';
+import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Loading from '@/components/loading';
+import { CustomerDropdownAS } from './customer-dropdown';
+import { SellingDetailModal } from './modal';
 
 const SellingArchive = () => {
+  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
+  const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
+  const [selectedMember, setSelectedMember] = useState<number[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<number[]>([]);
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
-  const distributors = [
-    {
-      value: "1",
-      label: "Distributor A",
-    },
-    {
-      value: "2",
-      label: "Distributor B",
-    },
-    {
-      value: "3",
-      label: "Distributor C",
-    },
-    {
-      value: "4",
-      label: "Distributor D",
-    },
-    {
-      value: "5",
-      label: "Distributor E",
-    },
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  console.log(API_URL)
 
-  ]
+  const queryParams = useMemo(() => {
+    let params = `th_type=PURCHASE`;
+    if (date?.from && date?.to) {
+      const start = date.from.toLocaleDateString("sv-SE");
+      const end = date.to.toLocaleDateString("sv-SE");
+      params += `&start_date=${start}&end_date=${end}`;
+    }
+    if (selectedDistributors.length > 0) {
+      params += `&supplier=${selectedDistributors.join(",")}`;
+    }
+    if (selectedOperators.length > 0) {
+      params += `&cashier=${selectedOperators.join(",")}`;
+    }
+    if (selectedCustomer.length > 0) {
+      params += `&customer=${selectedCustomer.join(",")}`;
+    }
+    return params;
+  }, [date, selectedDistributors, selectedOperators, selectedCustomer]);
 
-  const [selectedDistributor, setSelectedDistributor] = useState("All");
-  const [date, setDate] = React.useState<Date>()
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
+
+  const flatData = useMemo(() => {
+    if (!json) return [];
+  
+    return json.map((transaction: any, index: number) => ({
+      id: `${transaction.id}`,
+      tanggal: format(new Date(transaction.th_date), "dd/MM/yyyy"),
+      noFaktur: transaction.th_code,
+      distributor: transaction.supplier_name,
+      pelanggan: transaction.customer_name,
+      operator: transaction.cashier_username,
+      tipe: transaction.th_payment_type,
+      kas: transaction.bank_name,
+      retur: transaction.th_retur,
+      total: transaction.th_total, // total per transaksi, bukan per item
+    }));
+  }, [json]);
+      
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return flatData;
+        const lowerSearch = searchQuery.toLowerCase();
+        
+        return flatData.filter((item: any) =>
+          Object.values(item).some(value =>
+            String(value).toLowerCase().includes(lowerSearch)
+          )
+        );
+      }, [flatData, searchQuery]);
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "Tanggal", accessorKey: "tanggal", size: 100},
+    { header: "No. Faktur", accessorKey: "noFaktur"},
+    { header: "Pelanggan", accessorKey: "pelanggan"},
+    { header: "Sales", accessorKey: "" },
+    { header: "Operator", accessorKey: "operator" },
+    { header: "Tipe Bayar", accessorKey: "tipe" },
+    { header: "Diretur", accessorKey: "retur" },
+    { header: "Voucher", accessorKey: "" },
+    { header: "Total Transaksi", accessorKey: "total" },
+    { header: "Kas/Bank", accessorKey: "kas" },
+    {
+      header: "Action",
+      size: 60,
+      id: "action", // kolom tanpa accessorKey harus pakai id
+      cell: ({ row }) => (
+        <Button
+          className='h-[20px]'
+          onClick={() => {
+            const transaksiId = row.original.id;
+            const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
+            if (transaksi) {
+              setSelectedTransaction(transaksi.items); // ambil detail items dari transaksi
+              setIsDialogOpen(true);
+            }
+          }}
+        >
+          <Eye/>
+        </Button>
+      ),
+    },
+  ], []);
+  
+  const table = useReactTable({
+        data: filteredData,
+        columns,
+        defaultColumn: {
+          size: 150,        // ⬅️ Default semua kolom 200px
+          minSize: 10,    // minimum size column saat resize
+        maxSize: 1000,
+        },
+        getCoreRowModel: getCoreRowModel(),
+        columnResizeDirection,
+        enableColumnResizing: true,
+        columnResizeMode: 'onChange'
+      });
+
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState("")
   const [open2, setOpen2] = React.useState(false)
@@ -78,41 +173,6 @@ const SellingArchive = () => {
   const dispatch = useDispatch();
   const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
 
-  useEffect(() => {
-              if (data.length === 0) {
-                dispatch(setTableData({
-                  tableName: "s_pesanan",
-                  data: [
-                    {
-                      id: 1,
-                      produk: "Edwin",
-                      jumlah_barang: 12345,
-                      sales: "Zaenudin",
-                      jumlah_poin: 300,
-                      sisa_poin: 100,
-                      tipe_tukar: "Cash",
-                      satuan: "Poin",
-                      nominal_tukar: "Rp 30.000",
-                      kadaluarsa: "19 January 2025",
-                    }
-                  ]
-                }));
-              }
-            }, [dispatch]);
-
-  const handleDelete = (id: number) => {
-    dispatch(deleteRow({ tableName: "s_pesanan", id }));
-    toast.error("Produk berhasil dihapus!");
-  };
-
-  const handleClear = () => {
-    dispatch(clearTable({ tableName: "s_pesanan" }));
-    toast.error("Table berhasil dihapus!");
-  };
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-
   return (
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
@@ -124,185 +184,67 @@ const SellingArchive = () => {
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date">Tanggal</Label>
+                <Label htmlFor="date-range">Tanggal</Label>
+                <div className='flex'>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="date-range"
                         variant={"outline"}
                         className={cn(
-                          "w-[200px] justify-start text-left font-normal",
-                          
+                          "w-[200px] h-[30px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon />
-                        {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                        {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
+                        {date?.from ? (
+                          date.to ? (
+                            <>
+                              {format(date.from, "dd/L/y")} -{" "}
+                              {format(date.to, "dd/L/y")}
+                            </>
+                          ) : (
+                            format(date.from, "dd/L/y")
+                          )
+                        ) : (
+                          <span>Semua</span>
+                        )}
                       </Button>
+                      
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        mode="single"
+                        initialFocus
+                        mode="range"
+                        defaultMonth={date?.from}
                         selected={date}
                         onSelect={setDate}
-                        initialFocus
+                        numberOfMonths={2}
                       />
+                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
-                </div>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="w-[30px] h-[30px] ml-1"
+                    onClick={() => setDate(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  </div>
+              </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Operator</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Operator"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue(selectedDistributor.value);
-                                  } else {
-                                    setValue("");
-                                  }
-                                  setOpen(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <DistributorDropdownAS onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Member</Label>
-                  <Popover open={open2} onOpenChange={setOpen2}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value2)?.label
-                          : "Pilih Member"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue2(selectedDistributor.value);
-                                  } else {
-                                    setValue2("");
-                                  }
-                                  setOpen2(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <MemberDropdownAS onChange={(ids) => setSelectedMember(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Pelanggan</Label>
-                  <Popover open={open3} onOpenChange={setOpen3}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value3)?.label
-                          : "Pilih Pelanggan"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue3(selectedDistributor.value);
-                                  } else {
-                                    setValue3("");
-                                  }
-                                  setOpen3(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <CustomerDropdownAS onChange={(ids) => setSelectedCustomer(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Tipe Bayar</Label>
@@ -516,83 +458,128 @@ const SellingArchive = () => {
                 
               </div>
               
-              <div className='relative flex flex-col gap-2 top-[55px]'>
               <div className='flex items-end gap-2'>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-[75vw] max-h-[90vh]">
-                    <TambahProdukModal tableName='s_pesanan'/>
-                  </DialogContent>
-                </Dialog>
-                <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
-                </div>
                 <div className={cn(
-                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                      )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
-                </div>
-                </div>
+                          "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                        )}>
+                    <Search size={20} style={{ marginRight: '10px' }} />
+                    <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                  </div>
+                </div> 
               
             </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                  <TableHead rowSpan={2}>No. Faktur</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Tanggal</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Pelanggan</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Pelanggan</TableHead>
-                  <TableHead colSpan={3} className="text-center">Tipe Bayar</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Retur</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Voucher</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Total</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Bank</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Sales</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Operator</TableHead>
-                  <TableHead rowSpan={2} className="text-right">Action</TableHead>
-                  </TableRow>
-                  <TableRow>
-                    <TableHead className="text-left">Tunai</TableHead>
-                    <TableHead className="text-left">Kredit</TableHead>
-                    <TableHead className="text-left">Debit</TableHead>
-                  </TableRow>
+            <ScrollArea className="h-[calc(100vh-260px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '20px',
+                              minHeight: '20px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
+                            />
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
+
                 <TableBody>
-                {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-left">{item.sales}</TableCell>
-                  <TableCell className="text-left">{item.satuan}</TableCell>
-                  <TableCell className="text-right">
-                  <Button onClick={() => {setSelectedItemId(item.id);
-                                                setIsDialogOpen(true);
-                                }} className='bg-blue-500 hover:bg-blue-600 size-7'>
-                          <Eye/>
-                        </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        onClick={() => {
+                          const transaksiId = row.original.id;
+                          const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
+                          if (transaksi) {
+                            setSelectedTransaction(transaksi);
+                            setIsDialogOpen(true);
+                          }
+                        }}
+                        className="cursor-pointer hover:bg-gray-200"
+                        style={{ position: 'relative', height: '35px' }}
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
+                            }}
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" className='z-40' />
+            </ScrollArea>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
               <DialogTitle>Detail Arsip Penjualan</DialogTitle>
               <div className="space-y-4">
@@ -648,7 +635,12 @@ const SellingArchive = () => {
               <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
             </div>
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
+          <SellingDetailModal
+            open={isDialogOpen}
+            onClose={setIsDialogOpen}
+            transaction={selectedTransaction}
+          />
 
           </div>
         </CardContent>

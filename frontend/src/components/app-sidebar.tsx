@@ -71,7 +71,7 @@ const Menus = [
           { title: "Opname Persediaan", url: "/l/stock/opname" },
         ],
       },
-      { title: "Pantauan Stock dan Pesanan Penjualan", url: "/l/monitoring" },
+      { title: "Pantauan Stock dan Pesanan", url: "/l/monitoring" },
       { title: "Pembelian", url: "/l/purchasing" },
       { title: "Penjualan", url: "/l/selling" },
       { title: "Penjualan per Barang", url: "/l/selling-items" },
