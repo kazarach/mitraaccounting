@@ -28,8 +28,6 @@ class Customer(models.Model):
     changed = models.DateTimeField(auto_now=True)
     
     credit_term_days = models.IntegerField(default=14)
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     
     def __str__(self):
         return self.name

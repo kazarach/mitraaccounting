@@ -2,7 +2,6 @@ import random
 from django.core.management.base import BaseCommand
 from faker import Faker
 from decimal import Decimal
-from django.contrib.auth import get_user_model
 from api.models.customer import Customer
 from api.models.member_type import MemberType
 from api.models.stock_price import PriceCategory
@@ -12,12 +11,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-        User = get_user_model()
-        
-        # Ensure there are users to assign to customers
-        if not User.objects.exists():
-            self.stdout.write(self.style.ERROR('No users found. Please create at least one user.'))
-            return
         
         # Ensure there are member types to assign to customers
         if not MemberType.objects.exists():
@@ -34,7 +27,6 @@ class Command(BaseCommand):
 
         customers_to_create = []
         for _ in range(50):  # Adjust the number of customers as needed
-            user = random.choice(User.objects.all())
             member_type = random.choice(member_types) if member_types else None
             price_category = random.choice(price_categories) if price_categories else None
             
@@ -54,7 +46,6 @@ class Command(BaseCommand):
                 point=Decimal(random.uniform(0, 500)).quantize(Decimal('0.01')),
                 customer_date=fake.date_this_decade(),
                 duedate=fake.date_this_year() if random.random() > 0.5 else None,
-                user=user
             ))
 
         Customer.objects.bulk_create(customers_to_create)

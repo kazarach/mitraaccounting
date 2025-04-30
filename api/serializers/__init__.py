@@ -7,3 +7,4 @@ from .transaction_history_serializer import TransactionHistorySerializer, TransI
 from .bank_serializer import BankSerializer
 from .supplier_serializer import SupplierSerializer, SupplierCreateUpdateSerializer
 from .ARAP_serializer import ARAPPaymentSerializer, ARAPSerializer, ARAPSummarySerializer, ARAPTransactionSerializer
+from .customer_serializer import CustomerCreateSerializer, CustomerSerializer

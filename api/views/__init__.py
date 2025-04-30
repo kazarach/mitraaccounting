@@ -4,3 +4,4 @@ from .user_views import UserAccountViewSet, UserRoleViewSet
 from .transaction_views import TransactionHistoryViewSet, TransItemDetailViewSet
 from .supplier_views import SupplierViewSet
 from .ARAP_views import ARAPViewSet, ARAPPaymentViewSet
+from . customer_views import CustomerViewSet
