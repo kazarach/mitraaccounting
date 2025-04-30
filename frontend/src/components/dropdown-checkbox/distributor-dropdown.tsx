@@ -111,7 +111,7 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
             Clear All
           </button>
         </div>
-        <ScrollArea className="h-40">
+        <ScrollArea className="h-64">
           {filteredItems.length > 0 ? (
             filteredItems.map(item => (
               <label

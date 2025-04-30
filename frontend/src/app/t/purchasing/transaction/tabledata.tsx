@@ -41,9 +41,11 @@ import DistributorDD from '@/components/dropdown-normal/distributor_dd';
 import OperatorDD from '@/components/dropdown-normal/operator_dd';
 import DatePick from '@/components/dropdown-normal/datePick_dd';
 import { z } from "zod"
+import { id } from 'date-fns/locale'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import BayarTPModal from '@/components/modal/tp-bayar-modal';
 
 const formSchema = z.object({
     th_date: z.string({
@@ -94,9 +96,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            th_date: "",
+            th_date: new Date().toISOString(),
             supplier: undefined,
-            th_disc: undefined,
+            th_disc: 0,
         },
     })
 
@@ -255,7 +257,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 } else if (field === 'stock_price_buy') {
                     updatedItem.stock_price_buy = value;
                 }
-                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy; // Recalculate subtotal
+                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
                 return updatedItem;
             }
             return item;
@@ -304,7 +306,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         >
                                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                                             {field.value
-                                                                ? format(new Date(field.value), "PPP")
+                                                                ? format(new Date(field.value), "d MMMM yyyy", { locale: id })
                                                                 : <span>Pilih Tanggal</span>}
                                                         </Button>
                                                     </PopoverTrigger>
@@ -398,7 +400,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <DialogTrigger asChild>
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
-                                <DialogContent className="w-[80vw] max-h-[90vh]">
+                                <DialogContent className="w-[100vw] max-h-[90vh]">
                                     <TambahProdukModal tableName='transaksi' />
                                 </DialogContent>
                             </Dialog>
@@ -452,8 +454,15 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </Table>
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
-                        <Button className='font-medium bg-blue-500 hover:bg-blue-600 ' type="submit">Input</Button>
-                        <Button type="submit">Submit</Button>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+                            </DialogTrigger>
+                            <DialogContent className="w-[20vw] max-h-[90vh]">
+                                <BayarTPModal  />
+                            </DialogContent>
+                        </Dialog>
+
                     </div>
 
                 </form>

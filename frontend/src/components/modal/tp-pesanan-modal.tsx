@@ -38,26 +38,31 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import useSWR from 'swr';
 import Loading from '../loading';
 import { DateRange } from 'react-day-picker';
+import { DistributorDropdown } from '../dropdown-checkbox/distributor-dropdown';
+import { OperatorDropdown } from '../dropdown-checkbox/operator-dropdown';
 
 const TpModal = () => {
   const [search, setSearch] = useState("");
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [open, setOpen] = React.useState(false)
-  const [open2, setOpen2] = React.useState(false)
-  const [value, setValue] = React.useState("")
-  const [value2, setValue2] = React.useState("")
+
+  const [distributor, setDistributor] = useState<number[]>([]);
+  const [operator, setOperator] = useState<number[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
-  const end = date?.to ? format(date.to, "yyyy-MM-dd") : undefined;  
-  const { data, error, isLoading} = useSWR(() => {
-    if (!start || !end) return `${API_URL}api/transactions/?th_order=true&th_type=PURCHASE`;
-    return `${API_URL}api/transactions/?th_order=true&th_type=PURCHASE&start_date=${start}&end_date=${end}`;
-  }, fetcher);
+  const end = date?.to ? format(date.to, "yyyy-MM-dd") : undefined;
   
+  const { data, error, isLoading } = useSWR(
+    [start, end, distributor,operator],
+    () => {
+      const startParam = start ? `&start_date=${start}` : "";
+      const endParam = end ? `&end_date=${end}` : "";
+      const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
+      const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
+      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=PURCHASE${startParam}${endParam}${supplierParam}${operatorParam}`);
+    }
+  );
   
-
-
   const handleAddProduct = () => {
     toast.success(" Berhasil Ditambahkan")
   };
@@ -114,152 +119,61 @@ const TpModal = () => {
       <DialogHeader>
         <DialogTitle>Tambah Pesanan</DialogTitle>
       </DialogHeader>
-      <div>
-        <div className='my-2 flex gap-2'>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="date-range"
-                variant={"outline"}
-                className={cn(
-                  "w-[200px]  justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date?.from ? (
-                  date.to ? (
-                    <>
-                      {format(date.from, "dd/L/y")} -{" "}
-                      {format(date.to, "dd/L/y")}
-                    </>
-                  ) : (
-                    format(date.from, "dd/L/y")
-                  )
-                ) : (
-                  <span>Pilih Tanggal</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={2}
-              />
-              <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
-            </PopoverContent>
-          </Popover>
-          <div className="flex flex-col space-y-2">
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-[200px] justify-between font-normal"
-                >
-                  {value
-                    ? distributors.find((d) => d.value === value)?.label
-                    : "Select Distributor"}
-                  <ChevronsUpDown className="opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0">
-                <Command>
-                  <CommandInput placeholder="Search Distributor" />
-                  <CommandList>
-                    <CommandEmpty>No Distributor found.</CommandEmpty>
-                    <CommandGroup>
-                      {distributors.map((d) => (
-                        <CommandItem
-                          key={d.value}
-                          value={d.label}
-                          data-value={d.value}
-                          onSelect={(currentLabel: string) => {
-                            const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                            if (selectedDistributor) {
-                              setValue(selectedDistributor.value);
-                            } else {
-                              setValue("");
-                            }
-                            setOpen(false);
-                          }}
-                        >
-                          {d.label}
-                          <Check
-                            className={cn(
-                              "ml-auto",
-                              value === d.value ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+      <div >
+        <div className='flex justify-between'>
+          <div>
+            <div className='my-2 flex gap-2'>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div>
+                    <Button
+                      id="date-range"
+                      variant={"outline"}
+                      className={cn(
+                        "w-[200px]  justify-start text-left font-normal",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date?.from ? (
+                        date.to ? (
+                          <>
+                            {format(date.from, "dd/L/y")} -{" "}
+                            {format(date.to, "dd/L/y")}
+                          </>
+                        ) : (
+                          format(date.from, "dd/L/y")
+                        )
+                      ) : (
+                        <span>Pilih Tanggal</span>
+                      )}
+                    </Button>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                  <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
+                </PopoverContent>
+              </Popover>
+              <div className="flex flex-col space-y-2">
+                <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
+              </div>
+              <div className="flex flex-col space-y-2">
+                      <OperatorDropdown onChange={(id) => setOperator(id)}/>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col space-y-2">
-
-            <Popover open={open2} onOpenChange={setOpen2}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open2}
-                  className="w-[200px] justify-between font-normal"
-                >
-                  {value2
-                    ? operators.find((d) => d.id === value2)?.name
-                    : "Select Operator"}
-                  <ChevronsUpDown className="opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0">
-                <Command>
-                  <CommandInput placeholder="Search Operator" />
-                  <CommandList>
-                    <CommandEmpty>No Operator found.</CommandEmpty>
-                    <CommandGroup>
-                      {operators.map((d) => (
-                        <CommandItem
-                          key={d.id}
-                          value={d.name}
-                          data-value={d.id}
-                          onSelect={(currentLabel: string) => {
-                            const selectedOperator = operators.find((operator) => operator.name === currentLabel);
-                            if (selectedOperator) {
-                              setValue2(selectedOperator.id);
-                            } else {
-                              setValue2("");
-                            }
-                            setOpen2(false);
-                          }}
-                        >
-                          {d.name}
-                          <Check
-                            className={cn(
-                              "ml-auto",
-                              value2 === d.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className=" relative w-1/4">
+          <div className="my-2 relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
-              placeholder="Cari Produk..."
+              placeholder="Cari"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10"
@@ -281,6 +195,7 @@ const TpModal = () => {
                       header.id === "th_dp" && "w-[150px]",
                       header.id === "cashier_username" && "w-[150px]",
                       header.id === "action" && "w-[20px]"
+                      
                     )}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>

@@ -75,24 +75,39 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       },
       { accessorKey: "barcode", header: "Barcode" },
       { accessorKey: "available_quantity", header: "Jumlah Stok" },
-      { accessorKey: "purchase_quantity_week", header: "Terbeli (7H)" },
-      { accessorKey: "purchase_quantity_month", header: "Terbeli (30H)" },
-      { accessorKey: "sales_quantity_week", header: "Terjual (7H)" },
-      { accessorKey: "sales_quantity_month", header: "Terjual (30H)" },
       {
         accessorKey: "price_buy",
         header: "Harga Beli",
         cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
       },
+      { accessorKey: "sales_quantity_week", header: "Terjual (7H)" },
+      { accessorKey: "sales_quantity_month", header: "Terjual (30H)" },
+      { accessorKey: "purchase_quantity_week", header: "Terbeli (7H)" },
+      { accessorKey: "purchase_quantity_month", header: "Terbeli (30H)" },
       {
-        accessorKey: "jumlahInput",
-        header: "Jumlah",
+        header: "Harga Jual 1",
+        accessorFn: (row: { prices: { price_sell: any }[] }) =>
+          row.prices?.[0]?.price_sell ? `Rp${Number(row.prices[0].price_sell).toLocaleString("id-ID")}` : "-",
+      },
+      {
+        header: "Harga Jual 2",
+        accessorFn: (row: { prices: { price_sell: any }[] }) =>
+          row.prices?.[1]?.price_sell ? `Rp${Number(row.prices[1].price_sell).toLocaleString("id-ID")}` : "-",
+      },
+      {
+        header: "Harga Jual 3",
+        accessorFn: (row: { prices: { price_sell: any }[] }) =>
+          row.prices?.[2]?.price_sell ? `Rp${Number(row.prices[2].price_sell).toLocaleString("id-ID")}` : "-",
+      },
+      {
+        accessorKey: "Action",
+        header: "Action",
         cell: ({ row }: { row: Row<any> }) => {
           const product = row.original;
           const [quantity, setQuantity] = useState(product.jumlah_barang || 1);
 
           const updateQuantity = (val: number) => {
-            const value = Math.max(1, val);
+            const value = Math.max(0, val);
             setQuantity(value);
             row.original.jumlah_barang = value;
           };
@@ -101,41 +116,42 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           const decrement = () => updateQuantity(quantity - 1);
 
           return (
-            <div className="flex items-center">
-              <button
-                onClick={decrement}
-                className="px-1 bg-red-200 rounded-l hover:bg-red-300"
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border rounded">
+                <button
+                  onClick={decrement}
+                  className="px-2 bg-red-200 rounded-l hover:bg-red-300"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(Math.max(1, Number(e.target.value)))
+                  }
+                  className="w-5 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  min={0}
+                />
+                <button
+                  onClick={increment}
+                  className="px-2 bg-blue-200 rounded-r hover:bg-blue-300"
+                >
+                  +
+                </button>
+              </div>
+              <Button
+                onClick={() => handleAddProduct(row.original)}
+                className="bg-blue-500 hover:bg-blue-600 size-7"
               >
-                -
-              </button>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                className="w-10 text-center border"
-                min={1}
-              />
-              <button
-                onClick={increment}
-                className="px-1 bg-blue-200 rounded-r hover:bg-blue-300"
-              >
-                +
-              </button>
+                <Plus />
+              </Button>
             </div>
           );
         },
         enableSorting: false,
       },
-      {
-        accessorKey: "action",
-        header: "Action",
-        cell: ({ row }: { row: Row<any> }) => (
-          <Button onClick={() => handleAddProduct(row.original)} className="bg-blue-500 hover:bg-blue-600 size-7">
-            <Plus />
-          </Button>
-        ),
-        enableSorting: false,
-      },
+
     ],
     [sorting]
   );
@@ -176,66 +192,72 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           </div>
         </div>
 
-        <div className="rounded-md border overflow-x-auto max-h-[70vh] min-h-[68vh] bg-white relative">
-          <Table className="w-full min-w-[1000px] bg-white table-fixed">
-            <TableHeader className="sticky top-0 bg-gray-100 z-20">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className={cn(
-                      "text-left truncate w-[90px]",
-                      header.id === "barcode" && "w-[120px]",
-                      header.id === "name" && "w-[320px]",
-                      header.id === "jumlah" && "w-[120px]",
-                      header.id === "action" && "w-[50px]",
-                    )}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center">
-                    <Loading />
-                  </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center text-red-500">
-                    
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows.length > 0 ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="bg-white">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cn(
-                          "text-left truncate w-[90px]",
-                          cell.column.id === "barcode" && "w-[120px]",
-                          cell.column.id === "name" && "w-[320px]",
-                          cell.column.id === "jumlah" && "w-[120px]",
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+        <div className="overflow-auto rounded-md border max-h-[70vh] min-h-[70vh] bg-white relative">
+          <div className="min-w-[1200px]">
+            <Table className="w-full bg-white">
+
+              <TableHeader className="sticky top-0 bg-gray-100 z-20">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className={cn(
+                        "text-left truncate w-[85px]",
+                        header.id === "barcode" && "w-[120px]",
+                        header.id === "name" && "w-[200px]",
+                        header.id === "jumlah" && "w-[120px]",
+                        header.id === "action" &&
+                        "sticky right-0 z-30 bg-gray-100 w-[50px]"
+                      )}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center text-gray-400">
-                    Tidak ada produk ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center">
+                      <Loading />
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center text-red-500">
 
-          </Table>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows.length > 0 ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} className="bg-white">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            "text-left truncate w-[85px]",
+                            cell.column.id === "barcode" && "w-[120px]",
+                            cell.column.id === "name" && "w-[200px]",
+                            cell.column.id === "jumlah" && "w-[120px]",
+                            cell.column.id === "action" &&
+                            "sticky right-0 z-20 bg-white w-[50px]"
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                      Tidak ada produk ditemukan
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+
+            </Table>
+          </div>
         </div>
       </div>
 

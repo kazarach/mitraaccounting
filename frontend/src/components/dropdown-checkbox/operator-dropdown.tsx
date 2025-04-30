@@ -1,6 +1,6 @@
 "use client"
 
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -10,44 +10,53 @@ import { Input } from "@/components/ui/input"
 import { fetcher } from "@/lib/utils"
 import useSWR from "swr"
 
-export function OperatorDropdown() {
+interface OperatorDropdownProps {
+  onChange: (selectedIds: number[]) => void; // <<== Tambahkan props onChange
+}
+
+export function OperatorDropdown({ onChange }: OperatorDropdownProps) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const { data, error, isLoading } = useSWR("http://100.82.207.117:8000/api/users/cashier_and_above/", fetcher);
+  const { data, error, isLoading } = useSWR("http://100.82.207.117:8000/api/users/cashier_and_above/", fetcher)
 
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
+  if (isLoading) return <p>Loading...</p>
+  if (error) return <p>Terjadi kesalahan saat memuat data.</p>
 
   const toggleItem = (id: number) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
-    )
+    setSelected(prev => {
+      const newSelected = prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]
+      onChange(newSelected)  // <<== Panggil onChange setiap kali berubah
+      return newSelected
+    })
   }
 
   const filteredItems = Array.isArray(data)
-  ? data.filter((item: { username: string }) =>
-      item.username.toLowerCase().includes(search.toLowerCase())
-    )
-  : []
+    ? data.filter((item: { username: string }) =>
+        item.username.toLowerCase().includes(search.toLowerCase())
+      )
+    : []
 
-  const allFilteredSelected = filteredItems.every((item: { id: number}) =>
+  const allFilteredSelected = filteredItems.every((item: { id: number }) =>
     selected.includes(item.id)
   )
 
   const toggleSelectAll = () => {
-    if (allFilteredSelected) {
-      setSelected(prev =>
-        prev.filter(id => !filteredItems.find((item: { id: number }) => item.id === id))
-      )
-    } else {
-      setSelected(prev => [
-        ...prev,
-        ...filteredItems
-          .filter((item: { id: number }) => !prev.includes(item.id))
-          .map((item: { id: any }) => item.id),
-      ])
-    }
+    setSelected(prev => {
+      let newSelected: number[]
+      if (allFilteredSelected) {
+        newSelected = prev.filter(id => !filteredItems.find((item: { id: number }) => item.id === id))
+      } else {
+        newSelected = [
+          ...prev,
+          ...filteredItems
+            .filter((item: { id: number }) => !prev.includes(item.id))
+            .map((item: { id: number }) => item.id),
+        ]
+      }
+      onChange(newSelected) // <<== Update parent saat Select All / Unselect All
+      return newSelected
+    })
   }
 
   return (
@@ -73,7 +82,7 @@ export function OperatorDropdown() {
             {allFilteredSelected ? "Unselect All" : "Select All"}
           </button>
         </div>
-        <ScrollArea className="h-40">
+        <ScrollArea className="h-64 ">
           {filteredItems.length > 0 ? (
             filteredItems.map((item: { id: number; username: string; role: { name: string } }) => (
               <label
