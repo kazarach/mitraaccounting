@@ -110,8 +110,26 @@ class Command(BaseCommand):
         # Randomly select related models, with some chance of being None
         supplier = random.choice(list(Supplier.objects.all()))
         customer = random.choice(list(Customer.objects.all()))
-        User = get_user_model()  # Get the correct User model
-        cashier = random.choice(list(User.objects.all()))
+        
+        # Get the User model and filter for users with role level >= 30 (cashiers and above)
+        User = get_user_model()
+        eligible_cashiers = User.objects.filter(role__level__gte=30)
+        
+        # If no eligible cashiers are found, log a warning and create one
+        if not eligible_cashiers.exists():
+            self.stdout.write(self.style.WARNING('No eligible cashiers found (role level >= 30). Creating a default cashier.'))
+            from api.models.custom_user import UserRole
+            cashier_role, _ = UserRole.objects.get_or_create(name='cashier', defaults={'level': 30})
+            default_cashier = User.objects.create_user(
+                username='default_cashier',
+                password='cashier123',
+                role=cashier_role
+            )
+            cashier = default_cashier
+        else:
+            # Select a random cashier from eligible users
+            cashier = random.choice(list(eligible_cashiers))
+            
         bank = random.choice(list(Bank.objects.all()))
         event_discount = random.choice(list(EventDisc.objects.all()) + [None])
         sales_order = random.choice(list(Sales.objects.all()) + [None])
