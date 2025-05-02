@@ -40,12 +40,16 @@ const SellingReport = () => {
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  const [range, setRange] = useState("today");
+
+  const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
+  const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `transaction_type=SALE`;
+    let params = `range=${range}&transaction_type=SALE`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -55,7 +59,7 @@ const SellingReport = () => {
       params += `&cashier=${selectedOperators.join(",")}`;
     }
     return params;
-  }, [date, selectedOperators]);
+  }, [range, date, selectedOperators]);
 
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/report/?${queryParams}`, fetcher);
 
@@ -216,6 +220,23 @@ const SellingReport = () => {
                       <SelectItem value="month">Bulanan</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="waktu">Waktu</Label>
+                  <Select
+                    value={range}
+                    onValueChange={(val) => setRange(val)}
+                    disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
+                  >
+                    <SelectTrigger className="w-[150px] h-[30px]">
+                      <SelectValue placeholder="Pilih Waktu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="today">Hari Ini</SelectItem>
+                      <SelectItem value="week">Mingguan</SelectItem>
+                      <SelectItem value="month">Bulanan</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>
@@ -236,7 +257,7 @@ const SellingReport = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-260px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea className="h-[calc(100vh-320px)] overflow-x-auto overflow-y-auto max-w-screen">
               <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >

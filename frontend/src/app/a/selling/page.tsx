@@ -573,68 +573,14 @@ const SellingArchive = () => {
               <ScrollBar orientation="vertical" className='z-40' />
             </ScrollArea>
 
-            {/* <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
-              <DialogTitle>Detail Arsip Penjualan</DialogTitle>
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Edwin</h2>
-                {selectedItemId !== null && (
-                  <Table>
-                    <TableHeader>
-                    <TableRow>
-                  <TableHead rowSpan={2}>No. Faktur</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Tanggal</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Pelanggan</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Total</TableHead>
-                  <TableHead colSpan={3} className="text-center">Tipe Bayar</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Retur</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Voucher</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Total</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Bank</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Sales</TableHead>
-                  <TableHead rowSpan={2} className="text-left">Operator</TableHead>
-                  </TableRow>
-                  <TableRow>
-                    <TableHead className="text-left">Tunai</TableHead>
-                    <TableHead className="text-left">Kredit</TableHead>
-                    <TableHead className="text-left">Debit</TableHead>
-                  </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data
-                        .filter((item) => item.id === selectedItemId)
-                        .map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                            <TableCell className="text-left">{item.sales}</TableCell>
-                            <TableCell className="text-left">{item.satuan}</TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            <div className='flex gap-2 justify-end '>
-              <Button className='bg-green-500 hover:bg-green-600'>Return</Button>
-              <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
-            </div>
-            </DialogContent>
-          </Dialog> */}
-          <SellingDetailModal
-            open={isDialogOpen}
-            onClose={setIsDialogOpen}
-            transaction={selectedTransaction}
-          />
+
+          {isDialogOpen && selectedTransaction && (
+            <SellingDetailModal
+              open={isDialogOpen}
+              onClose={setIsDialogOpen}
+              transaction={selectedTransaction}
+            />
+          )}
 
           </div>
         </CardContent>

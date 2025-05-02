@@ -504,11 +504,14 @@ const PurchaseArchive = () => {
               <ScrollBar orientation="vertical" className='z-40' />
             </ScrollArea>
 
-            <PurchaseDetailModal
-              open={isDialogOpen}
-              onClose={setIsDialogOpen}
-              transaction={selectedTransaction}
-            />
+            {isDialogOpen && selectedTransaction && (
+              <PurchaseDetailModal
+                open={isDialogOpen}
+                onClose={setIsDialogOpen}
+                transaction={selectedTransaction}
+              />
+            )}
+
 
           </div>
         </CardContent>
