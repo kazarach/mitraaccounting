@@ -113,48 +113,186 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             OpenApiParameter(name='supplier', type=str, required=False, description='Filter by supplier ID'),
             OpenApiParameter(name='status', type=bool, required=False, description='Filter by transaction status'),
             OpenApiParameter(
-                name='group_by',
-                description='Group results by field. Options: daily, weekly, monthly, cashier, customer, supplier',
+                name='range',
+                description='Predefined date range options',
                 required=False,
                 type=str,
-                enum=['daily', 'weekly', 'monthly', 'cashier', 'customer', 'supplier'],
+                enum=['today', 'week', 'month', 'year', 'custom'],
+                default='today'
             ),
         ]
     )
     @action(detail=False, methods=['get'])
+    # def report(self, request):
+    #     # Parse date parameters
+    #     jakarta_tz = pytz.timezone('Asia/Jakarta')
+    #     now_jakarta = timezone.now().astimezone(jakarta_tz)
+    #     today = now_jakarta.date()
+        
+    #     # Get date range
+    #     start_date_str = request.query_params.get('start_date')
+    #     end_date_str = request.query_params.get('end_date')
+        
+    #     try:
+    #         if start_date_str:
+    #             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    #         else:
+    #             # Default to first day of current month if not specified
+    #             start_date = today.replace(day=1)
+                
+    #         if end_date_str:
+    #             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    #         else:
+    #             # Default to today if not specified
+    #             end_date = today
+    #     except ValueError:
+    #         return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+        
+    #     # Convert to datetime for proper querying
+    #     start_datetime = datetime.combine(start_date, datetime.min.time())
+    #     end_datetime = datetime.combine(end_date, datetime.max.time())
+        
+    #     # Base query filtering by date range
+    #     queryset = self.queryset.filter(th_date__range=(start_datetime, end_datetime))
+        
+    #     # Apply transaction type filter if specified
+    #     transaction_type = request.query_params.get('transaction_type')
+    #     if transaction_type:
+    #         queryset = queryset.filter(th_type=transaction_type)
+            
+    #     # Apply additional filters
+    #     def _parse_multi_param(param):
+    #         return [int(x) for x in param.split(',') if x.strip().isdigit()]
+        
+    #     if 'cashier' in request.query_params:
+    #         cashier_ids = _parse_multi_param(request.query_params.get('cashier'))
+    #         queryset = queryset.filter(cashier_id__in=cashier_ids)
+
+    #     if 'customer' in request.query_params:
+    #         customer_ids = _parse_multi_param(request.query_params.get('customer'))
+    #         queryset = queryset.filter(customer_id__in=customer_ids)
+
+    #     if 'supplier' in request.query_params:
+    #         supplier_ids = _parse_multi_param(request.query_params.get('supplier'))
+    #         all_supplier_ids = set()
+    #         for supplier_id in supplier_ids:
+    #             try:
+    #                 supplier = Supplier.objects.get(id=supplier_id)
+    #                 # Get this supplier and all its descendants
+    #                 descendants = supplier.get_descendants(include_self=True)
+    #                 all_supplier_ids.update(descendants.values_list('id', flat=True))
+    #             except Supplier.DoesNotExist:
+    #                 continue  # Skip if supplier doesn't exist
+
+    #         if all_supplier_ids:
+    #             queryset = queryset.filter(supplier_id__in=all_supplier_ids)
+
+    #     if 'status' in request.query_params:
+    #         status_param = request.query_params.get('status').lower()
+    #         status_value = True if status_param in ('true', '1', 'yes') else False
+    #         queryset = queryset.filter(th_status=status_value)
+
+    #     # Determine how to group the results
+    #     group_by = request.query_params.get('group_by', None)
+        
+    #     if group_by == 'daily':
+    #         # Group by day
+    #         from django.db.models.functions import TruncDate
+    #         result = self._group_by_date(queryset, TruncDate('th_date'), 'daily')
+    #     elif group_by == 'weekly':
+    #         # Group by week
+    #         from django.db.models.functions import TruncWeek
+    #         result = self._group_by_date(queryset, TruncWeek('th_date'), 'weekly')
+    #     elif group_by == 'monthly':
+    #         # Group by month
+    #         from django.db.models.functions import TruncMonth
+    #         result = self._group_by_date(queryset, TruncMonth('th_date'), 'monthly')
+    #     elif group_by == 'cashier':
+    #         # Group by cashier
+    #         result = self._group_by_entity(queryset, 'cashier', 'cashier__username')
+    #     elif group_by == 'customer':
+    #         # Group by customer
+    #         result = self._group_by_entity(queryset, 'customer', 'customer__name')
+    #     elif group_by == 'supplier':
+    #         # Group by supplier
+    #         result = self._group_by_entity(queryset, 'supplier', 'supplier__name')
+    #     else:
+    #         # No grouping, return detailed list
+    #         serializer = self.get_serializer(queryset, many=True)
+    #         result = serializer.data
+            
+    #     # Add summary information
+    #     summary = {
+    #         'total_transactions': queryset.count(),
+    #         'total_amount': float(queryset.aggregate(
+    #             total=Coalesce(Sum('th_total'), 0, output_field=DecimalField())
+    #         )['total']),
+    #         'date_range': {
+    #             'start_date': start_date.strftime("%Y-%m-%d"),
+    #             'end_date': end_date.strftime("%Y-%m-%d"),
+    #         },
+    #         'filters_applied': {
+    #             'transaction_type': transaction_type if transaction_type else 'All',
+    #             'group_by': group_by if group_by else 'None',
+    #         }
+    #     }
+        
+    #     return Response({
+    #         'summary': summary,
+    #         'results': result
+    #     })
     def report(self, request):
         # Parse date parameters
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         now_jakarta = timezone.now().astimezone(jakarta_tz)
         today = now_jakarta.date()
         
-        # Get date range
+        # Define standard date ranges
+        date_ranges = {
+            'today': {'start_date': today, 'end_date': today},
+            'week': {'start_date': today - timedelta(days=6), 'end_date': today},
+            'month': {'start_date': today - timedelta(days=29), 'end_date': today},
+            'year': {'start_date': today - timedelta(days=364), 'end_date': today},
+        }
+        
+        # Get requested range or default to today
+        requested_range = request.query_params.get('range', 'today')
+        
+        # Get start and end dates
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         
-        try:
-            if start_date_str:
+        # Handle custom date range if both start and end dates are provided
+        if start_date_str and end_date_str:
+            try:
                 start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-            else:
-                # Default to first day of current month if not specified
-                start_date = today.replace(day=1)
-                
-            if end_date_str:
                 end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-            else:
-                # Default to today if not specified
-                end_date = today
-        except ValueError:
-            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+                # Add this as a custom range
+                date_ranges['custom'] = {
+                    'start_date': start_date,
+                    'end_date': end_date
+                }
+                # Set requested range to custom
+                requested_range = 'custom'
+            except ValueError:
+                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+        
+        # Use the selected date range
+        if requested_range in date_ranges:
+            start_date = date_ranges[requested_range]['start_date']
+            end_date = date_ranges[requested_range]['end_date']
+        else:
+            # Default to today if requested range is invalid
+            start_date = date_ranges['today']['start_date']
+            end_date = date_ranges['today']['end_date']
         
         # Convert to datetime for proper querying
         start_datetime = datetime.combine(start_date, datetime.min.time())
         end_datetime = datetime.combine(end_date, datetime.max.time())
         
-        # Base query filtering by date range
+        # Rest of your existing code...
         queryset = self.queryset.filter(th_date__range=(start_datetime, end_datetime))
         
-        # Apply transaction type filter if specified
         transaction_type = request.query_params.get('transaction_type')
         if transaction_type:
             queryset = queryset.filter(th_type=transaction_type)
@@ -191,48 +329,21 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             status_value = True if status_param in ('true', '1', 'yes') else False
             queryset = queryset.filter(th_status=status_value)
 
-        # Determine how to group the results
-        group_by = request.query_params.get('group_by', None)
-        
-        if group_by == 'daily':
-            # Group by day
-            from django.db.models.functions import TruncDate
-            result = self._group_by_date(queryset, TruncDate('th_date'), 'daily')
-        elif group_by == 'weekly':
-            # Group by week
-            from django.db.models.functions import TruncWeek
-            result = self._group_by_date(queryset, TruncWeek('th_date'), 'weekly')
-        elif group_by == 'monthly':
-            # Group by month
-            from django.db.models.functions import TruncMonth
-            result = self._group_by_date(queryset, TruncMonth('th_date'), 'monthly')
-        elif group_by == 'cashier':
-            # Group by cashier
-            result = self._group_by_entity(queryset, 'cashier', 'cashier__username')
-        elif group_by == 'customer':
-            # Group by customer
-            result = self._group_by_entity(queryset, 'customer', 'customer__name')
-        elif group_by == 'supplier':
-            # Group by supplier
-            result = self._group_by_entity(queryset, 'supplier', 'supplier__name')
-        else:
-            # No grouping, return detailed list
-            serializer = self.get_serializer(queryset, many=True)
-            result = serializer.data
-            
-        # Add summary information
+        serializer = self.get_serializer(queryset, many=True)
+        result = serializer.data
+        # Update summary to include the selected range name
         summary = {
             'total_transactions': queryset.count(),
             'total_amount': float(queryset.aggregate(
                 total=Coalesce(Sum('th_total'), 0, output_field=DecimalField())
             )['total']),
             'date_range': {
+                'range_type': requested_range,
                 'start_date': start_date.strftime("%Y-%m-%d"),
                 'end_date': end_date.strftime("%Y-%m-%d"),
             },
             'filters_applied': {
                 'transaction_type': transaction_type if transaction_type else 'All',
-                'group_by': group_by if group_by else 'None',
             }
         }
         
