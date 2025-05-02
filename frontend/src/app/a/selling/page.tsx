@@ -1,10 +1,9 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -16,21 +15,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Eye, Search, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useDispatch, useSelector } from 'react-redux';
-import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
-import { toast } from 'sonner';
 import { DistributorDropdownAS } from './distributor-dropdown';
 import { MemberDropdownAS } from './member-dropdown';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -59,7 +53,7 @@ const SellingArchive = () => {
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=PURCHASE`;
+    let params = `th_type=SALE`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -176,9 +170,9 @@ const SellingArchive = () => {
   return (
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
-        <CardHeader>
+        {/* <CardHeader>
           <CardTitle>Arsip Penjualan</CardTitle>
-        </CardHeader>
+        </CardHeader> */}
         <CardContent>
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">

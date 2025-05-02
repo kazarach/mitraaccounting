@@ -236,7 +236,7 @@ const SellingReport = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-240px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea className="h-[calc(100vh-260px)] overflow-x-auto overflow-y-auto max-w-screen">
               <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
