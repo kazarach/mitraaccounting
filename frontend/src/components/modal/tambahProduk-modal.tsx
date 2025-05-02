@@ -29,6 +29,7 @@ import useSWR from "swr";
 import { cn, fetcher } from "@/lib/utils";
 import Loading from "../loading";
 import { DistributorDropdown } from "../dropdown-checkbox/distributor-dropdown";
+import { CategoryDropdown } from "../dropdown-checkbox/category-dropdown";
 
 interface TambahProdukModalProps {
   tableName: string;
@@ -176,9 +177,12 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
 
       <div>
         <div className="flex justify-between">
-          <div>
+          <div className=" flex">
             <div className="my-2 relative w-64">
               <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
+            </div>
+            <div className="my-2 relative w-64">
+              <CategoryDropdown />
             </div>
           </div>
           <div className="my-2 relative w-64">

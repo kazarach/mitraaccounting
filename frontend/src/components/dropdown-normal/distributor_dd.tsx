@@ -1,7 +1,7 @@
 import { cn, fetcher } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import React from 'react'
+import React from 'react';
 
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { Button } from '../ui/button';
@@ -26,8 +26,15 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
         fetcher
     );
 
-    if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>
-    if (error) return <p>Terjadi kesalahan saat memuat data.</p>
+    // Set the default distributor to the first one if value is null
+    React.useEffect(() => {
+        if (value === null && data.length > 0) {
+            onChange(data[0].id);
+        }
+    }, [data, value, onChange]);
+
+    if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>;
+    if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -77,5 +84,4 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
     );
 };
 
-
-export default DistributorDD
+export default DistributorDD;
