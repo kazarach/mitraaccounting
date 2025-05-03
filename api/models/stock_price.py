@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .stock import Stock
+from django.conf import settings
 
 class PriceCategory(models.Model):
     name = models.CharField(max_length=100)
@@ -63,3 +64,15 @@ class StockPrice(models.Model):
             models.Index(fields=['stock', 'is_default']),
             models.Index(fields=['start_date', 'end_date'])
         ]
+
+class StockPriceHistory(models.Model):
+    stock = models.ForeignKey('Stock', on_delete=models.CASCADE, related_name='price_history')
+    price_category = models.ForeignKey('PriceCategory', on_delete=models.SET_NULL, null=True, blank=True)
+    old_price = models.DecimalField(max_digits=15, decimal_places=2)
+    new_price = models.DecimalField(max_digits=15, decimal_places=2)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    change_reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']

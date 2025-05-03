@@ -10,7 +10,8 @@ from datetime import timedelta, datetime
 from decimal import Decimal
 
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
-from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier, Stock
+from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier
+from ..models import Stock, StockPriceHistory, StockPrice
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 
 import pytz
@@ -380,7 +381,107 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         # Calculate points: every 100000 = 2 points
         points = int(total_amount // Decimal('100000')) * 2
         return points
-
+    @extend_schema(
+        summary="Get price history for transaction items",
+        description=(
+            "Retrieve the last 10 price changes and current active prices for each stock item "
+            "in a given transaction. Useful for analyzing price trends and audit purposes."
+        ),
+        responses={
+            200: OpenApiExample(
+                'Price history response',
+                value=[
+                    {
+                        "stock_id": 1,
+                        "stock_code": "SKU-001",
+                        "stock_name": "Item A",
+                        "current_prices": [
+                            {
+                                "category": "Retail",
+                                "price": 12000.0,
+                                "is_default": True
+                            },
+                            {
+                                "category": "Wholesale",
+                                "price": 11000.0,
+                                "is_default": False
+                            }
+                        ],
+                        "price_history": [
+                            {
+                                "date": "2025-05-03 14:20",
+                                "price_category": "Retail",
+                                "old_price": 10000.0,
+                                "new_price": 12000.0,
+                                "changed_by": "admin",
+                                "reason": "Quarterly adjustment"
+                            },
+                            {
+                                "date": "2025-04-01 09:15",
+                                "price_category": "Retail",
+                                "old_price": 9500.0,
+                                "new_price": 10000.0,
+                                "changed_by": "manager",
+                                "reason": "Cost update"
+                            }
+                        ]
+                    }
+                ],
+                response_only=True
+            ),
+            500: OpenApiExample(
+                'Server error',
+                value={"error": "Unexpected error message"},
+                response_only=True
+            )
+        },
+        tags=["Transactions"]
+    )
+    @action(detail=True, methods=['get'])
+    def get_price_history(self, request, pk=None):
+        """
+        Get the price history for all items in a transaction.
+        This helps in analyzing how prices have changed over time.
+        """
+        try:
+            transaction = self.get_object()
+            items = transaction.items.all()
+            
+            result = []
+            for item in items:
+                stock_id = item.stock_id
+                if stock_id:
+                    # Get price history for this stock
+                    price_history = StockPriceHistory.objects.filter(
+                        stock_id=stock_id
+                    ).order_by('-created_at')[:10]  # Get the last 10 price changes
+                    
+                    history = []
+                    for ph in price_history:
+                        history.append({
+                            'date': ph.created_at.strftime('%Y-%m-%d %H:%M'),
+                            'old_price': float(ph.old_price),
+                            'new_price': float(ph.new_price),
+                            'changed_by': ph.changed_by.username if ph.changed_by else 'System',
+                            'reason': ph.change_reason
+                        })
+                    
+                    result.append({
+                        'stock_id': stock_id,
+                        'stock_code': item.stock_code,
+                        'stock_name': item.stock_name,
+                        'current_price': float(item.sell_price),
+                        'price_history': history
+                    })
+            
+            return Response(result)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
 @extend_schema_view(
     list=extend_schema(
         summary="List transaction items",

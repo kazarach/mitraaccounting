@@ -25,6 +25,7 @@ class Command(BaseCommand):
             'seed_stock',
             'seed_stock_price',
             'seed_stock_assembly',
+            'seed_stock_price_history',
 
             'seed_transaction_history',
             'seed_payment_record',

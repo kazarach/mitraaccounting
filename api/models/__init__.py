@@ -13,7 +13,7 @@ from .category import Category
 from .warehouse import Warehouse
 from .stock import Stock
 from .stock_assembly import StockAssembly
-from .stock_price import StockPrice, PriceCategory
+from .stock_price import StockPrice, PriceCategory, StockPriceHistory
 from .sales import Sales
 from .event_discount import EventDisc, EventDiscItem
 from .transaction_history import TransactionHistory, TransItemDetail, TransactionType

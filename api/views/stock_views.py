@@ -4,10 +4,13 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from decimal import Decimal, InvalidOperation
+from django.db import transaction, models
 from django.db.models import Sum, OuterRef, Subquery, Max, F, Min, Count
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from ..models import Stock, TransItemDetail, TransactionType, TransactionHistory
+from ..models import StockPrice, PriceCategory, StockPriceHistory
 from ..serializers import StockSerializer, StockDetailSerializer
 from ..filters.stock_filters import StockFilter
 
@@ -154,55 +157,55 @@ class StockViewSet(viewsets.ModelViewSet):
                 'stock': serializer.data
             })
 
-    @extend_schema(
-        summary="Update stock margin",
-        description="Update the margin based on the provided sell price.",
-        request={
-            "application/json": {
-                "example": {
-                    "sell_price": "15000"
-                }
-            }
-        },
-        responses={200: OpenApiExample(
-            'Margin updated',
-            value={"success": True, "margin": "15.00"},
-            response_only=True
-        )},
-        tags=["Stock"]
-    )
-    @action(detail=True, methods=['post'])
-    def update_margin(self, request, pk=None):
-        """
-        Update the margin based on a provided sell price.
-        Requires authentication.
-        """
-        stock = self.get_object()
-        sell_price = request.data.get('sell_price')
+    # @extend_schema(
+    #     summary="Update stock margin",
+    #     description="Update the margin based on the provided sell price.",
+    #     request={
+    #         "application/json": {
+    #             "example": {
+    #                 "sell_price": "15000"
+    #             }
+    #         }
+    #     },
+    #     responses={200: OpenApiExample(
+    #         'Margin updated',
+    #         value={"success": True, "margin": "15.00"},
+    #         response_only=True
+    #     )},
+    #     tags=["Stock"]
+    # )
+    # @action(detail=True, methods=['post'])
+    # def update_margin(self, request, pk=None):
+    #     """
+    #     Update the margin based on a provided sell price.
+    #     Requires authentication.
+    #     """
+    #     stock = self.get_object()
+    #     sell_price = request.data.get('sell_price')
         
-        if not sell_price:
-            return Response(
-                {'error': 'Sell price is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    #     if not sell_price:
+    #         return Response(
+    #             {'error': 'Sell price is required'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
         
-        try:
-            sell_price = Decimal(str(sell_price))
+    #     try:
+    #         sell_price = Decimal(str(sell_price))
 
-            result = stock.update_margin_from_sell_price(sell_price)
+    #         result = stock.update_margin_from_sell_price(sell_price)
             
-            if result:
-                return Response({'success': True, 'margin': stock.margin})
-            else:
-                return Response(
-                    {'error': 'Could not update margin. Please check that HPP is greater than zero.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        except (ValueError, TypeError):
-            return Response(
-                {'error': 'Invalid sell price'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    #         if result:
+    #             return Response({'success': True, 'margin': stock.margin})
+    #         else:
+    #             return Response(
+    #                 {'error': 'Could not update margin. Please check that HPP is greater than zero.'},
+    #                 status=status.HTTP_400_BAD_REQUEST
+    #             )
+    #     except (ValueError, TypeError):
+    #         return Response(
+    #             {'error': 'Invalid sell price'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
     
     @extend_schema(
         summary="Update stock quantity",
@@ -496,6 +499,144 @@ class StockViewSet(viewsets.ModelViewSet):
         
         return Response(data)
 
+    @extend_schema(
+        summary="Bulk update stock prices and margins",
+        description="Update stock sell prices and margins in bulk. Each item must include `stock_id`, `price_category_id`, and `sell_price`. Margin is optional and calculated automatically.",
+        request={
+            "application/json": {
+                "example": {
+                    "items": [
+                        {
+                            "stock_id": 1,
+                            "price_category_id": 2,
+                            "sell_price": "150.00"
+                        },
+                        {
+                            "stock_id": 2,
+                            "price_category_id": 2,
+                            "sell_price": "200.00"
+                        }
+                    ]
+                }
+            }
+        },
+        responses={
+            200: OpenApiExample(
+                'Success',
+                value={
+                    "updated": [
+                        {
+                            "id": 1,
+                            "code": "STK001",
+                            "name": "Product A",
+                            "price_category": "Retail",
+                            "old_price": 120.0,
+                            "new_price": 150.0,
+                            "margin": "25.00",
+                            "warning": None
+                        }
+                    ],
+                    "errors": []
+                },
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
+    @action(detail=False, methods=['post'])
+    def update_prices(self, request):
+        """
+        Bulk update stock sell prices and margins.
+        Optionally calculates margin based on HPP (cost price).
+        """
+        items = request.data.get('items', [])
+        updated_stocks = []
+        errors = []
+
+        with transaction.atomic():
+            for item in items:
+                stock_id = item.get('stock_id')
+                price_category_id = item.get('price_category_id')
+                new_sell_price = Decimal(str(item.get('sell_price', 0)))
+
+                if not stock_id or not price_category_id:
+                    errors.append("Both stock_id and price_category_id are required")
+                    continue
+
+                try:
+                    stock = Stock.objects.get(id=stock_id)
+                    price_category = PriceCategory.objects.get(id=price_category_id)
+
+                    # Get or create StockPrice
+                    try:
+                        stock_price = StockPrice.objects.get(
+                            stock=stock,
+                            price_category=price_category
+                        )
+                        old_sell_price = stock_price.price_sell
+                    except StockPrice.DoesNotExist:
+                        stock_price = StockPrice(
+                            stock=stock,
+                            price_category=price_category,
+                            start_date=timezone.now().date()
+                        )
+                        old_sell_price = Decimal('0.00')
+
+                    stock_price.price_sell = new_sell_price
+
+                    # Calculate minimum allowed sell price
+                    margin_rupiah = Decimal(stock_price.margin or 0)
+                    min_sell_price = stock.hpp + margin_rupiah
+
+                    # Auto-correct sell price if it's too low
+                    if new_sell_price < min_sell_price:
+                        warning = (
+                            f"Provided sell price for {stock.name} is below HPP + margin. "
+                            f"Adjusted to minimum allowed sell price: {min_sell_price}"
+                        )
+                        new_sell_price = min_sell_price
+                    else:
+                        warning = None
+
+                    # Save the updated sell price
+                    stock_price.price_sell = new_sell_price
+                    stock_price.save()
+
+                    # Log the price change
+                    StockPriceHistory.objects.create(
+                        stock=stock,
+                        price_category=price_category,
+                        old_price=old_sell_price,
+                        new_price=new_sell_price,
+                        changed_by=request.user,
+                        change_reason="Price update (auto-corrected if below margin)"
+                    )
+
+                    updated_stocks.append({
+                        'id': stock.id,
+                        'code': stock.code,
+                        'name': stock.name,
+                        'price_category': price_category.name,
+                        'old_price': float(old_sell_price),
+                        'new_price': float(new_sell_price),
+                        'margin': float(margin_rupiah),
+                        'warning': warning
+                    })
+
+
+                except Stock.DoesNotExist:
+                    errors.append(f"Stock with ID {stock_id} not found")
+                except PriceCategory.DoesNotExist:
+                    errors.append(f"Price category with ID {price_category_id} not found")
+                except Exception as e:
+                    errors.append(f"Error updating stock {stock_id}: {str(e)}")
+
+        return Response({
+            'updated': updated_stocks,
+            'errors': errors
+        })
+    
+
     def _enhance_with_order_quantities(self, stock_data, transaction_type):
         """Add detailed orders data to stock items based on TransItemDetail records"""
         stock_ids = [item['id'] for item in stock_data]
@@ -544,52 +685,6 @@ class StockViewSet(viewsets.ModelViewSet):
                 stock['newest_order_date'] = None
                 stock['order_count'] = 0
                 stock['has_pending_orders'] = False
-
-
-    # def _enhance_with_detailed_orders(self, stock_data):
-    #         """
-    #         Add more detailed order information including latest orders
-    #         Note: This is a more expensive query that fetches actual order details
-    #         """
-    #         from django.db.models import Min
-            
-    #         stock_ids = [item['id'] for item in stock_data]
-            
-    #         # Get all the purchase orders with th_order=True that contain these stocks
-    #         for stock in stock_data:
-    #             stock_id = stock['id']
-                
-    #             # Get order summary data  
-    #             order_summary = TransItemDetail.objects.filter(
-    #                 transaction__th_type=TransactionType.PURCHASE,
-    #                 transaction__th_order=True,
-    #                 stock_id=stock_id
-    #             ).aggregate(
-    #                 total_quantity=Coalesce(Sum('quantity'), 0),
-    #                 latest_order_date=Max('transaction__th_date')
-    #             )
-                
-    #             # Add summary data to stock
-    #             stock['ordered_quantity'] = order_summary['total_quantity'] 
-    #             stock['latest_order_date'] = order_summary['latest_order_date']
-    #             stock['has_pending_orders'] = order_summary['total_quantity'] > 0
-                
-    #             # Get latest order information (optional)
-    #             if order_summary['latest_order_date']:
-    #                 latest_order_item = TransItemDetail.objects.filter(
-    #                     transaction__th_type=TransactionType.PURCHASE,
-    #                     transaction__th_order=True,
-    #                     stock_id=stock_id,
-    #                     transaction__th_date=order_summary['latest_order_date']
-    #                 ).select_related('transaction', 'transaction__supplier').first()
-                    
-    #                 if latest_order_item:
-    #                     stock['latest_order'] = {
-    #                         'code': latest_order_item.transaction.th_code,
-    #                         'date': latest_order_item.transaction.th_date,
-    #                         'supplier': latest_order_item.transaction.supplier.name if latest_order_item.transaction.supplier else None,
-    #                         'quantity': latest_order_item.quantity
-                        # }
 
     def _enhance_with_sales_data(self, stock_data, request):
         """Add sales and return data to stock items based on TransItemDetail records"""
