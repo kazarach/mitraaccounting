@@ -4,7 +4,7 @@ from ..models import TransactionHistory, TransItemDetail, ARAP
 
 class TransItemDetailSerializer(serializers.ModelSerializer):
     unit = serializers.CharField(source='stock.unit.unit_code', read_only=True)
-
+    conversion_unit = serializers.SerializerMethodField()
     class Meta:
         model = TransItemDetail
         fields = [
@@ -13,6 +13,7 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'stock_name',
             'stock_price_buy',
             'quantity',
+            'conversion_unit',
             'unit',
             'sell_price',
             'disc',
@@ -20,6 +21,10 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'netto',
         ]
         read_only_fields = ['total', 'netto']
+    
+    def get_conversion_unit(self, obj):
+        stock = obj.stock
+        return stock.conversion_path_with_unit(include_base=True)
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
     items = TransItemDetailSerializer(many=True)
