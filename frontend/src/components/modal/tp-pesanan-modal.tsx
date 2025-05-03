@@ -33,8 +33,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { ColumnDef, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from '@tanstack/react-table';
-import { distributors, operators, pesananList, products } from '@/data/product';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+
 import useSWR from 'swr';
 import Loading from '../loading';
 import { DateRange } from 'react-day-picker';
@@ -42,6 +41,7 @@ import { DistributorDropdown } from '../dropdown-checkbox/distributor-dropdown';
 import { OperatorDropdown } from '../dropdown-checkbox/operator-dropdown';
 
 const TpModal = () => {
+  const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
 
@@ -51,9 +51,9 @@ const TpModal = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
   const end = date?.to ? format(date.to, "yyyy-MM-dd") : undefined;
-  
+
   const { data, error, isLoading } = useSWR(
-    [start, end, distributor,operator],
+    [start, end, distributor, operator],
     () => {
       const startParam = start ? `&start_date=${start}` : "";
       const endParam = end ? `&end_date=${end}` : "";
@@ -62,10 +62,37 @@ const TpModal = () => {
       return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=PURCHASE${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
+
+  const handleAddProduct = (row: any) => {
+    if (row.original.items && row.original.items.length > 0) {
+      row.original.items.forEach((item: any) => {
+        const newItem = {
+          barcode: item.barcode,
+          stock_code: item.stock_code,
+          stock_name: item.stock_name,
+          unit: item.unit,
+          jumlah_pesanan: parseFloat(item.quantity) || 1, 
+          quantity: parseFloat(item.quantity) || 1, 
+          stock_price_buy: parseFloat(item.stock_price_buy) || 0, 
+          stock_price_sell: parseFloat(item.sell_price) || 0, 
+          discount: item.disc ?? 0, 
+          netto: parseFloat(item.netto) || 0, 
+          total: parseFloat(item.total) || 0, 
+          stock: item.stock, 
+        };
   
-  const handleAddProduct = () => {
-    toast.success(" Berhasil Ditambahkan")
+        dispatch(addRow({ tableName: "transaksi", row: newItem }));
+      });
+  
+      // Success message
+      toast.success("Items berhasil ditambahkan");
+    } else {
+      toast.error("No items found in this invoice.");
+    }
   };
+  
+  
+
 
   const columns: ColumnDef<any>[] = [
     { accessorKey: "th_code", header: "No Faktur", meta: { width: 120 } },
@@ -97,7 +124,7 @@ const TpModal = () => {
       accessorKey: "action",
       header: "Action",
       cell: ({ row }: { row: Row<any> }) => (
-        <Button onClick={() => handleAddProduct} className="bg-blue-500 hover:bg-blue-600 size-7">
+        <Button onClick={() => handleAddProduct(row)} className="bg-blue-500 hover:bg-blue-600 size-7">
           <Plus />
         </Button>
       ),
@@ -166,7 +193,7 @@ const TpModal = () => {
                 <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
               </div>
               <div className="flex flex-col space-y-2">
-                      <OperatorDropdown onChange={(id) => setOperator(id)}/>
+                <OperatorDropdown onChange={(id) => setOperator(id)} />
               </div>
             </div>
           </div>
@@ -195,7 +222,7 @@ const TpModal = () => {
                       header.id === "th_dp" && "w-[150px]",
                       header.id === "cashier_username" && "w-[150px]",
                       header.id === "action" && "w-[20px]"
-                      
+
                     )}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>

@@ -30,6 +30,8 @@ import { cn, fetcher } from "@/lib/utils";
 import Loading from "../loading";
 import { DistributorDropdown } from "../dropdown-checkbox/distributor-dropdown";
 import { CategoryDropdown } from "../dropdown-checkbox/category-dropdown";
+import { id } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 interface TambahProdukModalProps {
   tableName: string;
@@ -54,6 +56,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       jumlah_pesanan: "-",
       quantity: product.jumlah_barang ?? 1,
       stock_price_buy: product.price_buy,
+      unit: product.unit_name
     };
     toast.success(product.name + " Berhasil Ditambahkan");
     dispatch(addRow({ tableName, row: newItem }));
@@ -74,7 +77,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           </div>
         ),
       },
-      { accessorKey: "barcode", header: "Barcode" },
+
       { accessorKey: "available_quantity", header: "Jumlah Stok" },
       {
         accessorKey: "price_buy",
@@ -101,21 +104,49 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           row.prices?.[2]?.price_sell ? `Rp${Number(row.prices[2].price_sell).toLocaleString("id-ID")}` : "-",
       },
       {
+        accessorKey: "last_buy",
+        header: "Last Buy",
+        cell: ({ getValue }) => {
+          const rawValue = getValue();
+          if (!rawValue || typeof rawValue !== 'string') return "-";
+          const parsedDate = new Date(rawValue);
+          if (isNaN(parsedDate.getTime())) return "-";
+          return format(parsedDate, "d/M/yyyy", { locale: id });
+        },
+      },
+      {
+        accessorKey: "last_sell",
+        header: "Last Sell",
+        cell: ({ getValue }) => {
+          const rawValue = getValue();
+          if (!rawValue || typeof rawValue !== 'string') return "-";
+          const parsedDate = new Date(rawValue);
+          if (isNaN(parsedDate.getTime())) return "-";
+          return format(parsedDate, "d/M/yyyy", { locale: id });
+        },
+      },
+      
+      {
         accessorKey: "Action",
         header: "Action",
         cell: ({ row }: { row: Row<any> }) => {
           const product = row.original;
-          const [quantity, setQuantity] = useState(product.jumlah_barang || 1);
-
-          const updateQuantity = (val: number) => {
-            const value = Math.max(0, val);
-            setQuantity(value);
-            row.original.jumlah_barang = value;
+          const [quantity, setQuantity] = useState(product.jumlah_barang || "");
+      
+          const updateQuantity = (val: number | string) => {
+            if (val === "") {
+              setQuantity(""); // Allow empty value
+              row.original.jumlah_barang = ""; // Store empty value if needed
+            } else {
+              const value = Math.max(0, Number(val)); // Ensure non-negative numbers
+              setQuantity(value);
+              row.original.jumlah_barang = value; // Update the quantity in row
+            }
           };
-
+      
           const increment = () => updateQuantity(quantity + 1);
           const decrement = () => updateQuantity(quantity - 1);
-
+      
           return (
             <div className="flex items-center gap-2">
               <div className="flex items-center border rounded">
@@ -128,9 +159,10 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
                 <input
                   type="number"
                   value={quantity}
-                  onChange={(e) =>
-                    setQuantity(Math.max(1, Number(e.target.value)))
-                  }
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    updateQuantity(newValue); // Directly update based on input value
+                  }}
                   className="w-5 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   min={0}
                 />
@@ -151,8 +183,8 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           );
         },
         enableSorting: false,
-      },
-
+      }
+      
     ],
     [sorting]
   );
@@ -178,10 +210,10 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
       <div>
         <div className="flex justify-between">
           <div className=" flex">
-            <div className="my-2 relative w-64">
+            <div className="my-2 relative w-56">
               <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
             </div>
-            <div className="my-2 relative w-64">
+            <div className="my-2 relative w-56">
               <CategoryDropdown />
             </div>
           </div>

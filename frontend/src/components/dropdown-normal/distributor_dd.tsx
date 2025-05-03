@@ -19,10 +19,12 @@ type Supplier = {
     name: string
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL!
+
 const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
     const [open, setOpen] = React.useState(false);
     const { data = [], error, isLoading } = useSWR<Supplier[]>(
-        "http://100.82.207.117:8000/api/suppliers/",
+        `${API_URL}api/suppliers/`,
         fetcher
     );
 

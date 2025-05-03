@@ -142,7 +142,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
         {
             header: "Satuan",
-            accessorKey: "satuan",
+            accessorKey: "unit",
         },
         {
             header: "Harga Beli",
