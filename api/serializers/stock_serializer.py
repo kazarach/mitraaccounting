@@ -16,6 +16,8 @@ class StockSerializer(serializers.ModelSerializer):
     is_really_online = serializers.SerializerMethodField()
     last_buy = serializers.SerializerMethodField()
     last_sell = serializers.SerializerMethodField()
+    # conversion_item = serializers.SerializerMethodField()
+    conversion_unit = serializers.SerializerMethodField()
     prices = StockPriceSerializer(many=True, source='sales_prices')
 
     class Meta:
@@ -23,7 +25,7 @@ class StockSerializer(serializers.ModelSerializer):
         fields = ['id', 'code', 'barcode', 'name', 'quantity', 'margin', 'hpp', 
                   'price_buy', 'min_stock', 'max_stock', 'supplier', 'supplier_name',
                   'warehouse', 'warehouse_name', 'category', 'category_name',
-                  'rack', 'rack_name', 'updated_at', 'is_active', 'is_online',
+                  'rack', 'rack_name', 'updated_at', 'is_active', 'is_online', 'conversion_unit',
                   'unit', 'unit_name', 'parent_stock', 'parent_stock_name', 
                   'parent_conversion', 'is_low_stock', 'available_quantity',
                   'is_really_active', 'is_really_online', 'last_buy', 'last_sell',
@@ -46,7 +48,13 @@ class StockSerializer(serializers.ModelSerializer):
     
     def get_last_sell(self, obj):
         return obj.last_sell()
-
+    
+    # def get_conversion_item(self, obj):
+    #     return obj.conversion_path_string()
+    
+    def get_conversion_unit(self, obj):
+        return obj.conversion_path_with_unit(include_base=True)
+    
 class StockDetailSerializer(StockSerializer):
     assemblies = StockAssemblySerializer(many=True, read_only=True)
     sales_prices = StockPriceSerializer(many=True, read_only=True)

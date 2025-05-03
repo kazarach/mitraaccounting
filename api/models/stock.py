@@ -104,6 +104,51 @@ class Stock(models.Model):
             # No default price found
             return self.hpp  # Fall back to cost price
     
+    def conversion_item(self):
+        """Returns the full conversion path as a list of tuples (stock, conversion_rate)"""
+        path = []
+        current = self
+        
+        # Traverse up to find the base unit
+        while current.parent_stock is not None:
+            path.append((current, current.parent_conversion))
+            current = current.parent_stock
+        
+        # Add the base unit
+        path.append((current, None))
+        
+        # Reverse to get base → derived order
+        path.reverse()
+        return path
+    
+    # def conversion_path_string(self):
+    #     """Returns a string like '1.10.10' representing the conversion path"""
+    #     path = self.conversion_item()
+    #     result = ["1"]  # start with 1 base unit
+    #     for _, rate in path[1:]:  # skip the base unit (first item has None)
+    #         result.append(str(int(rate)) if rate % 1 == 0 else str(rate))
+    #     return ".".join(result)
+
+    def conversion_path_with_unit(self, include_base=True):
+        """
+        Returns a string like '10 (BOX) 10 (PCS)' or '1 (CARTON) → 10 (BOX) → 10 (PCS)'
+        """
+        path = self.conversion_item()
+        result = []
+
+        for i, (stock, rate) in enumerate(path):
+            if i == 0 and not include_base:
+                continue  # skip base unit if not needed
+
+            unit_name = stock.unit.unit_code if stock.unit else "UNIT"
+            if i == 0:
+                result.append(f"1({unit_name})")
+            else:
+                result.append(f"{int(rate) if rate % 1 == 0 else rate}({unit_name})")
+        
+        return " ".join(result)
+
+
     # AUTO CONV - unchanged from your current code
     def get_related_stocks(self):
         """Get all stocks related to this one (parent, siblings, children)"""

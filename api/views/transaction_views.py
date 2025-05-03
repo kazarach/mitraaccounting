@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count, F, DecimalField, Max
 from django.db.models.functions import Coalesce
 from datetime import timedelta, datetime 
+from decimal import Decimal
 
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
 from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier
@@ -233,73 +234,6 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             'summary': summary,
             'results': result
         })
-    
-    # @extend_schema(
-    #     summary="Transaction Type Summary",
-    #     description="Get summary of transactions by type across date range",
-    #     tags=["Reports"],
-    #     parameters=[
-    #         OpenApiParameter(name='start_date', type=str, required=False, description='Format: YYYY-MM-DD'),
-    #         OpenApiParameter(name='end_date', type=str, required=False, description='Format: YYYY-MM-DD'),
-    #     ]
-    # )
-    # @action(detail=False, methods=['get'])
-    # def type_summary(self, request):
-    #     """Get summary of transactions grouped by transaction type"""
-    #     # Parse date parameters
-    #     jakarta_tz = pytz.timezone('Asia/Jakarta')
-    #     now_jakarta = timezone.now().astimezone(jakarta_tz)
-    #     today = now_jakarta.date()
-        
-    #     # Get date range
-    #     start_date_str = request.query_params.get('start_date')
-    #     end_date_str = request.query_params.get('end_date')
-        
-    #     try:
-    #         if start_date_str:
-    #             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-    #         else:
-    #             # Default to first day of current month
-    #             start_date = today.replace(day=1)
-                
-    #         if end_date_str:
-    #             end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-    #         else:
-    #             # Default to today
-    #             end_date = today
-    #     except ValueError:
-    #         return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
-        
-    #     # Convert to datetime for proper querying
-    #     start_datetime = datetime.combine(start_date, datetime.min.time())
-    #     end_datetime = datetime.combine(end_date, datetime.max.time())
-        
-    #     # Group by transaction type
-    #     queryset = self.queryset.filter(th_date__range=(start_datetime, end_datetime))
-    #     result = queryset.values(
-    #         'th_type'
-    #     ).annotate(
-    #         transaction_count=Count('id'),
-    #         total_amount=Sum('th_total')
-    #     ).order_by('th_type')
-        
-    #     # Format results
-    #     formatted_result = [
-    #         {
-    #             'transaction_type': item['th_type'],
-    #             'transaction_count': item['transaction_count'],
-    #             'total_amount': float(item['total_amount'] if item['total_amount'] else 0)
-    #         }
-    #         for item in result
-    #     ]
-        
-    #     return Response({
-    #         'date_range': {
-    #             'start_date': start_date.strftime("%Y-%m-%d"),
-    #             'end_date': end_date.strftime("%Y-%m-%d"),
-    #         },
-    #         'results': formatted_result
-    #     })
 
 @extend_schema_view(
     list=extend_schema(
