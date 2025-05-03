@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 from decimal import Decimal
 
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
-from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier
+from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier, Stock
 from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
 
 import pytz
@@ -50,6 +50,13 @@ import pytz
         summary="Delete transaction",
         description="Delete an existing transaction and its associated items.",
         responses={204: None},
+        tags=["Transaction"]
+    ),
+        calculate_preview=extend_schema(
+        summary="Calculate transaction preview",
+        description="Calculates totals, discounts, and taxes for a transaction without saving it",
+        request=TransactionHistorySerializer,
+        responses={200: TransactionHistorySerializer},
         tags=["Transaction"]
     )
 )
@@ -234,6 +241,145 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             'summary': summary,
             'results': result
         })
+    
+    @action(detail=False, methods=['post'])
+    def calculate_preview(self, request):
+        """
+        Calculate transaction totals without saving to database.
+        Returns the processed transaction with all calculations applied.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Extract validated data
+        transaction_data = serializer.validated_data
+        items_data = transaction_data.pop('items', [])
+        
+        # Create a temporary transaction object (not saved)
+        temp_transaction = TransactionHistory(**transaction_data)
+        
+        # Calculate totals for each item
+        processed_items = []
+        total_netto = Decimal('0.00')
+        
+        for item_data in items_data:
+            # Create a temporary item object linked to the temporary transaction
+            temp_item = TransItemDetail(transaction=temp_transaction, **item_data)
+            
+            # Apply calculation logic without saving
+            self._calculate_item_totals(temp_item)
+            
+            # Add to processed items and track totals
+            total_netto += temp_item.netto
+            
+            # Convert to dictionary for response
+            item_dict = {
+                'stock_id': temp_item.stock.id if temp_item.stock else None,
+                'stock_code': temp_item.stock_code,
+                'stock_name': temp_item.stock_name,
+                'stock_price_buy': float(temp_item.stock_price_buy),
+                'quantity': float(temp_item.quantity),
+                'sell_price': float(temp_item.sell_price) if temp_item.sell_price else 0,
+                'disc': float(temp_item.disc) if temp_item.disc else 0,
+                'disc_percent': float(temp_item.disc_percent) if temp_item.disc_percent else 0,
+                'disc_percent2': float(temp_item.disc_percent2) if temp_item.disc_percent2 else 0,
+                'total': float(temp_item.total),
+                'netto': float(temp_item.netto)
+            }
+            processed_items.append(item_dict)
+        
+        # Apply transaction-level calculations
+        th_total = total_netto
+        
+        if temp_transaction.th_disc:
+            discount_amount = th_total * (temp_transaction.th_disc / Decimal('100'))
+            th_total -= discount_amount
+            
+        if temp_transaction.th_ppn:
+            tax_amount = th_total * (temp_transaction.th_ppn / Decimal('100'))
+            th_total += tax_amount
+        
+        # Calculate potential loyalty points
+        potential_points = 0
+        if temp_transaction.th_type == 'SALE':
+            potential_points = self._calculate_points(processed_items)
+        
+        # Prepare response
+        result = {
+            'th_code': f"PREVIEW-{timezone.now().strftime('%Y%m%d%H%M%S')}",
+            'items': processed_items,
+            'subtotal': float(total_netto),
+            'th_disc': float(temp_transaction.th_disc) if temp_transaction.th_disc else 0,
+            'th_ppn': float(temp_transaction.th_ppn) if temp_transaction.th_ppn else 0,
+            'th_total': float(th_total),
+            'potential_points': potential_points,
+            'is_preview': True
+        }
+        
+        return Response(result)
+    
+    def _calculate_item_totals(self, item):
+        """Helper method to calculate item totals without saving to database"""
+        # Replicate the calculation logic from TransItemDetail.save()
+        if item.transaction.th_type == 'SALE':
+            # Get price based on customer category - simplified for preview
+            item.sell_price = item.sell_price or item.stock.hpp
+            
+            # Calculate totals
+            item.total = item.quantity * (item.sell_price or Decimal('0'))
+            
+            # Apply item-level discounts
+            price_after_disc1 = (item.sell_price or Decimal('0')) * (Decimal('1') - Decimal(item.disc_percent or 0) / Decimal('100'))
+            price_after_disc2 = price_after_disc1 * (Decimal('1') - Decimal(item.disc_percent2 or 0) / Decimal('100'))
+            final_price = price_after_disc2 - (item.disc or Decimal('0'))
+            
+            # Calculate netto
+            item.netto = item.quantity * final_price
+            
+            # Apply transaction-level discounts and taxes 
+            # (This is simplified for preview; actual logic may differ)
+            if item.transaction.th_disc:
+                item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
+                
+            if item.transaction.th_ppn:
+                item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
+        
+        elif item.transaction.th_type == 'PURCHASE':
+            # Similar logic for purchase items
+            item.total = item.quantity * (item.stock_price_buy or Decimal('0'))
+            
+            price_after_disc1 = (item.stock_price_buy or Decimal('0')) * (Decimal('1') - Decimal(item.disc_percent or 0) / Decimal('100'))
+            price_after_disc2 = price_after_disc1 * (Decimal('1') - Decimal(item.disc_percent2 or 0) / Decimal('100'))
+            final_price = price_after_disc2 - (item.disc or Decimal('0'))
+            
+            item.netto = item.quantity * final_price
+            
+            if item.transaction.th_disc:
+                item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
+                
+            if item.transaction.th_ppn:
+                item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
+    
+    def _calculate_points(self, items):
+        """Calculate potential loyalty points for preview"""
+        excluded_categories = TransactionHistory.EXCLUDED_CATEGORIES
+        total_amount = Decimal('0')
+        
+        for item in items:
+            # In a real implementation, you'd need to check the stock category
+            # This is simplified for the preview
+            stock_id = item.get('stock_id')
+            if stock_id:
+                try:
+                    stock = Stock.objects.get(id=stock_id)
+                    if stock.category not in excluded_categories:
+                        total_amount += Decimal(str(item['sell_price'])) * Decimal(str(item['quantity']))
+                except Stock.DoesNotExist:
+                    pass
+        
+        # Calculate points: every 100000 = 2 points
+        points = int(total_amount // Decimal('100000')) * 2
+        return points
 
 @extend_schema_view(
     list=extend_schema(
