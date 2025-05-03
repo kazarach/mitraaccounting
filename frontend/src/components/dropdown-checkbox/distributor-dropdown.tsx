@@ -29,9 +29,6 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
     fetcher
   )
 
-  if (isLoading) return <p>Loading...</p>
-  if (error) return <p>Terjadi kesalahan saat memuat data.</p>
-
   const toggleItem = (id: number) => {
     setSelected(prev =>
       prev.includes(id)
@@ -91,45 +88,47 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2">
-        <Input
-          placeholder="Cari distributor..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="mb-2"
-        />
-        <div className="flex justify-between items-center px-2 mb-1 text-sm">
-          <button
-            onClick={toggleSelectAll}
-            className="text-primary hover:underline"
-          >
-            {allFilteredSelected ? "Unselect All" : "Select All"}
-          </button>
-          <button
-            onClick={clearAll}
-            className="text-destructive hover:underline"
-          >
-            Clear All
-          </button>
-        </div>
-        <ScrollArea className="h-64">
-          {filteredItems.length > 0 ? (
-            filteredItems.map(item => (
-              <label
-                key={item.id}
-                className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
-              >
-                <Checkbox
-                  checked={selected.includes(item.id)}
-                  onCheckedChange={() => toggleItem(item.id)}
-                />
-                <span>{item.name}</span>
-              </label>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground px-2 py-1">Tidak ditemukan</div>
-          )}
-        </ScrollArea>
-      </PopoverContent>
+      {isLoading ? (
+        <p className="px-2 py-4 text-sm">Memuat data distributor...</p>
+      ) : error ? (
+        <p className="px-2 py-4 text-sm text-red-500">Gagal memuat data distributor.</p>
+      ) : (
+        <>
+          <Input
+            placeholder="Cari distributor..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="mb-2"
+          />
+          <div className="flex justify-between items-center px-2 mb-1 text-sm">
+            <button onClick={toggleSelectAll} className="text-primary hover:underline">
+              {allFilteredSelected ? "Unselect All" : "Select All"}
+            </button>
+            <button onClick={clearAll} className="text-destructive hover:underline">
+              Clear All
+            </button>
+          </div>
+          <ScrollArea className="h-64">
+            {filteredItems.length > 0 ? (
+              filteredItems.map(item => (
+                <label
+                  key={item.id}
+                  className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
+                >
+                  <Checkbox
+                    checked={selected.includes(item.id)}
+                    onCheckedChange={() => toggleItem(item.id)}
+                  />
+                  <span>{item.name}</span>
+                </label>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground px-2 py-1">Tidak ditemukan</div>
+            )}
+          </ScrollArea>
+        </>
+      )}
+    </PopoverContent>
     </Popover>
   )
 }

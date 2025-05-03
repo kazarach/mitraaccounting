@@ -27,9 +27,9 @@ import {
 import { toast } from "sonner";
 import useSWR from "swr";
 import { cn, fetcher } from "@/lib/utils";
-import Loading from "../loading";
-import { DistributorDropdown } from "../dropdown-checkbox/distributor-dropdown";
-import { CategoryDropdown } from "../dropdown-checkbox/category-dropdown";
+import Loading from "@/components/loading";
+import { DistributorDropdown } from "@/components/dropdown-checkbox/distributor-dropdown";
+import { CategoryDropdown } from "@/components/dropdown-checkbox/category-dropdown";
 import { id } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -38,7 +38,7 @@ interface TambahProdukModalProps {
   tableName: string;
 }
 
-const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
+const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
@@ -47,7 +47,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
-  const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?include_sales=true${supplierParam}`, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?transaction_type=SALE${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
     const newItem = {
@@ -85,10 +85,6 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
         header: "Harga Beli",
         cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
       },
-      { accessorKey: "sales_quantity_week", header: "Terjual (7H)" },
-      { accessorKey: "sales_quantity_month", header: "Terjual (30H)" },
-      { accessorKey: "purchase_quantity_week", header: "Terbeli (7H)" },
-      { accessorKey: "purchase_quantity_month", header: "Terbeli (30H)" },
       {
         header: "Harga Jual 1",
         accessorFn: (row: { prices: { price_sell: any }[] }) =>
@@ -132,21 +128,32 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
         header: "Action",
         cell: ({ row }: { row: Row<any> }) => {
           const product = row.original;
-          const [quantity, setQuantity] = useState(product.jumlah_barang || "");
+          const [quantity, setQuantity] = useState<number>(Number(product.jumlah_barang) || 0);
       
           const updateQuantity = (val: number | string) => {
-            if (val === "") {
-              setQuantity(""); // Allow empty value
-              row.original.jumlah_barang = ""; // Store empty value if needed
-            } else {
-              const value = Math.max(0, Number(val)); // Ensure non-negative numbers
-              setQuantity(value);
-              row.original.jumlah_barang = value; // Update the quantity in row
-            }
-          };
+            const parsed = Number(val);
+            const value = isNaN(parsed) ? 0 : Math.max(0, parsed);
+            setQuantity(value);
+            row.original.jumlah_barang = value;
+          };                
       
-          const increment = () => updateQuantity(quantity + 1);
-          const decrement = () => updateQuantity(quantity - 1);
+          const increment = () => {
+            setQuantity((prev) => {
+              const next = prev + 1;
+              row.original.jumlah_barang = next;
+              return next;
+            });
+          };
+          
+          const decrement = () => {
+            setQuantity((prev) => {
+              const next = Math.max(0, prev - 1);
+              row.original.jumlah_barang = next;
+              return next;
+            });
+          };       
+          
+          
       
           return (
             <div className="flex items-center gap-2">
@@ -158,15 +165,16 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
                   -
                 </button>
                 <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    updateQuantity(newValue); // Directly update based on input value
-                  }}
-                  className="w-5 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  min={0}
-                />
+                    type="number"
+                    value={quantity === 0 ? "" : quantity}
+                    onChange={(e) => {
+                        const parsed = parseInt(e.target.value.replace(/^0+(?=\d)/, "") || "0");
+                        updateQuantity(parsed);
+                    }}
+                    placeholder="0"
+                    className="w-12 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    min={0}
+                    />
                 <button
                   onClick={increment}
                   className="px-2 bg-blue-200 rounded-r hover:bg-blue-300"
@@ -176,10 +184,11 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
               </div>
               <Button
                 onClick={() => handleAddProduct(row.original)}
-                className="bg-blue-500 hover:bg-blue-600 size-7"
-              >
+                className="bg-blue-500 hover:bg-blue-600 size-6"
+                disabled={!quantity || Number(quantity) <= 0}
+                >
                 <Plus />
-              </Button>
+                </Button>
             </div>
           );
         },
@@ -232,12 +241,12 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
         <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto">
         <div className="w-[90vw] text-sm border-separate border-spacing-0 min-w-full">
             <Table className=" bg-white">
-              <TableHeader className="sticky top-0 bg-gray-100 z-20">
+              <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id} className={cn(
-                        "text-left truncate w-[85px]",
+                        "text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100",
                         header.id === "barcode" && "w-[120px]",
                         header.id === "name" && "w-[200px]",
                         header.id === "jumlah" && "w-[120px]",
@@ -264,13 +273,13 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
+                  table.getRowModel().rows.map((row, rowIndex) => (
                     <TableRow key={row.id} className="bg-white">
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
                           className={cn(
-                            "text-left truncate w-[85px]",
+                            "text-left truncate w-[85px] p-2 border-b border-r first:border-l last:border-r",rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100',
                             cell.column.id === "barcode" && "w-[120px]",
                             cell.column.id === "name" && "w-[200px]",
                             cell.column.id === "jumlah" && "w-[120px]",
@@ -302,4 +311,4 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   );
 };
 
-export default TambahProdukModal;
+export default TambahProdukModalSelling;
