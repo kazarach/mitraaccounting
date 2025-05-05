@@ -47,7 +47,12 @@ def handle_arap(sender, instance, created, **kwargs):
                 timezone.datetime.combine(instance.th_date, time.min)
             )
 
-        due_date = th_date_aware + timedelta(days=credit_days)
+        # Check if th due date was provided - use it directly instead of checking hasattr
+        if instance.th_due_date:
+            due_date = instance.th_due_date
+        else:
+            # Calculate based on credit terms
+            due_date = th_date_aware + timedelta(days=credit_days)
 
         # Find or create ARAP record for this supplier/customer
         if entity_type == 'supplier':
@@ -72,7 +77,7 @@ def handle_arap(sender, instance, created, **kwargs):
         # Check if a transaction for this TransactionHistory already exists
         transaction, created = ARAPTransaction.objects.get_or_create(
             arap=arap,
-            transaction_history=instance,  # Add this field to the ARAPTransaction model
+            transaction_history=instance,
             defaults={
                 'amount': total,
                 'paid': th_dp,

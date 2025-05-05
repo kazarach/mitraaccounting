@@ -69,6 +69,28 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = TransactionHistoryFilter
 
+    def create(self, request, *args, **kwargs):
+        """
+        Create a transaction with optional th due date.
+        """
+        # Process th_due_date separately if provided
+        th_due_date = request.data.get('th_due_date')
+        
+        # Get serializer and validate
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Save instance
+        instance = serializer.save()
+        
+        # Set th due date if provided
+        if th_due_date:
+            instance.th_due_date = th_due_date
+            instance.save(update_fields=['th_due_date'])
+        
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
     @extend_schema(
         summary="Get transaction items",
         description="Retrieve all line items associated with a specific transaction.",
@@ -313,6 +335,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             'th_disc': float(temp_transaction.th_disc) if temp_transaction.th_disc else 0,
             'th_ppn': float(temp_transaction.th_ppn) if temp_transaction.th_ppn else 0,
             'th_total': float(th_total),
+            
             'potential_points': potential_points,
             'is_preview': True
         }

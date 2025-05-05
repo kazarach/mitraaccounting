@@ -42,7 +42,8 @@ class TransactionHistory(models.Model):
     
     th_date = models.DateTimeField(default=timezone.now)
     th_note = models.TextField(blank=True, null=True)
-    
+    th_due_date = models.DateTimeField(null=True, blank=True)
+
     bank = models.ForeignKey('Bank', on_delete=models.SET_NULL, blank=True, null=True)
     event_discount = models.ForeignKey(EventDisc, on_delete=models.SET_NULL, blank=True, null=True)
     

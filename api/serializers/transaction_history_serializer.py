@@ -33,6 +33,8 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     cashier_username = serializers.StringRelatedField(source='cashier', read_only=True)
     bank_name = serializers.StringRelatedField(source='bank', read_only=True)
     event_discount_name = serializers.StringRelatedField(source='event_discount', read_only=True)
+    th_due_date = serializers.DateTimeField(required=False, allow_null=True)
+
 
     class Meta:
         model = TransactionHistory
