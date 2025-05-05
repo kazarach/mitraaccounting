@@ -77,6 +77,13 @@ from ..filters.stock_filters import StockFilter
                 type=int,
                 location=OpenApiParameter.QUERY
             ),
+            OpenApiParameter(
+                name='stock_ids',
+                description='Comma-separated list of stock IDs to filter by (e.g., 1,2,3,4,5)',
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY
+            ),
         ],
         responses={200: StockSerializer(many=True)},
         tags=["Stock"]
@@ -134,6 +141,16 @@ class StockViewSet(viewsets.ModelViewSet):
             return StockDetailSerializer
         return StockSerializer
     
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filter by stock IDs if provided
+        stock_ids = self.request.query_params.get('stock_ids')
+        if stock_ids:
+            stock_ids_list = stock_ids.split(',')
+            queryset = queryset.filter(id__in=stock_ids_list)
+        
+        return queryset
     @extend_schema(
         summary="Get low stock items",
         description="Return all stock items that are below their minimum stock level.",
@@ -156,57 +173,6 @@ class StockViewSet(viewsets.ModelViewSet):
                 'success': True,
                 'stock': serializer.data
             })
-
-    # @extend_schema(
-    #     summary="Update stock margin",
-    #     description="Update the margin based on the provided sell price.",
-    #     request={
-    #         "application/json": {
-    #             "example": {
-    #                 "sell_price": "15000"
-    #             }
-    #         }
-    #     },
-    #     responses={200: OpenApiExample(
-    #         'Margin updated',
-    #         value={"success": True, "margin": "15.00"},
-    #         response_only=True
-    #     )},
-    #     tags=["Stock"]
-    # )
-    # @action(detail=True, methods=['post'])
-    # def update_margin(self, request, pk=None):
-    #     """
-    #     Update the margin based on a provided sell price.
-    #     Requires authentication.
-    #     """
-    #     stock = self.get_object()
-    #     sell_price = request.data.get('sell_price')
-        
-    #     if not sell_price:
-    #         return Response(
-    #             {'error': 'Sell price is required'},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-        
-    #     try:
-    #         sell_price = Decimal(str(sell_price))
-
-    #         result = stock.update_margin_from_sell_price(sell_price)
-            
-    #         if result:
-    #             return Response({'success': True, 'margin': stock.margin})
-    #         else:
-    #             return Response(
-    #                 {'error': 'Could not update margin. Please check that HPP is greater than zero.'},
-    #                 status=status.HTTP_400_BAD_REQUEST
-    #             )
-    #     except (ValueError, TypeError):
-    #         return Response(
-    #             {'error': 'Invalid sell price'},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-    
     @extend_schema(
         summary="Update stock quantity",
         description="Update stock quantity with automatic conversion if needed.",
@@ -635,7 +601,176 @@ class StockViewSet(viewsets.ModelViewSet):
             'updated': updated_stocks,
             'errors': errors
         })
-    
+    from drf_spectacular.utils import extend_schema, OpenApiExample
+
+    @extend_schema(
+        summary="Check stock price changes before transaction",
+        description=(
+            "Checks if the provided buy (HPP) prices differ from the last transaction for each stock. "
+            "Also returns current sell prices and margins for each price category of the stock. "
+            "This can be used to show a confirmation modal before finalizing the transaction or updating prices."
+        ),
+        request={
+            "application/json": {
+                "example": {
+                    "items": [
+                        {
+                            "stock_id": 1,
+                            "buy_price": "12500.00"
+                        },
+                        {
+                            "stock_id": 2,
+                            "buy_price": "10000.00"
+                        }
+                    ]
+                }
+            }
+        },
+        responses={
+            200: OpenApiExample(
+                'Price Check Result',
+                value={
+                    "price_differences": [
+                        {
+                            "stock_id": 1,
+                            "stock_code": "SKU001",
+                            "stock_name": "Cable HDMI",
+                            "last_buy_price": 12000.0,
+                            "current_buy_price": 12500.0,
+                            "sell_prices": [
+                                {
+                                    "price_category": "Retail",
+                                    "sell_price": 15000.0,
+                                    "margin": 2000.0
+                                },
+                                {
+                                    "price_category": "Distributor",
+                                    "sell_price": 14500.0,
+                                    "margin": 1500.0
+                                }
+                            ]
+                        }
+                    ],
+                    "errors": []
+                },
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
+
+    @action(detail=False, methods=['post'])
+    def check_price(self, request):
+        """
+        Check HPP (buy price) changes and return all sell prices per stock & category.
+        """
+        items = request.data.get('items', [])
+        differences = []
+        errors = []
+
+        stock_ids = [item.get('stock_id') for item in items if item.get('stock_id')]
+        stock_ids = list(set(stock_ids))  # remove duplicates
+
+        # Fetch all StockPrice entries for given stocks
+        stock_prices = StockPrice.objects.filter(
+            stock_id__in=stock_ids
+        ).select_related('stock', 'price_category')
+
+        # Group by stock_id
+        from collections import defaultdict
+        price_data_by_stock = defaultdict(list)
+
+        for sp in stock_prices:
+            price_data_by_stock[sp.stock_id].append({
+                'price_category': sp.price_category.name,
+                'sell_price': float(sp.price_sell),
+                'margin': float(sp.margin or 0),
+            })
+
+        for item in items:
+            stock_id = item.get('stock_id')
+            current_hpp = Decimal(str(item.get('buy_price', 0)))
+
+            if not stock_id:
+                errors.append("Missing stock_id in item.")
+                continue
+
+            try:
+                stock = Stock.objects.get(id=stock_id)
+
+                # Get last HPP from previous transaction
+                last_txn_item = (
+                    TransactionHistory.objects
+                    .filter(stock_id=stock_id)
+                    .order_by('-transaction__date')
+                    .first()
+                )
+                last_hpp = last_txn_item.hpp if last_txn_item else Decimal('0.00')
+
+                # Only return if HPP changed
+                if current_hpp != last_hpp:
+                    differences.append({
+                        'stock_id': stock.id,
+                        'stock_code': stock.code,
+                        'stock_name': stock.name,
+                        'last_buy_price': float(last_hpp),
+                        'current_buy_price': float(current_hpp),
+                        'sell_prices': price_data_by_stock.get(stock_id, [])
+                    })
+
+            except Stock.DoesNotExist:
+                errors.append(f"Stock with ID {stock_id} not found.")
+            except Exception as e:
+                errors.append(f"Error checking stock {stock_id}: {str(e)}")
+
+        return Response({
+            'price_differences': differences,
+            'errors': errors
+        })
+
+    @extend_schema(
+        summary="Get stock by IDs",
+        description="Retrieves detailed stock information for the provided item IDs.",
+        request={
+            "application/json": {
+                "example": {
+                    "item_ids": [5, 3, 9, 7, 1, 6]
+                }
+            }
+        },
+        responses={
+            200: StockSerializer(many=True),
+            400: OpenApiExample(
+                'Invalid request',
+                value={"error": "item_ids must be a list of integers"},
+                response_only=True
+            )
+        },
+        tags=["Stock"]
+    )
+    @action(detail=False, methods=['post'])
+    def by_ids(self, request):
+        item_ids = request.data.get('item_ids', [])
+
+        if not isinstance(item_ids, list) or not all(isinstance(i, int) for i in item_ids):
+            return Response(
+                {"error": "item_ids must be a list of integers"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        stocks = Stock.objects.filter(id__in=item_ids).select_related(
+            'supplier', 'warehouse', 'category', 'rack', 'unit', 'parent_stock'
+        ).prefetch_related('sales_prices', 'assemblies', 'child_stocks')
+
+        # Index by ID for fast lookup
+        stock_map = {stock.id: stock for stock in stocks}
+
+        # Sort according to the original item_ids order
+        ordered_stocks = [stock_map[i] for i in item_ids if i in stock_map]
+
+        serializer = self.get_serializer(ordered_stocks, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     def _enhance_with_order_quantities(self, stock_data, transaction_type):
         """Add detailed orders data to stock items based on TransItemDetail records"""
