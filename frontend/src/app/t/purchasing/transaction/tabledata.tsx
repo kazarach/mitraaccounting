@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
     Table,
@@ -136,13 +136,13 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             },
         },
         {
-            header: "Isi Packing",
-            accessorKey: "isi_packing",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        },
-        {
             header: "Satuan",
             accessorKey: "unit",
+        },
+        {
+            header: "Jns Packing",
+            accessorKey: "conversion_unit",
+            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
         },
         {
             header: "Harga Beli",
@@ -167,6 +167,16 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     type="number"
                     className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     placeholder="Rp0"
+                />
+            ),
+        },
+        {
+            header: "Diskon (%)",
+            cell: () => (
+                <input
+                    type="number"
+                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                    placeholder="0%"
                 />
             ),
         },
@@ -237,6 +247,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 })
             );
         }
+
     }, [dispatch]);
 
 
@@ -257,15 +268,20 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 } else if (field === 'stock_price_buy') {
                     updatedItem.stock_price_buy = value;
                 }
+
                 updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
+
                 return updatedItem;
             }
             return item;
         });
+
         dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
-        const total = updatedData.reduce((acc, item) => acc + item.subtotal, 0);
+
+        const total = updatedData.reduce((acc, item) => acc + (item.subtotal || 0), 0);
         dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
     };
+
 
 
 
@@ -443,11 +459,27 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             </TableBody>
                             <TableFooter>
                                 <TableRow className="bg-white">
-                                    <TableCell colSpan={10} className="text-right font-bold">
+                                    <TableCell colSpan={1} className="text-right font-bold border">
+                                        Total Barang:
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        {data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0)}
+                                    </TableCell>
+
+                                    <TableCell className="text-left font-bold border">
+                                        {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                    </TableCell>
+                                    <TableCell colSpan={6} className="text-right font-bold border">
                                         Total:
                                     </TableCell>
-                                    <TableCell className="text-left font-bold">
-                                        Rp{(data.reduce((acc, item) => acc + item.subtotal, 0) * (isPpnIncluded ? 1.11 : 1)).toLocaleString("id-ID")}
+                                    <TableCell className="text-left font-bold border">
+                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0)).toLocaleString("id-ID")}
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0) * (isPpnIncluded ? 1.11 : 1)).toLocaleString("id-ID")}
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        
                                     </TableCell>
                                 </TableRow>
                             </TableFooter>
@@ -459,7 +491,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
                             </DialogTrigger>
                             <DialogContent className="w-[20vw] max-h-[90vh]">
-                                <BayarTPModal  />
+                                <BayarTPModal />
                             </DialogContent>
                         </Dialog>
 

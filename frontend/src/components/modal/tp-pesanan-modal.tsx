@@ -71,6 +71,7 @@ const TpModal = () => {
           stock_code: item.stock_code,
           stock_name: item.stock_name,
           unit: item.unit,
+          conversion_unit: item.conversion_unit,
           jumlah_pesanan: parseFloat(item.quantity) || 1, 
           quantity: parseFloat(item.quantity) || 1, 
           stock_price_buy: parseFloat(item.stock_price_buy) || 0, 

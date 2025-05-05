@@ -246,7 +246,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                 <div className='flex items-end gap-2'>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
+                            <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pembelian</Button>
                         </DialogTrigger>
                         <DialogContent className="w-[80vw] max-h-[90vh]">
                             <TpModal />

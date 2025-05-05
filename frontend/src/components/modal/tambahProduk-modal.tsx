@@ -50,14 +50,16 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?include_sales=true${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
+    const subtotal = (product.jumlah_barang ?? 1) * product.price_buy;
     const newItem = {
       barcode: product.barcode,
       stock_code: product.code,
       stock_name: product.name,
-      jumlah_pesanan: "-",
+      jumlah_pesanan: 0,
       quantity: product.jumlah_barang ?? 1,
       stock_price_buy: product.price_buy,
-      unit: product.unit_name
+      unit: product.unit_name,
+      conversion_unit: product.conversion_unit
     };
     toast.success(product.name + " Berhasil Ditambahkan");
     dispatch(addRow({ tableName, row: newItem }));
