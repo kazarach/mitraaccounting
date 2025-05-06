@@ -51,6 +51,7 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
 
   const handleAddProduct = (product: any) => {
     const newItem = {
+      stock: product.id, // ✅ tambahkan ini agar ID dari API digunakan
       barcode: product.barcode,
       stock_code: product.code,
       stock_name: product.name,

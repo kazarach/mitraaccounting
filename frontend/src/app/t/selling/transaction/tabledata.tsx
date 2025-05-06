@@ -61,15 +61,23 @@ const formSchema = z.object({
 })
 
 interface TransactionRow {
-    id: number;
+    id:number;
+    stock: number; 
+    barcode: string;
+    stock_code: string;
     stock_name: string;
+    unit: string;
     jumlah_pesanan: number;
     quantity: number;
     stock_price_buy: number;
-    isi_packing: number;
+    stock_price_sell: number;
+    discount: number;
+    netto: number;
+    total: number;
     satuan: string;
+    isi_packing: number;
     subtotal: number;
-}
+  }
 
 
 interface Props {
@@ -84,6 +92,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     const [customer, setCustomer] = useState<Customer | null>(null);
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
+    console.log("🟡 data dari Redux:", data);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -105,11 +114,6 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             header: "Produk",
             accessorKey: "stock_name",
         },
-        // {
-        //     header: "Pesanan",
-        //     accessorKey: "jumlah_pesanan",
-        //     cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        // },
         {
             header: "Jumlah Barang",
 
@@ -118,24 +122,18 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-    type="number"
-    value={jumlahBarang}
-    onChange={(e) => {
-        const val = Math.max(0, parseInt(e.target.value) || 0);
-        handleChange({ target: { value: val.toString() } } as any, row.original.id, 'quantity');
-    }}
-    className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-    placeholder="0"
-/>
-
+                        type="number"
+                        value={jumlahBarang}
+                        onChange={(e) => {
+                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                            handleChange({ target: { value: val.toString() } } as any, row.original.id, 'quantity');
+                        }}
+                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        placeholder="0"
+                    />
                 );
             },
         },
-        // {
-        //     header: "Isi Packing",
-        //     accessorKey: "isi_packing",
-        //     cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        // },
         {
             header: "Satuan",
             accessorKey: "unit",
@@ -182,17 +180,6 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                 />
             ),
         },
-        // {
-        //     header: "Diskon (%)",
-        //     cell: () => (
-        //         <input
-        //             type="number"
-        //             className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-        //             placeholder="0%"
-        //         />
-        //     ),
-        // },
-
         {
             header: "Total",
             cell: ({ row }) => {
@@ -265,12 +252,9 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             return item;
         });
     
-        dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
+        dispatch(setTableData({ tableName: "s_transaksi", data: updatedData }));
     };
     
-
-
-
     const handleDelete = (id: number) => {
         dispatch(deleteRow({ tableName, id }));
         toast.error("Produk berhasil dihapus!");
@@ -289,8 +273,59 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
           const final = isPpnIncluded ? subtotal : subtotal * 1.11;
           return acc + final;
         }, 0);
-      };      
-         
+      };
+      
+      const postOnlyTableItems = async () => {
+        try {
+            const items = data
+            .filter(item => typeof item.id === "number")
+            .map(item => ({
+                stock: item.stock,
+                stock_code: item.stock_code,
+                stock_name: item.stock_name,
+                quantity: String(item.quantity || 0),
+                satuan: item.unit || "",
+                stock_price_buy: String(item.stock_price_buy || 0),
+                // sell_price: String(item.stock_price_sell || 0),
+                disc: String(item.discount || 0),
+            }));          
+            console.log("✅ items yang akan dikirim:");
+            console.table(items);
+
+            const customer_id = form.getValues("customer"); // sudah ID, bukan name
+      
+          const payload = {
+            th_type: "SALE", // ← masih wajib karena backend minta
+            customer: customer_id,
+            items
+          };
+      
+          const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+          const endpoint = `${API_URL}api/transactions/calculate_preview/`;
+      
+          console.log("Payload:", JSON.stringify(payload, null, 2));
+      
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+      
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`HTTP ${response.status}: ${text}`);
+          }
+      
+          const result = await response.json();
+          console.log("Response dari server:", result);
+          toast.success("Data dari modal berhasil dikirim ke server!");
+        } catch (error) {
+          console.error("Gagal kirim data:", error);
+          toast.error("Gagal mengirim data.");
+        }
+      };            
 
     return (
         <div className="flex flex-col space-y-4">
@@ -352,7 +387,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                         value={customer?.id ?? null}
                                         onChange={(selectedCustomer) => {
                                             setCustomer(selectedCustomer);
-                                            field.onChange(selectedCustomer?.name ?? ""); // Kirim nama customer
+                                            field.onChange(selectedCustomer?.id ?? null);
                                         }}
                                         />
                                     </FormControl>
@@ -412,7 +447,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[100vw] max-h-[90vh]">
-                                    <TambahProdukModalSelling tableName='transaksi' />
+                                    <TambahProdukModalSelling tableName='s_transaksi' />
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -467,7 +502,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                     <div className='flex justify-end gap-2 mt-4 '>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+                                <Button type="button"
+    onClick={postOnlyTableItems} className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
                             </DialogTrigger>
                             <DialogContent className="w-[30vw] max-h-[90vh]">
                                 <BayarTPModal  />

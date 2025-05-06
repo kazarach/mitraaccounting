@@ -81,7 +81,7 @@ const TpModalSelling = () => {
           stock: item.stock, 
         };
   
-        dispatch(addRow({ tableName: "transaksi", row: newItem }));
+        dispatch(addRow({ tableName: "s_transaksi", row: newItem }));
       });
   
       // Success message

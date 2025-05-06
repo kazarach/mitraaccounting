@@ -17,7 +17,7 @@ const SellingTransaction = () => {
           <CardTitle>Transaksi Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
-          <TransactionSellingTable tableName='transaksi' />
+          <TransactionSellingTable tableName='s_transaksi' />
         </CardContent>
       </Card>
     </div>

@@ -35,10 +35,10 @@ export const tableSlice = createSlice({
           ? Math.max(...table.map((row) => row.id ?? 0)) + 1
           : 0;
     
-        const rowWithId = {
-          ...rowToAdd,
-          id: rowToAdd.id ?? nextId,
-        };
+          const rowWithId = {
+            ...rowToAdd,
+            id: rowToAdd.stock ?? rowToAdd.id ?? nextId, // ✅ prioritas dari field `stock`
+          };          
     
         table.push(rowWithId);
       }
