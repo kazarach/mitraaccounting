@@ -40,7 +40,18 @@ import { DateRange } from 'react-day-picker';
 import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 
-const TpModalSelling = () => {
+interface TpModalSellingProps {
+  onCustomerSelect?: (
+    customerId: number,
+    customerName: string,
+    price_category: number, // ✅ tambahkan ini
+    thDate: string,
+    thDisc: number,
+    thPpn?: number
+  ) => void;
+}
+
+const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -64,6 +75,17 @@ const TpModalSelling = () => {
   );
 
   const handleAddProduct = (row: any) => {
+    if (row.original.customer && onCustomerSelect) {
+      const customerId = row.original.customer;
+      const customerName = row.original.customer_name;
+      const priceCategory = row.original.customer_price_category ?? 1; // fallback ke 1 kalau tidak ada
+      const thDate = row.original.th_date;
+      const thDisc = parseFloat(row.original.th_disc) || 0;
+      const thPpn = parseFloat(row.original.th_ppn) || 0;
+    
+      onCustomerSelect(customerId, customerName, priceCategory, thDate, thDisc, thPpn);
+    }
+      
     if (row.original.items && row.original.items.length > 0) {
       row.original.items.forEach((item: any) => {
         const newItem = {
@@ -75,7 +97,7 @@ const TpModalSelling = () => {
           quantity: parseFloat(item.quantity) || 1, 
           stock_price_buy: parseFloat(item.stock_price_buy) || 0, 
           stock_price_sell: parseFloat(item.sell_price) || 0, 
-          discount: item.disc ?? 0, 
+          discount: item.th_disc ?? 0, 
           netto: parseFloat(item.netto) || 0, 
           total: parseFloat(item.total) || 0, 
           stock: item.stock, 
@@ -91,8 +113,6 @@ const TpModalSelling = () => {
     }
   };
   
-  
-
 
   const columns: ColumnDef<any>[] = [
     { accessorKey: "th_code", header: "No Faktur", meta: { width: 120 } },
@@ -108,6 +128,7 @@ const TpModalSelling = () => {
       },
     },
 
+    { accessorKey: "customer_name", header: "Pelanggan" },
     { accessorKey: "supplier_name", header: "Pemasok" },
     {
       accessorKey: "th_total",

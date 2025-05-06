@@ -12,6 +12,7 @@ import SyncLoader from 'react-spinners/SyncLoader';
 type Customer = {
     id: number
     name: string
+    price_category: number;
 }
 
 type CustomerDDTSProps = {

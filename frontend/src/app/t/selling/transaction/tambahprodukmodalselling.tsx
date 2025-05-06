@@ -50,19 +50,24 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
   const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?transaction_type=SALE${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
+    const defaultPrice = product.prices?.find((p: any) => p.is_default) || product.prices?.[0];
+  
     const newItem = {
-      stock: product.id, // ✅ tambahkan ini agar ID dari API digunakan
+      stock: product.id,
       barcode: product.barcode,
       stock_code: product.code,
       stock_name: product.name,
-      jumlah_pesanan: "-",
-      quantity: product.jumlah_barang ?? 1,
-      stock_price_buy: product.price_buy,
+      jumlah_pesanan: product.jumlah_barang,
+      quantity: product.jumlah_barang,
+      stock_price_buy: parseFloat(product.price_buy),
+      stock_price_sell: defaultPrice ? parseFloat(defaultPrice.price_sell) : 0,
       unit: product.unit_name
     };
+  
     toast.success(product.name + " Berhasil Ditambahkan");
     dispatch(addRow({ tableName, row: newItem }));
   };
+    
 
   const columns = useMemo(
     () => [
@@ -84,23 +89,43 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
       {
         accessorKey: "price_buy",
         header: "Harga Beli",
-        cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
+        cell: (info: any) => `Rp ${info.getValue().toLocaleString("id-ID")}`,
       },
       {
         header: "Harga Jual 1",
-        accessorFn: (row: { prices: { price_sell: any }[] }) =>
-          row.prices?.[0]?.price_sell ? `Rp${Number(row.prices[0].price_sell).toLocaleString("id-ID")}` : "-",
+        accessorFn: (row: any) => {
+          const price = row.prices?.find((p: any) => p.price_category === 1);
+          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
+        },
       },
       {
         header: "Harga Jual 2",
-        accessorFn: (row: { prices: { price_sell: any }[] }) =>
-          row.prices?.[1]?.price_sell ? `Rp${Number(row.prices[1].price_sell).toLocaleString("id-ID")}` : "-",
+        accessorFn: (row: any) => {
+          const price = row.prices?.find((p: any) => p.price_category === 2);
+          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
+        },
       },
       {
         header: "Harga Jual 3",
-        accessorFn: (row: { prices: { price_sell: any }[] }) =>
-          row.prices?.[2]?.price_sell ? `Rp${Number(row.prices[2].price_sell).toLocaleString("id-ID")}` : "-",
-      },
+        accessorFn: (row: any) => {
+          const price = row.prices?.find((p: any) => p.price_category === 3);
+          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
+        },
+      },      
+      {
+        header: "Harga Jual 4",
+        accessorFn: (row: any) => {
+          const price = row.prices?.find((p: any) => p.price_category === 4);
+          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
+        },
+      },      
+      {
+        header: "Harga Jual 5",
+        accessorFn: (row: any) => {
+          const price = row.prices?.find((p: any) => p.price_category === 5);
+          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
+        },
+      },      
       {
         accessorKey: "last_buy",
         header: "Last Buy",
@@ -129,30 +154,28 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
         header: "Action",
         cell: ({ row }: { row: Row<any> }) => {
           const product = row.original;
-          const [quantity, setQuantity] = useState<number>(Number(product.jumlah_barang) || 0);
+          const [_, forceUpdate] = useState(0); // Pakai ini kalau mau trigger render ulang
+const quantity = Number(product.jumlah_barang) || 0;
+
       
-          const updateQuantity = (val: number | string) => {
-            const parsed = Number(val);
-            const value = isNaN(parsed) ? 0 : Math.max(0, parsed);
-            setQuantity(value);
-            row.original.jumlah_barang = value;
-          };                
+const updateQuantity = (val: number | string) => {
+  const parsed = Number(val);
+  const value = isNaN(parsed) ? 0 : Math.max(0, parsed);
+  row.original.jumlah_barang = value;
+  forceUpdate((n) => n + 1); // Paksa render ulang supaya input ikut berubah
+};
+            
       
-          const increment = () => {
-            setQuantity((prev) => {
-              const next = prev + 1;
-              row.original.jumlah_barang = next;
-              return next;
-            });
-          };
-          
-          const decrement = () => {
-            setQuantity((prev) => {
-              const next = Math.max(0, prev - 1);
-              row.original.jumlah_barang = next;
-              return next;
-            });
-          };       
+const increment = () => {
+  row.original.jumlah_barang = (row.original.jumlah_barang || 0) + 1;
+  forceUpdate(n => n + 1); // trigger re-render
+};
+
+const decrement = () => {
+  row.original.jumlah_barang = Math.max(0, (row.original.jumlah_barang || 0) - 1);
+  forceUpdate(n => n + 1); // trigger re-render
+};
+       
           
           
       

@@ -33,6 +33,8 @@ import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import CustomerDDTS from './customer-dd';
 import TambahProdukModalSelling from './tambahprodukmodalselling';
 import TpModalSelling from './modalpesanan';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import BayarTPModalJual from './previewmodal';
 
 type Customer = {
     id: number;
@@ -45,7 +47,7 @@ const formSchema = z.object({
     }).datetime({ message: "Pilih Tanggal!" }),
     customer: z.number({
         required_error: "Pilih Customer!"
-    }),
+      }).nullable(),      
     th_disc: z.number({
         required_error: "Masukkan Diskon Nota"
     }),
@@ -90,6 +92,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     const [value, setValue] = React.useState("")
     const [isPpnIncluded, setIsPpnIncluded] = useState(false);
     const [customer, setCustomer] = useState<Customer | null>(null);
+    const [previewData, setPreviewData] = useState<any>(null); // untuk menyimpan response dari API
+    const [thDisc, setThDisc] = useState(0);
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
     console.log("🟡 data dari Redux:", data);
@@ -104,7 +108,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     })
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        toast.success("Form berhasil disubmit!")
+        toast.success("Form berhasil dihapus!")
         console.log(values)
         dispatch(clearTable({ tableName }));
     }
@@ -141,33 +145,32 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Harga Beli",
             cell: ({ row }) => {
-                const stock_price_buy = row.original.stock_price_buy || 0;
-
-                return (
-                    <input
-                        type="number"
-                        defaultValue={stock_price_buy}
-                        onBlur={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
-                    />
-                );
+              const stock_price_buy = row.original.stock_price_buy || 0;
+          
+              return (
+                <div className="text-left pl-1">
+                  Rp {Number(stock_price_buy).toLocaleString("id-ID")}
+                </div>
+              );
             },
-        },
+          },
         {
             header: "Harga Jual",
             cell: ({ row }) => {
-                const stock_price_buy = row.original.stock_price_buy || 0;
+                const stock_price_sell = row.original.stock_price_sell || 0;
 
                 return (
-                    <input
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                      <input
                         type="number"
-                        defaultValue={stock_price_buy}
-                        onBlur={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        defaultValue={stock_price_sell}
+                        onBlur={(e) => handleChange(e, row.original.id, 'stock_price_sell')}
+                        className="pl-8 pr-2 text-left w-24 bg-gray-100 rounded-sm"
                         placeholder="0"
-                    />
-                );
+                      />
+                    </div>
+                  );
             },
         },
         {
@@ -183,26 +186,33 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Total",
             cell: ({ row }) => {
-                const harga = Number(row.original.stock_price_buy) || 0;
+                const harga = Number(row.original.stock_price_sell) || 0;
                 const quantity = Number(row.original.quantity) || 0;
                 const subtotal = harga * quantity;
                 return (
-                    <div className="">Rp{subtotal.toLocaleString("id-ID")}</div>
+                    <div className="">Rp {subtotal.toLocaleString("id-ID")}</div>
                 );
             },
         },
         {
             header: "Inc. PPN",
             cell: ({ row }) => {
-                const harga = row.original.stock_price_buy || 0;
-                const quantity = row.original.quantity || 0;
-                const subtotal = (harga * quantity);
-                const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
-                return (
-                    <div className="text-left">Rp{finalTotal.toLocaleString("id-ID")}</div>
-                );
+              const harga = row.original.stock_price_sell || 0;
+              const quantity = row.original.quantity || 0;
+              const subtotal = harga * quantity;
+
+              if (!isPpnIncluded) {
+                return <div className="text-left">-</div>;
+              }
+          
+              const finalTotal = isPpnIncluded ? subtotal * 1.11 : subtotal;
+              console.log("isPpnIncluded:", isPpnIncluded);
+          
+              return (
+                <div className="text-left">Rp{finalTotal.toLocaleString("id-ID")}</div>
+              );
             },
-        },
+          },          
         {
             header: "Action",
             cell: ({ row }) => (
@@ -262,20 +272,47 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
 
     const handleClear = () => {
         dispatch(clearTable({ tableName }));
-        toast.error("Table berhasil dihapus!");
-    };
-
-    const getTotalWithPPN = () => {
-        return data.reduce((acc, item) => {
-          const harga = Number(item.stock_price_buy) || 0;
-          const quantity = Number(item.quantity) || 0;
-          const subtotal = harga * quantity;
-          const final = isPpnIncluded ? subtotal : subtotal * 1.11;
-          return acc + final;
-        }, 0);
+        toast.error("Tabel berhasil dihapus!");
+      
+        form.reset({
+          th_date: new Date().toISOString(), // ← reset ke hari ini atau kosongkan
+          customer: null,
+          th_disc: 0,
+        });
+      
+        setCustomer(null);
       };
       
+      const getTotalWithPPN = () => {
+        const total = data.reduce((acc, item) => {
+          const harga = Number(item.stock_price_sell) || 0;
+          const quantity = Number(item.quantity) || 0;
+          return acc + (harga * quantity);
+        }, 0);
+      
+        const th_disc = form.getValues("th_disc") || 0;
+        const totalSetelahDiskon = total * (1 - th_disc / 100);
+      
+        return isPpnIncluded ? totalSetelahDiskon * 1.11 : totalSetelahDiskon;
+      };
+            
+
+      const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
+      
       const postOnlyTableItems = async () => {
+        const customer_id = form.getValues("customer");
+        const th_disc = form.getValues("th_disc");
+        const th_ppn = isPpnIncluded ? 11 : 0;
+
+        if (!customer_id) {
+            toast.error("Pilih customer terlebih dahulu!");
+            return;
+        }
+        if (!data.length) {
+            toast.error("Silakan tambahkan produk terlebih dahulu.");
+            return;
+          }
+          
         try {
             const items = data
             .filter(item => typeof item.id === "number")
@@ -297,6 +334,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
           const payload = {
             th_type: "SALE", // ← masih wajib karena backend minta
             customer: customer_id,
+            th_disc: th_disc,
+            th_ppn: th_ppn,
             items
           };
       
@@ -319,16 +358,24 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
           }
       
           const result = await response.json();
-          console.log("Response dari server:", result);
-          toast.success("Data dari modal berhasil dikirim ke server!");
+        console.log("Response dari server:", result);
+        toast.success("Data dari modal berhasil dikirim ke server!");
+
+        // Simpan hasil ke state
+        setPreviewData({
+        ...result,
+        customer_name: customer?.name ?? "", // opsional
+        });
+        setIsBayarModalOpen(true);
         } catch (error) {
           console.error("Gagal kirim data:", error);
           toast.error("Gagal mengirim data.");
         }
+        setIsBayarModalOpen(true);
       };            
 
     return (
-        <div className="flex flex-col space-y-4">
+        <div className="flex flex-col space-y-4 ">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
@@ -354,7 +401,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                                         >
                                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                                             {field.value
-                                                                ? format(new Date(field.value), "d MMMM yyyy", { locale: id })
+                                                                ? format(new Date(field.value), "d/MM/yyyy", { locale: id })
                                                                 : <span>Pilih Tanggal</span>}
                                                         </Button>
                                                     </PopoverTrigger>
@@ -401,20 +448,25 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     name="th_disc"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Diskon Nota</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    value={field.value}
-                                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                                    className='bg-gray-100 h-[30px] w-[150px]'
-                                                    placeholder='0%'
-                                                />
-                                            </FormControl>
-                                            {/* <FormMessage /> */}
+                                        <FormLabel>Diskon Nota (%)</FormLabel>
+                                        <FormControl>
+                                        <Input
+                                            type="number"
+                                            value={field.value === 0 ? "" : field.value}
+                                            onChange={(e) => {
+                                                const input = e.target.value.replace(/^0+(?!$)/, ""); // hilangkan leading zero
+                                                const parsed = parseFloat(input) || 0;
+                                                field.onChange(parsed);
+                                                setThDisc(parsed); // ← update state diskon
+                                            }}
+                                            className='bg-gray-100 w-[150px] h-[30px]'
+                                            placeholder='0%'
+                                            />
+                                        </FormControl>
                                         </FormItem>
                                     )}
-                                />
+                                    />
+
                             </div>
                             <div className="flex  gap-2 items-center pb-2">
                                 <Checkbox
@@ -439,7 +491,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[70vw] max-h-[90vh]">
-                                    <TpModalSelling />
+                                <TpModalSelling onCustomerSelect={(id, name, thDate, thDisc, thPpn) => {
+                                    const customerData = { id, name };
+                                    setCustomer(customerData);
+                                    form.setValue("customer", id);
+                                    if (thDate) form.setValue("th_date", new Date(thDate).toISOString());
+                                    form.setValue("th_disc", Number(thDisc)); 
+                                    setIsPpnIncluded(thPpn === 11);
+                                    }} />
                                 </DialogContent>
                             </Dialog>
                             <Dialog>
@@ -455,7 +514,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
-                    <div className="rounded-md border overflow-auto overflow-x-hidden">
+                    <ScrollArea className="h-[calc(100vh-300px)] overflow-x-auto overflow-y-auto max-w-screen">
+                    <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                         <Table>
                             <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                                 {table.getHeaderGroups().map((headerGroup) => (
@@ -487,7 +547,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     </TableRow>
                                 )}
                             </TableBody>
-                            <TableFooter>
+                            <TableFooter className='sticky bottom-0 z-10 bg-white'>
                                 <TableRow className="bg-white">
                                     <TableCell colSpan={8} className="text-right font-bold">
                                         Total:
@@ -499,19 +559,21 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             </TableFooter>
                         </Table>
                     </div>
+                    </ScrollArea>
                     <div className='flex justify-end gap-2 mt-4 '>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button type="button"
-    onClick={postOnlyTableItems} className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
-                            </DialogTrigger>
+                        <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>
+                            <Button
+                            type="button"
+                            onClick={postOnlyTableItems}
+                            className='font-medium bg-blue-500 hover:bg-blue-600'
+                            >
+                            Simpan
+                            </Button>
                             <DialogContent className="w-[30vw] max-h-[90vh]">
-                                <BayarTPModal  />
+                            <BayarTPModalJual data={previewData} />
                             </DialogContent>
                         </Dialog>
-
                     </div>
-
                 </form>
             </Form >
         </div>
