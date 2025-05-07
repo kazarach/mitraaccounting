@@ -17,6 +17,8 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'unit',
             'sell_price',
             'disc',
+            'disc_percent',
+            'disc_percent2',
             'total',
             'netto',
         ]

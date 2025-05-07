@@ -288,13 +288,13 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         for item_data in items_data:
             # Create a temporary item object linked to the temporary transaction
             temp_item = TransItemDetail(transaction=temp_transaction, **item_data)
-            
+            print("temp_item disc_percent before calc:", temp_item.disc_percent)
             # Apply calculation logic without saving
             self._calculate_item_totals(temp_item)
             
             # Add to processed items and track totals
             total_netto += temp_item.netto
-            
+            print("temp_item disc_percent after calc:", temp_item.disc_percent)
             # Convert to dictionary for response
             item_dict = {
                 'stock_id': temp_item.stock.id if temp_item.stock else None,
@@ -304,8 +304,8 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 'quantity': float(temp_item.quantity),
                 'sell_price': float(temp_item.sell_price) if temp_item.sell_price else 0,
                 'disc': float(temp_item.disc) if temp_item.disc else 0,
-                'disc_percent': float(temp_item.disc_percent) if temp_item.disc_percent else 0,
-                'disc_percent2': float(temp_item.disc_percent2) if temp_item.disc_percent2 else 0,
+                'disc_percent': float(temp_item.disc_percent or 0),
+                'disc_percent2': float(temp_item.disc_percent2 or 0),
                 'total': float(temp_item.total),
                 'netto': float(temp_item.netto)
             }
