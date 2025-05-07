@@ -8,12 +8,16 @@ import { Button } from '@/components/ui/button';
 import useSWR from 'swr';
 // import Loading from '@/components/ui/loading';
 import SyncLoader from 'react-spinners/SyncLoader';
+import useAuthGuard from '@/hooks/useAuthGuard';
 
 type Customer = {
-    id: number
-    name: string
-    price_category: number;
-}
+    id: number;
+    name: string;
+    price_category?: {
+      id: number;
+      name: string;
+    };
+  };   
 
 type CustomerDDTSProps = {
     value: number | null;
@@ -21,6 +25,7 @@ type CustomerDDTSProps = {
   };
 
   const CustomerDDTS: React.FC<CustomerDDTSProps> = ({ value, onChange }) => {
+    useAuthGuard();
     const [open, setOpen] = React.useState(false);
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
     const { data = [], error, isLoading } = useSWR<Customer[]>(
@@ -42,7 +47,7 @@ type CustomerDDTSProps = {
                         aria-expanded={open}
                         className="w-[150px] h-[30px] justify-between font-normal"
                     >
-                        {selectedCustomer ? selectedCustomer.name : 'Semua'}
+                        {selectedCustomer ? selectedCustomer.name : 'Pilih'}
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>

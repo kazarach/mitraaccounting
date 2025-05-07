@@ -39,7 +39,11 @@ import BayarTPModalJual from './previewmodal';
 type Customer = {
     id: number;
     name: string;
-  };
+    price_category?: {
+      id: number;
+      name: string;
+    };
+  };   
 
 const formSchema = z.object({
     th_date: z.string({
@@ -63,8 +67,8 @@ const formSchema = z.object({
 })
 
 interface TransactionRow {
-    id:number;
-    stock: number; 
+    id: number;
+    stock: number;
     barcode: string;
     stock_code: string;
     stock_name: string;
@@ -79,7 +83,12 @@ interface TransactionRow {
     satuan: string;
     isi_packing: number;
     subtotal: number;
-  }
+
+    prices?: {
+        price_category: number;
+        price_sell: string;
+    }[]; // ⬅️ TAMBAHKAN INI
+}
 
 
 interface Props {
@@ -113,6 +122,18 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         dispatch(clearTable({ tableName }));
     }
 
+    const updateHargaJualByCustomer = (priceCategoryId: number) => {
+        const updated = data.map((item) => {
+          const selectedPrice = item.prices?.find((p: any) => p.price_category === priceCategoryId);
+          return {
+            ...item,
+            stock_price_sell: selectedPrice ? parseFloat(selectedPrice.price_sell) : item.stock_price_sell,
+          };
+        });
+      
+        dispatch(setTableData({ tableName, data: updated }));
+      };      
+
     const columns: ColumnDef<TransactionRow>[] = [
         {
             header: "Produk",
@@ -143,36 +164,17 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             accessorKey: "unit",
         },
         {
-            header: "Harga Beli",
+            header: "Harga Jual",
             cell: ({ row }) => {
-              const stock_price_buy = row.original.stock_price_buy || 0;
+              const stock_price_sell = row.original.stock_price_sell || 0;
           
               return (
                 <div className="text-left pl-1">
-                  Rp {Number(stock_price_buy).toLocaleString("id-ID")}
+                  Rp {Number(stock_price_sell).toLocaleString("id-ID")}
                 </div>
               );
             },
-          },
-        {
-            header: "Harga Jual",
-            cell: ({ row }) => {
-                const stock_price_sell = row.original.stock_price_sell || 0;
-
-                return (
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                      <input
-                        type="number"
-                        defaultValue={stock_price_sell}
-                        onBlur={(e) => handleChange(e, row.original.id, 'stock_price_sell')}
-                        className="pl-8 pr-2 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
-                      />
-                    </div>
-                  );
-            },
-        },
+          },          
         {
             header: "Diskon (Rp)",
             cell: () => (
@@ -209,7 +211,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
               console.log("isPpnIncluded:", isPpnIncluded);
           
               return (
-                <div className="text-left">Rp{finalTotal.toLocaleString("id-ID")}</div>
+                <div className="text-left">Rp {finalTotal.toLocaleString("id-ID")}</div>
               );
             },
           },          
@@ -253,10 +255,10 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                 if (field === 'quantity') {
                     updatedItem.quantity = value;
                 } else if (field === 'stock_price_buy') {
-                    updatedItem.stock_price_buy = value;
+                    updatedItem.stock_price_sell = value;
                 }
     
-                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
+                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_sell;
                 return updatedItem;
             }
             return item;
@@ -323,7 +325,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                 quantity: String(item.quantity || 0),
                 satuan: item.unit || "",
                 stock_price_buy: String(item.stock_price_buy || 0),
-                // sell_price: String(item.stock_price_sell || 0),
+                sell_price: String(item.stock_price_sell || 0),
                 disc: String(item.discount || 0),
             }));          
             console.log("✅ items yang akan dikirim:");
@@ -430,11 +432,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <FormItem>
                                     <FormLabel>Customer</FormLabel>
                                     <FormControl>
-                                        <CustomerDDTS
+                                    <CustomerDDTS
                                         value={customer?.id ?? null}
                                         onChange={(selectedCustomer) => {
                                             setCustomer(selectedCustomer);
-                                            field.onChange(selectedCustomer?.id ?? null);
+                                            form.setValue("customer", selectedCustomer?.id ?? null);
+
+                                            const priceCategoryId = selectedCustomer?.price_category?.id ?? 1;
+                                            updateHargaJualByCustomer(priceCategoryId); // ⬅️ update harga jual
                                         }}
                                         />
                                     </FormControl>
@@ -491,8 +496,12 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[70vw] max-h-[90vh]">
-                                <TpModalSelling onCustomerSelect={(id, name, thDate, thDisc, thPpn) => {
-                                    const customerData = { id, name };
+                                <TpModalSelling onCustomerSelect={(id, name, priceCategoryId, thDate, thDisc, thPpn) => {
+                                    const customerData = {
+                                        id,
+                                        name,
+                                        price_category: { id: priceCategoryId, name: "" } // boleh kosong, karena hanya `id` yang kamu butuh
+                                    };
                                     setCustomer(customerData);
                                     form.setValue("customer", id);
                                     if (thDate) form.setValue("th_date", new Date(thDate).toISOString());
@@ -506,7 +515,10 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[100vw] max-h-[90vh]">
-                                    <TambahProdukModalSelling tableName='s_transaksi' />
+                                <TambahProdukModalSelling
+                                    tableName="s_transaksi"
+                                    priceCategoryId={customer?.price_category?.id ?? 1}
+                                    />
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -549,11 +561,11 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             </TableBody>
                             <TableFooter className='sticky bottom-0 z-10 bg-white'>
                                 <TableRow className="bg-white">
-                                    <TableCell colSpan={8} className="text-right font-bold">
+                                    <TableCell colSpan={7} className="text-right font-bold">
                                         Total:
                                     </TableCell>
                                     <TableCell className="text-left font-bold">
-                                        Rp{getTotalWithPPN().toLocaleString("id-ID")}
+                                        Rp {getTotalWithPPN().toLocaleString("id-ID")}
                                     </TableCell>
                                 </TableRow>
                             </TableFooter>

@@ -36,37 +36,38 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface TambahProdukModalProps {
   tableName: string;
+  priceCategoryId: number;
 }
 
-const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName }) => {
+const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName, priceCategoryId = 1 }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
   const [distributor, setDistributor] = useState<number[]>([]);
   const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
+  const priceCategory = priceCategoryId ?? 1;
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?transaction_type=SALE${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
-    const defaultPrice = product.prices?.find((p: any) => p.is_default) || product.prices?.[0];
-  
-    const newItem = {
-      stock: product.id,
-      barcode: product.barcode,
-      stock_code: product.code,
-      stock_name: product.name,
-      jumlah_pesanan: product.jumlah_barang,
-      quantity: product.jumlah_barang,
-      stock_price_buy: parseFloat(product.price_buy),
-      stock_price_sell: defaultPrice ? parseFloat(defaultPrice.price_sell) : 0,
-      unit: product.unit_name
-    };
-  
+  const selectedPrice = product.prices?.find((p: any) => p.price_category === priceCategory);
+  const newItem = {
+    stock: product.id,
+    barcode: product.barcode,
+    stock_code: product.code,
+    stock_name: product.name,
+    jumlah_pesanan: product.jumlah_barang,
+    quantity: product.jumlah_barang,
+    stock_price_buy: parseFloat(product.price_buy),
+    stock_price_sell: selectedPrice ? parseFloat(selectedPrice.price_sell) : 0,
+    unit: product.unit_name
+  };
+    
     toast.success(product.name + " Berhasil Ditambahkan");
     dispatch(addRow({ tableName, row: newItem }));
-  };
+  };  
     
 
   const columns = useMemo(
@@ -84,7 +85,6 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
           </div>
         ),
       },
-
       { accessorKey: "available_quantity", header: "Jumlah Stok" },
       {
         accessorKey: "price_buy",
@@ -92,37 +92,10 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName 
         cell: (info: any) => `Rp ${info.getValue().toLocaleString("id-ID")}`,
       },
       {
-        header: "Harga Jual 1",
+        header: "Harga Jual",
+        // Kolom Harga Jual
         accessorFn: (row: any) => {
-          const price = row.prices?.find((p: any) => p.price_category === 1);
-          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
-        },
-      },
-      {
-        header: "Harga Jual 2",
-        accessorFn: (row: any) => {
-          const price = row.prices?.find((p: any) => p.price_category === 2);
-          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
-        },
-      },
-      {
-        header: "Harga Jual 3",
-        accessorFn: (row: any) => {
-          const price = row.prices?.find((p: any) => p.price_category === 3);
-          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
-        },
-      },      
-      {
-        header: "Harga Jual 4",
-        accessorFn: (row: any) => {
-          const price = row.prices?.find((p: any) => p.price_category === 4);
-          return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
-        },
-      },      
-      {
-        header: "Harga Jual 5",
-        accessorFn: (row: any) => {
-          const price = row.prices?.find((p: any) => p.price_category === 5);
+          const price = row.prices?.find((p: any) => p.price_category === priceCategory);
           return price ? `Rp ${Number(price.price_sell).toLocaleString("id-ID")}` : "-";
         },
       },      
@@ -182,12 +155,12 @@ const decrement = () => {
           return (
             <div className="flex items-center gap-2">
               <div className="flex items-center border rounded">
-                <button
+                {/* <button
                   onClick={decrement}
                   className="px-2 bg-red-200 rounded-l hover:bg-red-300"
                 >
                   -
-                </button>
+                </button> */}
                 <input
                     type="number"
                     value={quantity === 0 ? "" : quantity}
@@ -196,15 +169,15 @@ const decrement = () => {
                         updateQuantity(parsed);
                     }}
                     placeholder="0"
-                    className="w-12 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-12 text-center bg-gray-100 outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     min={0}
                     />
-                <button
+                {/* <button
                   onClick={increment}
                   className="px-2 bg-blue-200 rounded-r hover:bg-blue-300"
                 >
                   +
-                </button>
+                </button> */}
               </div>
               <Button
                 onClick={() => handleAddProduct(row.original)}
@@ -262,10 +235,10 @@ const decrement = () => {
           </div>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto">
+        <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto rounded-t-md">
         <div className="w-[90vw] text-sm border-separate border-spacing-0 min-w-full">
             <Table className=" bg-white">
-              <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+              <TableHeader className="bg-gray-100 sticky top-0 z-10 border" >
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
