@@ -39,7 +39,7 @@ class TransactionHistory(models.Model):
     th_ppn = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     th_dp = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     th_total = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    th_round = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    # th_round = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
 
     th_date = models.DateTimeField(default=timezone.now)
     th_note = models.TextField(blank=True, null=True)
