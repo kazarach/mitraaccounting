@@ -288,13 +288,12 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         for item_data in items_data:
             # Create a temporary item object linked to the temporary transaction
             temp_item = TransItemDetail(transaction=temp_transaction, **item_data)
-            print("temp_item disc_percent before calc:", temp_item.disc_percent)
+
             # Apply calculation logic without saving
             self._calculate_item_totals(temp_item)
             
             # Add to processed items and track totals
             total_netto += temp_item.netto
-            print("temp_item disc_percent after calc:", temp_item.disc_percent)
             # Convert to dictionary for response
             item_dict = {
                 'stock_id': temp_item.stock.id if temp_item.stock else None,
@@ -322,6 +321,12 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             tax_amount = th_total * (temp_transaction.th_ppn / Decimal('100'))
             th_total += tax_amount
         
+        th_round = Decimal('0.00')
+        last_two_digits = th_total % Decimal('100')
+        if last_two_digits > Decimal('0'):
+            th_round = Decimal('100') - last_two_digits
+            th_total += th_round
+
         # Calculate potential loyalty points
         potential_points = 0
         if temp_transaction.th_type == 'SALE':
@@ -335,7 +340,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             'th_disc': float(temp_transaction.th_disc) if temp_transaction.th_disc else 0,
             'th_ppn': float(temp_transaction.th_ppn) if temp_transaction.th_ppn else 0,
             'th_total': float(th_total),
-            
+            'th_round': float(th_round),
             'potential_points': potential_points,
             'is_preview': True
         }
