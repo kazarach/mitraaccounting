@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     Table,
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, fetcher, fetcherpost } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
@@ -46,6 +46,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
+import useSWRMutation from 'swr/mutation';
+
+
+
 
 const formSchema = z.object({
     th_date: z.string({
@@ -68,6 +72,25 @@ const formSchema = z.object({
     // }))
 })
 
+type PayloadType = {
+    th_type: string;
+    supplier: number;
+    cashier: number;
+    th_disc: number;
+    th_date: string;
+    th_note: string;
+    items: {
+        stock: number;
+        stock_code: string;
+        stock_name: string;
+        stock_price_buy: number;
+        quantity: number;
+        sell_price: number;
+        disc: number;
+    }[];
+};
+
+
 interface TransactionRow {
     id: number;
     stock_name: string;
@@ -77,8 +100,10 @@ interface TransactionRow {
     isi_packing: number;
     satuan: string;
     subtotal: number;
+    disc?: number; // Diskon dalam Rp
+    disc_percent?: number; // Diskon 1 dalam persen
+    disc_percent2?: number; // Diskon 2 dalam persen
 }
-
 
 interface Props {
     tableName: string;
@@ -102,11 +127,64 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
+    const refs = useRef<Record<number, {
+        quantity?: HTMLInputElement | null;
+        price?: HTMLInputElement | null;
+        disc?: HTMLInputElement | null;
+        disc1?: HTMLInputElement | null;
+        disc2?: HTMLInputElement | null;
+        deleteBtn?: HTMLButtonElement | null;
+    }>>({});
+
     function onSubmit(values: z.infer<typeof formSchema>) {
-        toast.success("Form berhasil disubmit!")
-        console.log(values)
-        dispatch(clearTable({ tableName }));
+        const payload = {
+            th_type: "PURCHASE",
+
+            th_ppn: isPpnIncluded ? 0 : 11,
+            supplier: values.supplier,
+            cashier: 3,
+            th_disc: values.th_disc,
+            th_date: values.th_date,
+            th_note: "Test",
+            items: data.map((item) => ({
+                stock: item.stock,
+                stock_code: item.stock_code || "",
+                stock_name: item.stock_name,
+                stock_price_buy: item.stock_price_buy,
+                quantity: item.quantity,
+                sell_price: item.sell_price || 0,
+                disc: item.disc || 0,
+                disc_percent: item.disc_percent || 0,
+                disc_percent2: item.disc_percent2 || 0,
+            })),
+        };
+        console.log("Payload JSON:", JSON.stringify(payload, null, 2));
+
+        trigger(payload)
+            .then((res: any) => {
+                console.log("Hasil preview:", res);
+                // toast.success("Preview sukses!");
+            })
+            .catch((err: any) => {
+                // console.error("Gagal:", err.message);
+                toast.error(err.message);
+            });
+
+
     }
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!
+    const { trigger, data: review, error, isMutating } = useSWRMutation<
+        any, // response type
+        any, // error type
+        string, // URL key
+        PayloadType // arg type, ini penting!
+    >(
+        `${API_URL}/api/transactions/calculate_preview/`,
+        fetcherpost
+    );
+    // console.log(response)
+
 
     const columns: ColumnDef<TransactionRow>[] = [
         {
@@ -126,11 +204,22 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
+                        ref={(el) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].quantity = el;
+                        }}
                         type="number"
                         defaultValue={jumlahBarang}
+                        onKeyDown={(e) => {
+                            if (e.key === "Tab" && !e.shiftKey) {
+                              e.preventDefault(); // Stop default tab behavior
+                              setTimeout(() => {
+                                refs.current[row.original.id]?.price?.focus(); // Delay pindah focus
+                              }, 0);
+                            }
+                          }}
                         onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
                     />
                 );
             },
@@ -151,44 +240,100 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
+                        ref={(el: any) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].price = el;
+                        }}
                         type="number"
                         defaultValue={stock_price_buy}
+                        onKeyDown={(e) => {
+                            if (e.key === "Tab" && !e.shiftKey) {
+                              e.preventDefault(); // Stop default tab behavior
+                              setTimeout(() => {
+                                refs.current[row.original.id]?.disc?.focus(); // Delay pindah focus
+                              }, 0);
+                            }
+                          }}
                         onBlur={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
                     />
                 );
             },
         },
         {
             header: "Diskon (Rp)",
-            cell: () => (
-                <input
-                    type="number"
-                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-                    placeholder="Rp0"
-                />
-            ),
+            cell: ({ row }) => {
+                const disc = row.original.disc || 0;
+
+                return (
+                    <input
+                        ref={(el) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].disc = el;
+                        }}
+                        type="number"
+                        defaultValue={disc}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Tab' && !e.shiftKey) {
+                                e.preventDefault();
+                                refs.current[row.original.id]?.disc1?.focus();
+                            }
+                        }}
+                        onBlur={(e) => handleChange(e, row.original.id, "disc")}
+                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                    />
+                );
+            },
         },
         {
             header: "Diskon (%)",
-            cell: () => (
-                <input
-                    type="number"
-                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-                    placeholder="0%"
-                />
-            ),
+            cell: ({ row }) => {
+                const disc_percent = row.original.disc_percent || 0;
+
+                return (
+                    <input
+                        ref={(el) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].disc1 = el;
+                        }}
+                        type="number"
+                        defaultValue={disc_percent}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Tab' && !e.shiftKey) {
+                                e.preventDefault();
+                                refs.current[row.original.id]?.disc2?.focus();
+                            }
+                        }}
+                        onBlur={(e) => handleChange(e, row.original.id, "disc_percent")}
+                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                    />
+                );
+            },
         },
         {
-            header: "Diskon (%)",
-            cell: () => (
-                <input
-                    type="number"
-                    className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-                    placeholder="0%"
-                />
-            ),
+            header: "Diskon 2 (%)",
+            cell: ({ row }) => {
+                const disc_percent2 = row.original.disc_percent2 || 0;
+
+                return (
+                    <input
+                        ref={(el) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].disc2 = el;
+                        }}
+                        type="number"
+                        defaultValue={disc_percent2}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Tab' && !e.shiftKey) {
+                                e.preventDefault();
+                                refs.current[row.original.id]?.deleteBtn?.focus();
+                            }
+                        }}
+                        onBlur={(e) => handleChange(e, row.original.id, "disc_percent2")}
+                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                    />
+                );
+            },
         },
 
         {
@@ -219,10 +364,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             cell: ({ row }) => (
                 <div className="text-center">
                     <Button
-                        onClick={() => {
-                            handleDelete(row.original.id);
-                            toast.error("Produk berhasil dihapus!");
+                        ref={(el) => {
+                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
+                            refs.current[row.original.id].deleteBtn = el;
                         }}
+                        onClick={() => handleDelete(row.original.id)}
                         className="bg-red-500 hover:bg-red-600 size-7"
                     >
                         <Trash />
@@ -263,10 +409,16 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             if (item.id === rowId) {
                 const updatedItem = { ...item };
 
-                if (field === 'quantity') {
+                if (field === "quantity") {
                     updatedItem.quantity = value;
-                } else if (field === 'stock_price_buy') {
+                } else if (field === "stock_price_buy") {
                     updatedItem.stock_price_buy = value;
+                } else if (field === "disc") {
+                    updatedItem.disc = value;
+                } else if (field === "disc_percent") {
+                    updatedItem.disc_percent = value;
+                } else if (field === "disc_percent2") {
+                    updatedItem.disc_percent2 = value;
                 }
 
                 updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
@@ -277,10 +429,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         });
 
         dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
-
-        const total = updatedData.reduce((acc, item) => acc + (item.subtotal || 0), 0);
-        dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
     };
+
 
 
 
@@ -316,7 +466,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         <Button
                                                             variant="outline"
                                                             className={cn(
-                                                                "w-[200px] justify-start text-left font-normal",
+                                                                "w-[150px] h-[30px]  justify-start text-left font-normal",
                                                                 !field.value && "text-muted-foreground"
                                                             )}
                                                         >
@@ -358,6 +508,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         setDistributor(val)
                                                         field.onChange(val)
                                                     }}
+                                                    
                                                 />
                                             </FormControl>
                                             {/* <FormMessage /> */}
@@ -377,7 +528,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                     type="number"
                                                     value={field.value}
                                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                                    className='bg-gray-100'
+                                                    className='bg-gray-100 w-[150px] h-[30px]'
                                                     placeholder='0%'
                                                 />
                                             </FormControl>
@@ -476,10 +627,10 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0)).toLocaleString("id-ID")}
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0) * (isPpnIncluded ? 1.11 : 1)).toLocaleString("id-ID")}
+                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0) * (isPpnIncluded ? 1 : 1.11)).toLocaleString("id-ID")}
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        
+
                                     </TableCell>
                                 </TableRow>
                             </TableFooter>
@@ -488,10 +639,10 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     <div className='flex justify-end gap-2 mt-4 '>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Simpan</Button>
+                                <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit'>Simpan</Button>
                             </DialogTrigger>
-                            <DialogContent className="w-[20vw] max-h-[90vh]">
-                                <BayarTPModal />
+                            <DialogContent className="w-[25vw] max-h-[90vh]">
+                                <BayarTPModal review={review} />
                             </DialogContent>
                         </Dialog>
 

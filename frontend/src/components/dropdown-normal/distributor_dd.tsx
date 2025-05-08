@@ -45,7 +45,7 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-[200px] justify-between font-normal"
+                    className="w-[150px] h-[30px] justify-between font-normal"
                 >
                     {value !== null
                         ? data.find((d) => d.id === value)?.name

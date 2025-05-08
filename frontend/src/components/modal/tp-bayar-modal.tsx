@@ -12,9 +12,21 @@ import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Calendar } from '../ui/calendar';
 import { Input } from '../ui/input';
+import { z } from 'zod';
 
+interface BayarTPModalProps {
+    review: any;
+}
 
-const BayarTPModal: React.FC<any> = ({ }) => {
+const formSchema = z.object({
+    th_date: z.number({
+        required_error: "Pilih Tanggal!"
+    })
+    
+})
+
+const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
+
 
     const [date, setDate] = React.useState<Date>()
     return (
@@ -44,37 +56,29 @@ const BayarTPModal: React.FC<any> = ({ }) => {
 
 
                     <TableBody>
-                        <TableRow >
-                            <TableCell >Subtotal</TableCell>
-                            <TableCell className="text-left border-l ">{`20000`}</TableCell>
+                        <TableRow>
+                            <TableCell>Subtotal</TableCell>
+                            <TableCell className="text-left border-l">Rp{review?.subtotal?.toLocaleString("id-ID") || "0"}</TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell>DP</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
-                        </TableRow>
-                        <TableRow >
                             <TableCell>(-) Diskon</TableCell>
-                            <TableCell className="text-right border-l p-0 ">
-                                <Input type='number' placeholder='0%' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
-                            </TableCell>
+                            <TableCell className="text-left border-l">{review?.th_disc?.toLocaleString("id-ID") || "0"}%</TableCell>
                         </TableRow>
-                        <TableRow >
-                            <TableCell>(+) PPN Exclude</TableCell>
-                            <TableCell className="text-right border-l p-0 ">
-                                <Input type='number' placeholder='0%' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
-                            </TableCell>
+                        <TableRow>
+                            <TableCell>(+) PPN</TableCell>
+                            <TableCell className="text-left border-l">{review?.th_ppn?.toLocaleString("id-ID") || "0"}%</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>Total</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l ">Rp{((review?.th_total || 0) - (review?.th_round || 0)).toLocaleString("id-ID")}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>Pembulatan</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l ">Rp{review?.th_round?.toLocaleString("id-ID") || "0"}</TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className='font-bold'>Total Net</TableCell>
-                            <TableCell className="text-left border-l font-bold">{`5000`}</TableCell>
+                            <TableCell className="font-bold">Total Net</TableCell>
+                            <TableCell className="text-left border-l font-bold">Rp{review?.th_total?.toLocaleString("id-ID") || "0"}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''></TableCell>
@@ -154,8 +158,14 @@ const BayarTPModal: React.FC<any> = ({ }) => {
                             <TableCell className=''></TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className='font-bold'>Harus Dibayar</TableCell>
-                            <TableCell className="text-left border-l font-bold">{`5000`}</TableCell>
+                            <TableCell>DP</TableCell>
+                            <TableCell className="text-right border-l p-0 ">
+                            <TableCell className="text-left border-l ">Rp{review?.th_dp?.toLocaleString("id-ID") || "0"}</TableCell>
+                            </TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className='font-bold'>Sisa Bayar</TableCell>
+                            <TableCell className="text-left border-l font-bold">Rp{((review?.th_total || 0) - 200).toLocaleString("id-ID")}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Pembayaran</TableCell>
@@ -165,7 +175,7 @@ const BayarTPModal: React.FC<any> = ({ }) => {
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Kurang bayar</TableCell>
-                            <TableCell className="text-left border-l ">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l ">200</TableCell>
                         </TableRow>
                     </TableBody>
 

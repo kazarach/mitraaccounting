@@ -16,5 +16,5 @@ export function middleware(req: NextRequest) {
 
 
 export const config = {
-  matcher: ['/'], // Halaman yang memerlukan autentikasi
+  matcher: ['/'],
 };

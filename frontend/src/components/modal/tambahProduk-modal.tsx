@@ -52,6 +52,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   const handleAddProduct = (product: any) => {
     const subtotal = (product.jumlah_barang ?? 1) * product.price_buy;
     const newItem = {
+      stock: product.id,
       barcode: product.barcode,
       stock_code: product.code,
       stock_name: product.name,
@@ -128,14 +129,14 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           return format(parsedDate, "d/M/yyyy", { locale: id });
         },
       },
-      
+
       {
         accessorKey: "Action",
         header: "Action",
         cell: ({ row }: { row: Row<any> }) => {
           const product = row.original;
           const [quantity, setQuantity] = useState(product.jumlah_barang || "");
-      
+
           const updateQuantity = (val: number | string) => {
             if (val === "") {
               setQuantity(""); // Allow empty value
@@ -146,35 +147,24 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
               row.original.jumlah_barang = value; // Update the quantity in row
             }
           };
-      
+
           const increment = () => updateQuantity(quantity + 1);
           const decrement = () => updateQuantity(quantity - 1);
-      
+
           return (
             <div className="flex items-center gap-2">
               <div className="flex items-center border rounded">
-                <button
-                  onClick={decrement}
-                  className="px-2 bg-red-200 rounded-l hover:bg-red-300"
-                >
-                  -
-                </button>
                 <input
                   type="number"
                   value={quantity}
+                  placeholder="1"
                   onChange={(e) => {
                     const newValue = e.target.value;
                     updateQuantity(newValue); // Directly update based on input value
                   }}
-                  className="w-5 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-10 h-8 bg-gray-200 text-center outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   min={0}
                 />
-                <button
-                  onClick={increment}
-                  className="px-2 bg-blue-200 rounded-r hover:bg-blue-300"
-                >
-                  +
-                </button>
               </div>
               <Button
                 onClick={() => handleAddProduct(row.original)}
@@ -187,7 +177,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
         },
         enableSorting: false,
       }
-      
+
     ],
     [sorting]
   );
@@ -231,15 +221,15 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
           </div>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto">
-        <div className="w-[90vw] text-sm border-separate border-spacing-0 min-w-full">
-            <Table className=" bg-white">
-              <TableHeader className="sticky top-0 bg-gray-100 z-20">
+        <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto  rounded-t-md">
+          <div className="w-[90vw] text-sm border-separate border-spacing-0 min-w-full ">
+            <Table className=" bg-white rounded-md">
+              <TableHeader className="sticky top-0  z-20 bg-gray-100 ">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className=" ">
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id} className={cn(
-                        "text-left truncate w-[85px]",
+                        "text-left font-bold text-black p-2 border-b border-r last:border-r-0  ",
                         header.id === "barcode" && "w-[120px]",
                         header.id === "name" && "w-[200px]",
                         header.id === "jumlah" && "w-[120px]",
@@ -266,13 +256,13 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
+                  table.getRowModel().rows.map((row, rowIndex) => (
                     <TableRow key={row.id} className="bg-white">
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
                           className={cn(
-                            "text-left truncate w-[85px]",
+                            "text-left truncate w-[85px] p-2 border-b border-r first:border-l last:border-r", rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100',
                             cell.column.id === "barcode" && "w-[120px]",
                             cell.column.id === "name" && "w-[200px]",
                             cell.column.id === "jumlah" && "w-[120px]",
@@ -295,8 +285,8 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
               </TableBody>
 
             </Table>
-        </div>
-        <ScrollBar orientation="horizontal"/>
+          </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
 
