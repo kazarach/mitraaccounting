@@ -178,12 +178,14 @@ class TransItemDetail(models.Model):
                     self.sell_price = self.stock.hpp  # Fallback to stock's hpp if no stock price is found
             else:
                 self.sell_price = self.stock.hpp
+                
             # Code block for selling (only for SALE transactions)
-            self.total = self.quantity * (self.sell_price or 0)
-            price_after_disc1 = (self.sell_price or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
+            self.total = self.quantity * (self.stock_price_buy or 0)
+            price_after_disc = (self.stock_price_buy or 0) - (self.disc or 0)
+            price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
-            final_price = price_after_disc2 - (self.disc or 0)
-            netto = self.quantity * final_price
+            
+            netto = self.quantity * price_after_disc2
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
@@ -204,10 +206,11 @@ class TransItemDetail(models.Model):
         elif self.transaction.th_type == TransactionType.PURCHASE:
             # Code block for buying (only for PURCHASE transactions)
             self.total = self.quantity * (self.stock_price_buy or 0)
-            price_after_disc1 = (self.stock_price_buy or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
+            price_after_disc = (self.stock_price_buy or 0) - (self.disc or 0)
+            price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
-            final_price = price_after_disc2 - (self.disc or 0)
-            netto = self.quantity * final_price
+            
+            netto = self.quantity * price_after_disc2
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
