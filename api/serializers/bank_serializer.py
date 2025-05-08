@@ -1,21 +1,42 @@
 from rest_framework import serializers
-from api.models.bank import Bank
-from api.models.account import Account
+from ..models import Bank, Account
+
+class AccountMinimalSerializer(serializers.ModelSerializer):
+    """
+    Minimal serializer for Account model to be used in Bank serializers.
+    """
+    class Meta:
+        model = Account
+        fields = ['id', 'name']  # Assuming Account has a name field
+
 
 class BankSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Bank model with expanded account representation.
+    """
+    acc = AccountMinimalSerializer(read_only=True)
+    
     class Meta:
         model = Bank
-        fields = '__all__'  # Or list specific fields if needed
+        fields = ['id', 'code', 'name', 'type', 'cb', 'active', 'acc']
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Optional: Show related account info
-        if instance.acc:
-            data['account'] = {
-                'id': instance.acc.id,
-                'name': instance.acc.name,  # assuming Account has `name` field
-                'code': instance.acc.code,  # assuming Account has `code` field
-            }
-        else:
-            data['account'] = None
-        return data
+
+class BankCreateUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating and updating Bank instances.
+    """
+    class Meta:
+        model = Bank
+        fields = ['code', 'name', 'type', 'cb', 'active', 'acc']
+        
+    def validate_code(self, value):
+        """
+        Validate that the bank code is unique.
+        """
+        instance = getattr(self, 'instance', None)
+        if instance and instance.code == value:
+            return value
+            
+        if Bank.objects.filter(code=value).exists():
+            raise serializers.ValidationError("A bank with this code already exists.")
+        return value
