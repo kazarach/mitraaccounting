@@ -62,7 +62,8 @@ const TambahProdukModalSelling: React.FC<TambahProdukModalProps> = ({ tableName,
     quantity: product.jumlah_barang,
     stock_price_buy: parseFloat(product.price_buy),
     stock_price_sell: selectedPrice ? parseFloat(selectedPrice.price_sell) : 0,
-    unit: product.unit_name
+    unit: product.unit_name,
+    prices: product.prices, // ✅ WAJIB UNTUK UPDATING HARGA JUAL
   };
     
     toast.success(product.name + " Berhasil Ditambahkan");

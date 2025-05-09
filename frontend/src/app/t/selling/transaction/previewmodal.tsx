@@ -12,10 +12,56 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
+import BankDDTS from './bank-dd';
 
 
     const BayarTPModalJual: React.FC<{ data: any }> = ({ data }) => {
         const [date, setDate] = React.useState<Date>()
+        const [dp, setDp] = React.useState<number>(0); // ⬅️ state untuk input DP
+        const [payment, setPayment] = React.useState<number>(0);
+        const [selectedBank, setSelectedBank] = React.useState<number | null>(null);
+        const [payType, setPayType] = React.useState<string | null>(null);
+
+        const handlePostTransaction = async () => {
+            const rawPayload = data?._rawPayload;
+          
+            if (!rawPayload) {
+              alert("Payload transaksi tidak tersedia.");
+              return;
+            }
+          
+            const payload = {
+              ...rawPayload,
+              th_dp: dp || 0,
+            //   payment: payment || 0,
+              bank: selectedBank || null,
+              th_due_date: date?.toISOString() || null,
+            };
+            console.log("Payload modal:", JSON.stringify(payload, null, 2));
+          
+            try {
+              const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+              const response = await fetch(`${API_URL}api/transactions/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+          
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+              }
+          
+              const result = await response.json();
+              console.log("✅ Transaksi berhasil:", result);
+              alert("Transaksi berhasil disimpan.");
+            } catch (err) {
+              console.error("❌ Gagal kirim:", err);
+              alert("Gagal menyimpan transaksi.");
+            }
+          };                    
+          
+
     return (
         <div className=" flex flex-col " >
             <DialogHeader>
@@ -47,36 +93,38 @@ import { Input } from '@/components/ui/input';
                         <TableRow >
                             <TableCell className='border-r' >Subtotal</TableCell>
                             <TableCell>
-                Rp {(data?.subtotal ?? 0).toLocaleString("id-ID", { minimumFractionDigits: 2 })}
-              </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>DP</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
-                        </TableRow>
-                        <TableRow >
-                            <TableCell className='border-r'>(-) Diskon</TableCell>
-                            <TableCell className='bg-gray-100'>
-                                {(data?.th_disc ?? 0).toLocaleString("id-ID", { minimumFractionDigits: 2 })} %
+                                Rp {(data?.subtotal ?? 0).toLocaleString("id-ID")}
                             </TableCell>
                         </TableRow>
                         <TableRow >
-                            <TableCell>(+) PPN Exclude</TableCell>
-                            <TableCell className="text-right border-l p-0 ">
-                                <Input type='number' placeholder='0%' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
+                            <TableCell className='border-r'>(-) Diskon Nota</TableCell>
+                            <TableCell>
+                            {data?.th_disc?.toLocaleString("id-ID") || "0"} %
+                            </TableCell>
+                        </TableRow>
+                        <TableRow >
+                            <TableCell className='border-r'>(+) PPN Include</TableCell>
+                            <TableCell>
+                            {data?.th_ppn?.toLocaleString("id-ID") || "0"} %
                             </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>Total</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l">
+                            Rp {((data?.th_total ?? 0) - (data?.th_round ?? 0)).toLocaleString("id-ID")}
+                            </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>Pembulatan</TableCell>
-                            <TableCell className="text-left border-l">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l">
+                            Rp {(data?.th_total ?? 0).toLocaleString("id-ID")}
+                            </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className='font-bold'>Total Net</TableCell>
-                            <TableCell className="text-left border-l font-bold">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l font-bold">
+                            Rp {(Number(data?.th_total ?? 0) - dp).toLocaleString("id-ID")}
+                            </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''></TableCell>
@@ -85,16 +133,27 @@ import { Input } from '@/components/ui/input';
                         <TableRow>
                             <TableCell className=''>Tipe Bayar</TableCell>
                             <TableCell className="text-left border-l  p-0 ">
-                                <Select>
-                                    <SelectTrigger className="relative w-full bg-white text-xs border-0 rounded-none">
-                                        <SelectValue placeholder="No Faktur" className='text-xs' />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                    </SelectContent>
+                            <Select onValueChange={(value) => setPayType(value)} value={payType ?? undefined}>
+                                <SelectTrigger className="relative w-full bg-white text-sm border-0 rounded-none">
+                                    <SelectValue placeholder="Pilih Tipe Bayar" className='text-sm' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CREDIT">Credit Card</SelectItem>
+                                    <SelectItem value="BANK">Transfer Bank</SelectItem>
+                                    <SelectItem value="CASH">Cash</SelectItem>
+                                </SelectContent>
                                 </Select>
+                            </TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className=''>Bank</TableCell>
+                            <TableCell className="text-left border-l p-0">
+                            <div className={payType !== "BANK" ? "pointer-events-none opacity-50" : ""}>
+                                <BankDDTS
+                                    value={selectedBank}
+                                    onChange={(bank) => setSelectedBank(bank?.id ?? null)}
+                                />
+                                </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
@@ -109,7 +168,7 @@ import { Input } from '@/components/ui/input';
                                             )}
                                         >
                                             <CalendarIcon />
-                                            {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                                            {date ? format(date, "dd/MM/yyyy") : <span>Pilih Tanggal</span>}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0 bg-white border rounded-md">
@@ -124,57 +183,57 @@ import { Input } from '@/components/ui/input';
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className=''>Bank</TableCell>
+                            <TableCell className=''>No. Kartu</TableCell>
                             <TableCell className="text-left border-l p-0">
-                                <Select>
-                                    <SelectTrigger className="relative w-full border-0 bg-white text-xs rounded-none">
-                                        <SelectValue placeholder="Bank" className='text-xs' />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                        <SelectItem value='a'>Kas</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none '/>
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className=''>No. Kartu</TableCell>
-                            <TableCell className="text-left border-l "> - </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''>Surcharge</TableCell>
-                            <TableCell className="text-left border-l "> 0 </TableCell>
-                        </TableRow>
-                        <TableRow>
                             <TableCell className=''>Subsidi</TableCell>
-                            <TableCell className="text-right border-l p-0 ">
-                                <Input type='number' placeholder='0' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
+                            <TableCell className="text-left border-l p-0 ">
+                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none ' />
                             </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''></TableCell>
                         </TableRow>
                         <TableRow>
+                            <TableCell>DP</TableCell>
+                            <TableCell className="text-left border-l ">Rp {data?.th_dp?.toLocaleString("id-ID") || "0"}</TableCell>
+                            </TableRow>
+                        <TableRow>
                             <TableCell className='font-bold'>Harus Dibayar</TableCell>
-                            <TableCell className="text-left border-l font-bold">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l font-bold">
+                            Rp {(Number(data?.th_total ?? 0) - dp).toLocaleString("id-ID")}
+                            </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Pembayaran</TableCell>
-                            <TableCell className="text-right border-l p-0 ">
-                                <Input type='number' placeholder='0' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
+                            <TableCell className="text-left border-l p-0 ">
+                                <Input
+                                type="number"
+                                value={payment === 0 ? "" : payment}
+                                onChange={(e) => {
+                                    const raw = e.target.value.replace(/^0+(?!$)/, "");
+                                    setPayment(parseFloat(raw) || 0);
+                                }}
+                                placeholder='0'
+                                className='bg-gray-100 text-left border-0 m-0 p-2 rounded-none'
+                                />
                             </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Kurang bayar</TableCell>
-                            <TableCell className="text-left border-l ">{`5000`}</TableCell>
+                            <TableCell className="text-left border-l ">
+                                Rp {(Math.max(0, (Number(data?.th_total ?? 0) - dp - payment))).toLocaleString("id-ID")}
+                            </TableCell>
                         </TableRow>
                     </TableBody>
 
                 </Table>
             </div>
             <div className="flex justify-end mb-0 pb-0">
-                <Button className="bg-blue-500 hover:bg-blue-600">Bayar</Button>
+                <Button className="bg-blue-500 hover:bg-blue-600" onClick={handlePostTransaction}>Bayar</Button>
 
             </div>
         </div>
