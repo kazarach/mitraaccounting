@@ -23,6 +23,8 @@ class TransactionType(models.TextChoices):
     RECEIPT = 'RECEIPT', 'Receipt'
     ADJUSTMENT = 'ADJUSTMENT', 'Adjustment'
     EXPENSE = 'EXPENSE', 'Expense'
+    ORDERIN = 'ORDERIN', 'Order in'
+    ORDEROUT = 'ORDEROUT', 'Order out'
 
 class PaymentType(models.TextChoices):
     BANK = 'BANK', 'Bank'
