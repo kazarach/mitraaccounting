@@ -44,11 +44,12 @@ interface TpModalSellingProps {
   onCustomerSelect?: (
     customerId: number,
     customerName: string,
-    price_category: number, // ✅ tambahkan ini
+    price_category: number,
     thDate: string,
     thDisc: number,
-    thPpn?: number
-  ) => void;
+    thPpn?: number,
+    thDp?: number // ⬅️ tambahkan ini
+  ) => void;  
 }
 
 const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => {

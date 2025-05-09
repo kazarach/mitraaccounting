@@ -105,7 +105,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     const [thDisc, setThDisc] = useState(0);
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
-    console.log("🟡 data dari Redux:", data);
+    // console.log("🟡 data dari Redux:", data);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -115,6 +115,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             th_disc: 0,
         },
     })
+    console.log("zod", form)
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         toast.success("Form berhasil dihapus!")
@@ -188,8 +189,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Total",
             cell: ({ row }) => {
-                const harga = Number(row.original.stock_price_sell) || 0;
-                const quantity = Number(row.original.quantity) || 0;
+                const harga = row.original.stock_price_sell || 0;
+                const quantity = row.original.quantity || 0;
                 const subtotal = harga * quantity;
                 return (
                     <div className="">Rp {subtotal.toLocaleString("id-ID")}</div>
@@ -199,22 +200,15 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Inc. PPN",
             cell: ({ row }) => {
-              const harga = row.original.stock_price_sell || 0;
-              const quantity = row.original.quantity || 0;
-              const subtotal = harga * quantity;
-
-              if (!isPpnIncluded) {
-                return <div className="text-left">-</div>;
-              }
-          
-              const finalTotal = isPpnIncluded ? subtotal * 1.11 : subtotal;
-              console.log("isPpnIncluded:", isPpnIncluded);
-          
-              return (
-                <div className="text-left">Rp {finalTotal.toLocaleString("id-ID")}</div>
-              );
+                const harga = row.original.stock_price_sell || 0;
+                const quantity = row.original.quantity || 0;
+                const subtotal = (harga * quantity);
+                const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
+                return (
+                    <div className="text-left">Rp {finalTotal.toLocaleString("id-ID")}</div>
+                );
             },
-          },          
+        },          
         {
             header: "Action",
             cell: ({ row }) => (
@@ -254,7 +248,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     
                 if (field === 'quantity') {
                     updatedItem.quantity = value;
-                } else if (field === 'stock_price_buy') {
+                } else if (field === 'stock_price_sell') {
                     updatedItem.stock_price_sell = value;
                 }
     
@@ -304,7 +298,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
       const postOnlyTableItems = async () => {
         const customer_id = form.getValues("customer");
         const th_disc = form.getValues("th_disc");
-        const th_ppn = isPpnIncluded ? 11 : 0;
+        const th_ppn = isPpnIncluded ? 0 : 11;
+        const th_payment_type = 'BANK';
 
         if (!customer_id) {
             toast.error("Pilih customer terlebih dahulu!");
@@ -322,11 +317,11 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                 stock: item.stock,
                 stock_code: item.stock_code,
                 stock_name: item.stock_name,
-                quantity: String(item.quantity || 0),
+                quantity: Number(item.quantity || 0),
                 satuan: item.unit || "",
-                stock_price_buy: String(item.stock_price_buy || 0),
-                sell_price: String(item.stock_price_sell || 0),
-                disc: String(item.discount || 0),
+                stock_price_buy: Number(item.stock_price_buy || 0),
+                sell_price: Number(item.stock_price_sell || 0),
+                disc: Number(item.discount || 0),
             }));          
             console.log("✅ items yang akan dikirim:");
             console.table(items);
@@ -338,6 +333,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             customer: customer_id,
             th_disc: th_disc,
             th_ppn: th_ppn,
+            th_payment_type: th_payment_type,
             items
           };
       
@@ -365,9 +361,17 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
 
         // Simpan hasil ke state
         setPreviewData({
-        ...result,
-        customer_name: customer?.name ?? "", // opsional
-        });
+            ...result,
+            customer_name: customer?.name ?? "",
+            _rawPayload: {
+              th_type: "SALE",
+              customer: customer_id,
+              th_disc: th_disc,
+              th_ppn: th_ppn,
+              th_payment_type: th_payment_type,
+              items
+            }
+          });          
         setIsBayarModalOpen(true);
         } catch (error) {
           console.error("Gagal kirim data:", error);
@@ -559,13 +563,31 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     </TableRow>
                                 )}
                             </TableBody>
-                            <TableFooter className='sticky bottom-0 z-10 bg-white'>
+                            <TableFooter>
                                 <TableRow className="bg-white">
-                                    <TableCell colSpan={7} className="text-right font-bold">
+                                    <TableCell colSpan={1} className="text-right font-bold border">
+                                        Total Barang:
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                    </TableCell>
+                                    <TableCell colSpan={3} className="text-right font-bold border">
                                         Total:
                                     </TableCell>
-                                    <TableCell className="text-left font-bold">
-                                        Rp {getTotalWithPPN().toLocaleString("id-ID")}
+                                    <TableCell className="text-left font-bold border">
+                                        Rp {data.reduce((acc, item) => acc + ((item.stock_price_sell || 0) * (item.quantity || 0)), 0).toLocaleString("id-ID")}
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        Rp {data.reduce((acc, item) => {
+                                            const harga = item.stock_price_sell || 0;
+                                            const quantity = item.quantity || 0;
+                                            const subtotal = harga * quantity;
+                                            const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
+                                            return acc + finalTotal;
+                                        }, 0).toLocaleString("id-ID")}
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+
                                     </TableCell>
                                 </TableRow>
                             </TableFooter>
