@@ -75,6 +75,7 @@ const formSchema = z.object({
 type PayloadType = {
     th_type: string;
     supplier: number;
+    th_ppn:number;
     cashier: number;
     th_disc: number;
     th_date: string;
@@ -85,7 +86,6 @@ type PayloadType = {
         stock_name: string;
         stock_price_buy: number;
         quantity: number;
-        sell_price: number;
         disc: number;
     }[];
 };
@@ -115,6 +115,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [value, setValue] = React.useState("")
     const [isPpnIncluded, setIsPpnIncluded] = useState(false);
     const [distributor, setDistributor] = useState<number | null>(null);
+    const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | "harga" | null>(null);
+
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
 
@@ -137,41 +139,58 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     }>>({});
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        const payload = {
-            th_type: "PURCHASE",
+    if (!data.length) {
+        toast.error("Silakan tambahkan produk terlebih dahulu.");
+        return;
+    }
 
-            th_ppn: isPpnIncluded ? 0 : 11,
-            supplier: values.supplier,
-            cashier: 3,
-            th_disc: values.th_disc,
-            th_date: values.th_date,
-            th_note: "Test",
-            items: data.map((item) => ({
-                stock: item.stock,
-                stock_code: item.stock_code || "",
-                stock_name: item.stock_name,
-                stock_price_buy: item.stock_price_buy,
-                quantity: item.quantity,
-                sell_price: item.sell_price || 0,
-                disc: item.disc || 0,
-                disc_percent: item.disc_percent || 0,
-                disc_percent2: item.disc_percent2 || 0,
-            })),
-        };
-        console.log("Payload JSON:", JSON.stringify(payload, null, 2));
+    const payload: PayloadType = {
+        th_type: "PURCHASE",
+        th_ppn: isPpnIncluded ? 0 : 11,
+        supplier: values.supplier,
+        cashier: 3,
+        th_disc: values.th_disc,
+        th_date: values.th_date,
+        th_note: "Test",
+        items: data.map((item) => ({
+            stock: item.stock,
+            stock_code: item.stock_code || "",
+            stock_name: item.stock_name,
+            stock_price_buy: item.stock_price_buy,
+            quantity: item.quantity,         
+            disc: item.disc || 0,
+            disc_percent: item.disc_percent || 0,
+            disc_percent2: item.disc_percent2 || 0,
+        })),
+    };
 
+    console.log("Payload JSON:", JSON.stringify(payload, null, 2));
+
+    if (submitAction === "simpan") {
+        console.log("Simpan diklik. Payload:", payload);
         trigger(payload)
-            .then((res: any) => {
-                console.log("Hasil preview:", res);
-                // toast.success("Preview sukses!");
+            .then((res) => {
+                console.log(res)
+                toast.success("Transaksi berhasil disimpan!");
             })
-            .catch((err: any) => {
-                // console.error("Gagal:", err.message);
+            .catch((err) => {
                 toast.error(err.message);
             });
-
-
     }
+
+    if (submitAction === "bayar") {
+        console.log("Bayar diklik. Payload:", payload);
+        trigger(payload)
+            .then((res) => {
+                console.log(res)
+                toast.success("Preview bayar siap ditampilkan.");
+            })
+            .catch((err) => {
+                toast.error(err.message);
+            });
+    }
+}
+
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
     const { trigger, data: review, error, isMutating } = useSWRMutation<
@@ -212,12 +231,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={jumlahBarang}
                         onKeyDown={(e) => {
                             if (e.key === "Tab" && !e.shiftKey) {
-                              e.preventDefault(); // Stop default tab behavior
-                              setTimeout(() => {
-                                refs.current[row.original.id]?.price?.focus(); // Delay pindah focus
-                              }, 0);
+                                e.preventDefault(); // Stop default tab behavior
+                                setTimeout(() => {
+                                    refs.current[row.original.id]?.price?.focus(); // Delay pindah focus
+                                }, 0);
                             }
-                          }}
+                        }}
                         onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                     />
@@ -248,12 +267,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={stock_price_buy}
                         onKeyDown={(e) => {
                             if (e.key === "Tab" && !e.shiftKey) {
-                              e.preventDefault(); // Stop default tab behavior
-                              setTimeout(() => {
-                                refs.current[row.original.id]?.disc?.focus(); // Delay pindah focus
-                              }, 0);
+                                e.preventDefault(); // Stop default tab behavior
+                                setTimeout(() => {
+                                    refs.current[row.original.id]?.disc?.focus(); // Delay pindah focus
+                                }, 0);
                             }
-                          }}
+                        }}
                         onBlur={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                     />
@@ -339,23 +358,44 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Total",
             cell: ({ row }) => {
-                const harga = row.original.stock_price_buy || 0;
-                const quantity = row.original.quantity || 0;
-                const subtotal = harga * quantity;
+                const price = row.original.stock_price_buy || 0;
+                const qty = row.original.quantity || 0;
+                const disc = row.original.disc || 0;
+                const disc1 = row.original.disc_percent || 0;
+                const disc2 = row.original.disc_percent2 || 0;
+
+                const afterDisc1 = price - disc;
+                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+                const subtotal = qty * afterDisc3;
+
                 return (
-                    <div className="">Rp{subtotal.toLocaleString("id-ID")}</div>
+                    <div className="text-left">
+                        Rp{Math.round(subtotal).toLocaleString("id-ID")}
+                    </div>
                 );
             },
         },
+
         {
             header: "Inc. PPN",
             cell: ({ row }) => {
-                const harga = row.original.stock_price_buy || 0;
-                const quantity = row.original.quantity || 0;
-                const subtotal = (harga * quantity);
-                const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
+                const price = row.original.stock_price_buy || 0;
+                const qty = row.original.quantity || 0;
+                const disc = row.original.disc || 0;
+                const disc1 = row.original.disc_percent || 0;
+                const disc2 = row.original.disc_percent2 || 0;
+
+                const afterDisc1 = price - disc;
+                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+                const subtotal = qty * afterDisc3;
+                const final = isPpnIncluded ? subtotal : subtotal * 1.11;
+
                 return (
-                    <div className="text-left">Rp{finalTotal.toLocaleString("id-ID")}</div>
+                    <div className="text-left">
+                        Rp{Math.round(final).toLocaleString("id-ID")}
+                    </div>
                 );
             },
         },
@@ -420,8 +460,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 } else if (field === "disc_percent2") {
                     updatedItem.disc_percent2 = value;
                 }
-
-                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
+                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy
+                const af_disc1 = updatedItem.stock_price_buy - (updatedItem.disc || 0)
+                const af_disc2 = af_disc1 - (af_disc1 * updatedItem.disc_percent / 100)
+                const af_disc3 = af_disc2 - (af_disc2 * updatedItem.disc_percent2 / 100)
+                updatedItem.subtotal = updatedItem.quantity * af_disc3
 
                 return updatedItem;
             }
@@ -432,6 +475,34 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     };
 
 
+    const totalSummary = useMemo(() => {
+        const subtotal = data.reduce((acc, item) => {
+            const price = item.stock_price_buy || 0;
+            const qty = item.quantity || 0;
+            const disc = item.disc || 0;
+            const disc1 = item.disc_percent || 0;
+            const disc2 = item.disc_percent2 || 0;
+
+            const afterDisc1 = price - disc;
+            const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+            const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+            const subtotalItem = qty * afterDisc3;
+
+            return acc + subtotalItem;
+        }, 0);
+
+        const discNota = form.watch("th_disc") || 0;
+        const totalPPN = isPpnIncluded ? 0 : subtotal * 0.11;
+        const totalAfterPPN = subtotal + totalPPN;
+        const totalFinal = Math.max(totalAfterPPN - discNota, 0);
+
+        return {
+            subtotal,
+            totalPPN,
+            totalAfterPPN,
+            totalFinal,
+        };
+    }, [data, isPpnIncluded, form.watch("th_disc")]);
 
 
 
@@ -508,7 +579,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         setDistributor(val)
                                                         field.onChange(val)
                                                     }}
-                                                    
+
                                                 />
                                             </FormControl>
                                             {/* <FormMessage /> */}
@@ -624,10 +695,10 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         Total:
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0)).toLocaleString("id-ID")}
+                                        <span>Rp{Math.round(totalSummary.subtotal).toLocaleString("id-ID")}</span>
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        Rp{(data.reduce((acc, item) => acc + (item.subtotal || 0), 0) * (isPpnIncluded ? 1 : 1.11)).toLocaleString("id-ID")}
+                                        <span>Rp{Math.round(totalSummary.totalAfterPPN).toLocaleString("id-ID")}</span>
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
 
@@ -637,14 +708,27 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </Table>
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
+
                         <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit'>Simpan</Button>
-                            </DialogTrigger>
+                            {data.length > 0 ? (
+                                <DialogTrigger asChild>
+                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit'  onClick={() => setSubmitAction("simpan")}>
+                                        Simpan
+                                    </Button>
+                                </DialogTrigger>
+                            ) : (
+                                <Button
+                                    className='font-medium bg-blue-500 hover:bg-blue-600'
+                                >
+                                    Simpan
+                                </Button>
+                            )}
+
                             <DialogContent className="w-[25vw] max-h-[90vh]">
                                 <BayarTPModal review={review} />
                             </DialogContent>
                         </Dialog>
+
 
                     </div>
 
