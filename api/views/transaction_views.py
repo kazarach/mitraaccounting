@@ -368,11 +368,11 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             
             # Apply transaction-level discounts and taxes 
             # (This is simplified for preview; actual logic may differ)
-            if item.transaction.th_disc:
-                item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
+            # if item.transaction.th_disc:
+            #     item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
                 
-            if item.transaction.th_ppn:
-                item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
+            # if item.transaction.th_ppn:
+            #     item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
         
         elif item.transaction.th_type == 'PURCHASE':
             # Similar logic for purchase items
@@ -384,11 +384,11 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             
             item.netto = item.quantity * price_after_disc2
             
-            if item.transaction.th_disc:
-                item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
+            # if item.transaction.th_disc:
+            #     item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
                 
-            if item.transaction.th_ppn:
-                item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
+            # if item.transaction.th_ppn:
+            #     item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
     
     def _calculate_points(self, items):
         """Calculate potential loyalty points for preview"""
