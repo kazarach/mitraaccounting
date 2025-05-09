@@ -137,6 +137,14 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 enum=['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 
                       'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE'],
             ),
+            # OpenApiParameter(
+            #     name='bank_type',
+            #     description='Type of transaction to filter. Options: SALE, PURCHASE, RETURN_SALE, etc.',
+            #     required=False,
+            #     type=str,
+            #     enum=['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 
+            #           'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE'],
+            # ),
             OpenApiParameter(name='start_date', type=str, required=False, description='Format: YYYY-MM-DD'),
             OpenApiParameter(name='end_date', type=str, required=False, description='Format: YYYY-MM-DD'),
             OpenApiParameter(name='cashier', type=str, required=False, description='Filter by cashier ID'),
@@ -378,7 +386,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             # Similar logic for purchase items
             item.total = item.quantity * (item.stock_price_buy or Decimal('0'))
             
-            price_after_disc = item.sell_price - (item.disc or Decimal('0'))
+            price_after_disc = item.stock_price_buy - (item.disc or Decimal('0'))
             price_after_disc1 = (item.stock_price_buy or Decimal('0')) * (Decimal('1') - Decimal(item.disc_percent or 0) / Decimal('100'))
             price_after_disc2 = price_after_disc1 * (Decimal('1') - Decimal(item.disc_percent2 or 0) / Decimal('100'))
             

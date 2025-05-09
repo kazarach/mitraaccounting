@@ -16,6 +16,6 @@ from .stock_assembly import StockAssembly
 from .stock_price import StockPrice, PriceCategory, StockPriceHistory
 from .sales import Sales
 from .event_discount import EventDisc, EventDiscItem
-from .transaction_history import TransactionHistory, TransItemDetail, TransactionType
+from .transaction_history import TransactionHistory, TransItemDetail, TransactionType, PaymentType
 from .payment_record import Payment
 from .arap import ARAP, ARAPTransaction

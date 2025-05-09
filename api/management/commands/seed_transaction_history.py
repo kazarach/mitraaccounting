@@ -136,7 +136,7 @@ class Command(BaseCommand):
 
         # Generate transaction types
         transaction_types = ['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE']
-        payment_types = ['Cash', 'Credit Card', 'Bank Transfer', 'E-Wallet']
+        payment_types = ['CASH', 'BANK', 'CREDIT']
 
         # Generate values
         total = Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01'))

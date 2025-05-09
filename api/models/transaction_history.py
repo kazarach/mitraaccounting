@@ -23,7 +23,12 @@ class TransactionType(models.TextChoices):
     RECEIPT = 'RECEIPT', 'Receipt'
     ADJUSTMENT = 'ADJUSTMENT', 'Adjustment'
     EXPENSE = 'EXPENSE', 'Expense'
-    
+
+class PaymentType(models.TextChoices):
+    BANK = 'BANK', 'Bank'
+    CASH = 'CASH', 'Cash'
+    CREDIT = 'CREDIT', 'Credit'
+
 class TransactionHistory(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, blank=True, null=True)
@@ -33,7 +38,7 @@ class TransactionHistory(models.Model):
     
     th_code = models.CharField(max_length=50, unique=True, blank=True)
     th_type = models.CharField(max_length=50, choices=TransactionType.choices)
-    th_payment_type = models.CharField(max_length=50, blank=True, null=True)
+    th_payment_type = models.CharField(max_length=50, choices=PaymentType.choices)
     
     th_disc = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     th_ppn = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)

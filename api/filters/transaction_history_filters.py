@@ -15,6 +15,7 @@ class TransactionHistoryFilter(django_filters.FilterSet):
         model = TransactionHistory
         fields = [
             'th_type',
+            'th_payment_type',
             'th_status',
             'cashier',
             'supplier',
