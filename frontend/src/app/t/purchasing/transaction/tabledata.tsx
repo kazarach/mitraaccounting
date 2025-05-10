@@ -448,7 +448,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             });
 
             dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
-        }, 1500);
+        }, 750);
     };
 
     const totalSummary = useMemo(() => {
