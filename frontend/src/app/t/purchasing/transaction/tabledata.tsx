@@ -75,11 +75,12 @@ const formSchema = z.object({
 type PayloadType = {
     th_type: string;
     supplier: number;
-    th_ppn:number;
+    th_ppn: number;
     cashier: number;
     th_disc: number;
     th_date: string;
     th_note: string;
+    th_payment_type: string;
     items: {
         stock: number;
         stock_code: string;
@@ -116,6 +117,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [isPpnIncluded, setIsPpnIncluded] = useState(false);
     const [distributor, setDistributor] = useState<number | null>(null);
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | "harga" | null>(null);
+    const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
@@ -129,86 +131,107 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
-    const refs = useRef<Record<number, {
-        quantity?: HTMLInputElement | null;
-        price?: HTMLInputElement | null;
-        disc?: HTMLInputElement | null;
-        disc1?: HTMLInputElement | null;
-        disc2?: HTMLInputElement | null;
-        deleteBtn?: HTMLButtonElement | null;
-    }>>({});
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!data.length) {
-        toast.error("Silakan tambahkan produk terlebih dahulu.");
-        return;
+        if (!data.length) {
+            toast.error("Silakan tambahkan produk terlebih dahulu.");
+            return;
+        }
+
+        if (submitAction === "simpan") {
+            const payload: PayloadType = {
+                th_type: "PURCHASE",
+                th_ppn: isPpnIncluded ? 0 : 11,
+                supplier: values.supplier,
+                cashier: 3,
+                th_disc: values.th_disc,
+                th_date: values.th_date,
+                th_note: "Test",
+                th_payment_type: "BANK",
+                items: data.map((item) => ({
+                    stock: item.stock,
+                    stock_code: item.stock_code || "",
+                    stock_name: item.stock_name,
+                    stock_price_buy: item.stock_price_buy,
+                    quantity: item.quantity,
+                    disc: item.disc || 0,
+                    disc_percent: item.disc_percent || 0,
+                    disc_percent2: item.disc_percent2 || 0,
+                })),
+            };
+            trigger(payload)
+                .then((res) => {
+                    console.log(res)
+                })
+                .catch((err) => {
+                    toast.error(err.message);
+                });
+            setSubmitAction("bayar");
+        }
+
+        if (submitAction === "bayar") {
+            const payload: PayloadType = {
+                th_type: "PURCHASE",
+                th_ppn: isPpnIncluded ? 0 : 11,
+                supplier: values.supplier,
+                cashier: 3,
+                th_disc: values.th_disc,
+                th_date: values.th_date,
+                th_note: "Test",
+                th_payment_type: "BANK",
+                items: data.map((item) => ({
+                    stock: item.stock,
+                    stock_code: item.stock_code || "",
+                    stock_name: item.stock_name,
+                    stock_price_buy: item.stock_price_buy,
+                    quantity: item.quantity,
+                    disc: item.disc || 0,
+                    disc_percent: item.disc_percent || 0,
+                    disc_percent2: item.disc_percent2 || 0,
+                })),
+            };
+
+            console.log(JSON.stringify(payload, null, 1));
+            toast.success("Pembayaran berhasil");
+            // post(payload)
+            //     .then((res) => {
+            //         console.log(res)
+            //         toast.success("Pembayaran berhasil");
+            //     })
+            //     .catch((err) => {
+            //         toast.error(err.message);
+            //     });
+        }
     }
-
-    const payload: PayloadType = {
-        th_type: "PURCHASE",
-        th_ppn: isPpnIncluded ? 0 : 11,
-        supplier: values.supplier,
-        cashier: 3,
-        th_disc: values.th_disc,
-        th_date: values.th_date,
-        th_note: "Test",
-        items: data.map((item) => ({
-            stock: item.stock,
-            stock_code: item.stock_code || "",
-            stock_name: item.stock_name,
-            stock_price_buy: item.stock_price_buy,
-            quantity: item.quantity,         
-            disc: item.disc || 0,
-            disc_percent: item.disc_percent || 0,
-            disc_percent2: item.disc_percent2 || 0,
-        })),
-    };
-
-    console.log("Payload JSON:", JSON.stringify(payload, null, 2));
-
-    if (submitAction === "simpan") {
-        console.log("Simpan diklik. Payload:", payload);
-        trigger(payload)
-            .then((res) => {
-                console.log(res)
-                toast.success("Transaksi berhasil disimpan!");
-            })
-            .catch((err) => {
-                toast.error(err.message);
-            });
-    }
-
-    if (submitAction === "bayar") {
-        console.log("Bayar diklik. Payload:", payload);
-        trigger(payload)
-            .then((res) => {
-                console.log(res)
-                toast.success("Preview bayar siap ditampilkan.");
-            })
-            .catch((err) => {
-                toast.error(err.message);
-            });
-    }
-}
-
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
-    const { trigger, data: review, error, isMutating } = useSWRMutation<
-        any, // response type
-        any, // error type
-        string, // URL key
-        PayloadType // arg type, ini penting!
-    >(
+    const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
         `${API_URL}/api/transactions/calculate_preview/`,
         fetcherpost
     );
-    // console.log(response)
-
+    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
+        any,
+        any,
+        string,
+        PayloadType
+    >(
+        `${API_URL}/api/transactions/`,
+        fetcherpost
+    );
 
     const columns: ColumnDef<TransactionRow>[] = [
         {
             header: "Produk",
             accessorKey: "stock_name",
+        },
+        {
+            header: "Satuan",
+            accessorKey: "unit",
+        },
+        {
+            header: "Jns Packing",
+            accessorKey: "conversion_unit",
+            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
         },
         {
             header: "Pesanan",
@@ -223,35 +246,16 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-                        ref={(el) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].quantity = el;
-                        }}
                         type="number"
                         defaultValue={jumlahBarang}
-                        onKeyDown={(e) => {
-                            if (e.key === "Tab" && !e.shiftKey) {
-                                e.preventDefault(); // Stop default tab behavior
-                                setTimeout(() => {
-                                    refs.current[row.original.id]?.price?.focus(); // Delay pindah focus
-                                }, 0);
-                            }
-                        }}
-                        onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
+
+                        onChange={(e) => handleChange(e, row.original.id, 'quantity')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                     />
                 );
             },
         },
-        {
-            header: "Satuan",
-            accessorKey: "unit",
-        },
-        {
-            header: "Jns Packing",
-            accessorKey: "conversion_unit",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        },
+
         {
             header: "Harga Beli",
             cell: ({ row }) => {
@@ -259,21 +263,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-                        ref={(el: any) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].price = el;
-                        }}
+
                         type="number"
                         defaultValue={stock_price_buy}
-                        onKeyDown={(e) => {
-                            if (e.key === "Tab" && !e.shiftKey) {
-                                e.preventDefault(); // Stop default tab behavior
-                                setTimeout(() => {
-                                    refs.current[row.original.id]?.disc?.focus(); // Delay pindah focus
-                                }, 0);
-                            }
-                        }}
-                        onBlur={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
+
+                        onChange={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
                         className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
                     />
                 );
@@ -286,19 +280,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-                        ref={(el) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].disc = el;
-                        }}
+
                         type="number"
                         defaultValue={disc}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Tab' && !e.shiftKey) {
-                                e.preventDefault();
-                                refs.current[row.original.id]?.disc1?.focus();
-                            }
-                        }}
-                        onBlur={(e) => handleChange(e, row.original.id, "disc")}
+
+                        onChange={(e) => handleChange(e, row.original.id, "disc")}
                         className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     />
                 );
@@ -311,19 +297,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-                        ref={(el) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].disc1 = el;
-                        }}
+
                         type="number"
                         defaultValue={disc_percent}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Tab' && !e.shiftKey) {
-                                e.preventDefault();
-                                refs.current[row.original.id]?.disc2?.focus();
-                            }
-                        }}
-                        onBlur={(e) => handleChange(e, row.original.id, "disc_percent")}
+
+                        onChange={(e) => handleChange(e, row.original.id, "disc_percent")}
                         className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     />
                 );
@@ -336,19 +314,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <input
-                        ref={(el) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].disc2 = el;
-                        }}
+
                         type="number"
                         defaultValue={disc_percent2}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Tab' && !e.shiftKey) {
-                                e.preventDefault();
-                                refs.current[row.original.id]?.deleteBtn?.focus();
-                            }
-                        }}
-                        onBlur={(e) => handleChange(e, row.original.id, "disc_percent2")}
+
+                        onChange={(e) => handleChange(e, row.original.id, "disc_percent2")}
                         className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
                     />
                 );
@@ -371,7 +341,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <div className="text-left">
-                        Rp{Math.round(subtotal).toLocaleString("id-ID")}
+                        Rp{subtotal.toLocaleString("id-ID", {
+                            maximumFractionDigits: 2,
+                        })}
                     </div>
                 );
             },
@@ -394,7 +366,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <div className="text-left">
-                        Rp{Math.round(final).toLocaleString("id-ID")}
+                        Rp{final.toLocaleString("id-ID", {
+                            maximumFractionDigits: 2,
+                        })}
                     </div>
                 );
             },
@@ -404,10 +378,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             cell: ({ row }) => (
                 <div className="text-center">
                     <Button
-                        ref={(el) => {
-                            if (!refs.current[row.original.id]) refs.current[row.original.id] = {};
-                            refs.current[row.original.id].deleteBtn = el;
-                        }}
+
                         onClick={() => handleDelete(row.original.id)}
                         className="bg-red-500 hover:bg-red-600 size-7"
                     >
@@ -436,44 +407,49 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
     }, [dispatch]);
 
-
     const handleCheckboxChange = (checked: boolean) => {
         setIsPpnIncluded(!!checked);
     };
 
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>, rowId: number, field: string) => {
         const value = parseFloat(e.target.value) || 0;
 
-        const updatedData = data.map((item) => {
-            if (item.id === rowId) {
-                const updatedItem = { ...item };
+        // Clear the previous timeout
+        if (debounceTimeout.current) {
+            clearTimeout(debounceTimeout.current);
+        }
 
-                if (field === "quantity") {
-                    updatedItem.quantity = value;
-                } else if (field === "stock_price_buy") {
-                    updatedItem.stock_price_buy = value;
-                } else if (field === "disc") {
-                    updatedItem.disc = value;
-                } else if (field === "disc_percent") {
-                    updatedItem.disc_percent = value;
-                } else if (field === "disc_percent2") {
-                    updatedItem.disc_percent2 = value;
+        // Set a new timeout to call handleChange after 500ms delay
+        debounceTimeout.current = setTimeout(() => {
+            const updatedData = data.map((item) => {
+                if (item.id === rowId) {
+                    const updatedItem = { ...item };
+                    if (field === 'quantity') {
+                        updatedItem.quantity = value;
+                    } else if (field === 'stock_price_buy') {
+                        updatedItem.stock_price_buy = value;
+                    } else if (field === 'disc') {
+                        updatedItem.disc = value;
+                    } else if (field === 'disc_percent') {
+                        updatedItem.disc_percent = value;
+                    } else if (field === 'disc_percent2') {
+                        updatedItem.disc_percent2 = value;
+                    }
+                    // Recalculate the subtotal after updating the field
+                    updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
+                    const af_disc1 = updatedItem.stock_price_buy - (updatedItem.disc || 0);
+                    const af_disc2 = af_disc1 - (af_disc1 * updatedItem.disc_percent / 100);
+                    const af_disc3 = af_disc2 - (af_disc2 * updatedItem.disc_percent2 / 100);
+                    updatedItem.subtotal = updatedItem.quantity * af_disc3;
+
+                    return updatedItem;
                 }
-                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy
-                const af_disc1 = updatedItem.stock_price_buy - (updatedItem.disc || 0)
-                const af_disc2 = af_disc1 - (af_disc1 * updatedItem.disc_percent / 100)
-                const af_disc3 = af_disc2 - (af_disc2 * updatedItem.disc_percent2 / 100)
-                updatedItem.subtotal = updatedItem.quantity * af_disc3
+                return item;
+            });
 
-                return updatedItem;
-            }
-            return item;
-        });
-
-        dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
+            dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
+        }, 1500);
     };
-
 
     const totalSummary = useMemo(() => {
         const subtotal = data.reduce((acc, item) => {
@@ -630,7 +606,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <DialogTrigger asChild>
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                                 </DialogTrigger>
-                                <DialogContent className="w-[70vw] max-h-[90vh]">
+                                <DialogContent className="w-full max-h-[90vh]">
                                     <TpModal />
                                 </DialogContent>
                             </Dialog>
@@ -638,7 +614,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <DialogTrigger asChild>
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
-                                <DialogContent className="w-[100vw] max-h-[90vh]">
+                                <DialogContent className="w-12/12 max-h-[90vh]">
                                     <TambahProdukModal tableName='transaksi' />
                                 </DialogContent>
                             </Dialog>
@@ -665,7 +641,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow key={row.id}>
                                             {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id} className="text-left">
+                                                <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
                                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                 </TableCell>
                                             ))}
@@ -673,7 +649,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
+                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
                                             Belum menambahkan produk
                                         </TableCell>
                                     </TableRow>
@@ -695,10 +671,14 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         Total:
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        <span>Rp{Math.round(totalSummary.subtotal).toLocaleString("id-ID")}</span>
+                                        <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                            maximumFractionDigits: 2,
+                                        })}</span>
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
-                                        <span>Rp{Math.round(totalSummary.totalAfterPPN).toLocaleString("id-ID")}</span>
+                                        <span>{totalSummary.totalAfterPPN.toLocaleString("id-ID", {
+                                            maximumFractionDigits: 2,
+                                        })}</span>
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
 
@@ -712,7 +692,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         <Dialog>
                             {data.length > 0 ? (
                                 <DialogTrigger asChild>
-                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit'  onClick={() => setSubmitAction("simpan")}>
+                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
                                         Simpan
                                     </Button>
                                 </DialogTrigger>
@@ -724,7 +704,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 </Button>
                             )}
 
-                            <DialogContent className="w-[25vw] max-h-[90vh]">
+                            <DialogContent className="w-1/4 max-h-11/12">
                                 <BayarTPModal review={review} />
                             </DialogContent>
                         </Dialog>
