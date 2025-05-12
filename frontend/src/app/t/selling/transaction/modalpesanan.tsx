@@ -48,7 +48,8 @@ interface TpModalSellingProps {
     thDate: string,
     thDisc: number,
     thPpn?: number,
-    thDp?: number // ⬅️ tambahkan ini
+    thDp?: number, // ⬅️ tambahkan ini
+    transactionId?: number
   ) => void;  
 }
 
@@ -71,7 +72,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=SALE${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
@@ -83,8 +84,12 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const thDate = row.original.th_date;
       const thDisc = parseFloat(row.original.th_disc) || 0;
       const thPpn = parseFloat(row.original.th_ppn) || 0;
-    
-      onCustomerSelect(customerId, customerName, priceCategory, thDate, thDisc, thPpn);
+      const thDp = parseFloat(row.original.th_dp) || 0;
+      const transactionId = row.original.id;
+
+    onCustomerSelect(customerId, customerName, priceCategory, thDate, thDisc, thPpn, thDp, transactionId);
+    console.log("🧪 Transaction ID yang di-pick:", row.original.id);
+
     }
       
     if (row.original.items && row.original.items.length > 0) {

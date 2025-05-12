@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
 import { RootState } from '@/store/store';
 import { toast } from 'sonner';
-import OrderSelling from '../../selling/order/page';
+import OrderSelling from '../../selling/order/page2';
 import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 

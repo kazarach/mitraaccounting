@@ -19,76 +19,53 @@ interface BayarTPModalJualProps {
   onSuccess?: () => void;
 }
 
-        const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) => {
+        const BayarTPModalOrderJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) => {
         const [date, setDate] = React.useState<Date>()
         const [dp, setDp] = React.useState<number>(0); // ⬅️ state untuk input DP
-        React.useEffect(() => {
-            if (data?.th_dp) {
-                setDp(parseFloat(data.th_dp)); // pastikan dalam bentuk number
-            }
-            }, [data]);
         const [payment, setPayment] = React.useState<number>(0);
         const [selectedBank, setSelectedBank] = React.useState<number | null>(null);
         const [payType, setPayType] = React.useState<string | null>(null);
 
         const handlePostTransaction = async () => {
-  const rawPayload = data?._rawPayload;
-  const transactionId = data?.transactionId ?? data?._rawPayload?.id;
-  const isFromOrderModal = data?.fromOrderModal;
-
-  if (!rawPayload) {
-    toast.error("Payload transaksi tidak tersedia.");
-    return;
-  }
-
-  const payload = {
-    ...rawPayload,
-    id: transactionId ?? undefined, // pastikan tetap dikirim kalau PATCH
-    th_type: "SALE", // paksa tetap SALE
-    th_dp: (dp || 0) + (payment || 0),
-    bank: selectedBank || null,
-    th_due_date: date?.toISOString() || null,
-  };
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const isPatch = isFromOrderModal && transactionId !== undefined;
-
-  const endpoint = isPatch
-    ? `${API_URL}api/transactions/${transactionId}/`
-    : `${API_URL}api/transactions/`;
-
-  const method = isPatch ? "PATCH" : "POST";
-
-  console.log("🔁 METHOD:", method);
-  console.log("🧪 transactionId:", transactionId);
-  console.log("📦 Payload:", JSON.stringify(payload, null, 2));
-
-  try {
-    const response = await fetch(endpoint, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log("✅ Transaksi berhasil:", result);
-    toast.success("Transaksi berhasil disimpan!");
-    if (onSuccess) onSuccess();
-  } catch (err) {
-    console.error("❌ Gagal menyimpan transaksi:", err);
-    toast.error("Gagal menyimpan transaksi.");
-  }
-};
-
-
-                    
+            const rawPayload = data?._rawPayload;
+          
+            if (!rawPayload) {
+              toast.error("Payload transaksi tidak tersedia.");
+              return;
+            }
+          
+            const payload = {
+              ...rawPayload,
+              th_dp: (dp || 0) + (payment || 0),
+              bank: selectedBank || null,
+              th_due_date: date?.toISOString() || null,
+              th_type: "ORDERIN",
+              cashier: rawPayload.cashier ?? null,
+            };
+            console.log("Payload modal:", JSON.stringify(payload, null, 2));
+          
+            try {
+              const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+              const response = await fetch(`${API_URL}api/transactions/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+          
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+              }
+          
+              const result = await response.json();
+              console.log("✅ Transaksi berhasil:", result);
+              toast.success("Data dari modal berhasil dikirim ke server!");
+              if (onSuccess) onSuccess();
+            } catch (err) {
+              console.error("❌ Gagal kirim:", err);
+              toast.error("Gagal menyimpan transaksi.");
+            }
+          };                    
           
 
     return (
@@ -274,4 +251,4 @@ interface BayarTPModalJualProps {
     );
 };
 
-export default BayarTPModalJual;
+export default BayarTPModalOrderJual;
