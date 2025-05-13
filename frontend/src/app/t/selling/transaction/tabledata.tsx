@@ -104,7 +104,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     const [previewData, setPreviewData] = useState<any>(null); // untuk menyimpan response dari API
     const [thDisc, setThDisc] = useState(0);
     const [thDp, setThDp] = useState(0); // Tambahkan ini
-    
+    const [cashierId, setCashierId] = useState<number | null>(null);    
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
     // console.log("🟡 data dari Redux:", data);
@@ -383,6 +383,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             th_ppn: th_ppn,
             th_payment_type: th_payment_type,
             th_dp: thDp,
+            cashier: cashierId ?? null,
             ...(transactionId && { id: transactionId }),
             items,
           };
@@ -415,13 +416,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             customer_name: customer?.name ?? "",
             th_dp: thDp,
             fromOrderModal: true,
-            transactionId: result?.id,
+            transactionId: result?.id ?? payload.id,
             _rawPayload: {
               th_type: "SALE",
               customer: customer_id,
               th_disc: th_disc,
               th_ppn: th_ppn,
               th_payment_type: th_payment_type,
+              id: result?.id ?? payload.id,
               items
             }
           });          
@@ -554,7 +556,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                 </DialogTrigger>
                                 <DialogContent className="w-[70vw] max-h-[90vh]">
                                 <TpModalSelling
-                                onCustomerSelect={(id, name, priceCategoryId, thDate, thDisc, thPpn, thDp, transactionId) => {
+                                onCustomerSelect={(id, name, priceCategoryId, thDate, thDisc, thPpn, thDp, transactionId, cashierId) => {
                                     const customerData = {
                                     id,
                                     name,
@@ -566,6 +568,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     form.setValue("th_disc", Number(thDisc));
                                     setIsPpnIncluded(thPpn === 11);
                                     setThDp(thDp ?? 0);
+                                    setCashierId(cashierId ?? null);
 
                                     // ⬇️ TAMBAHKAN INI agar transactionId tidak hilang
                                     setPreviewData((prev: typeof previewData)=> ({

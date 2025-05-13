@@ -358,6 +358,10 @@ const TransactionOrderSellingTable: React.FC<Props> = ({ tableName }) => {
             toast.error("Pilih customer terlebih dahulu!");
             return;
         }
+        if (!operator_id) {
+            toast.error("Pilih Operator terlebih dahulu!");
+            return;
+        }
         if (!data.length) {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;

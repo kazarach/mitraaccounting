@@ -49,7 +49,8 @@ interface TpModalSellingProps {
     thDisc: number,
     thPpn?: number,
     thDp?: number, // ⬅️ tambahkan ini
-    transactionId?: number
+    transactionId?: number,
+    cashierId?: number
   ) => void;  
 }
 
