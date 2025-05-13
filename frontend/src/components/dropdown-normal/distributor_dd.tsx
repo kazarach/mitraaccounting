@@ -45,13 +45,16 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-[150px] h-[30px] justify-between font-normal"
+                    className="w-[200px] h-[30px] justify-between font-normal overflow-hidden"
                 >
-                    {value !== null
-                        ? data.find((d) => d.id === value)?.name
-                        : 'Pilih Distributor'}
-                    <ChevronsUpDown className="opacity-50" />
+                    <span className="truncate whitespace-nowrap overflow-hidden max-w-[200px]">
+                        {value !== null
+                            ? data.find((d) => d.id === value)?.name
+                            : 'Pilih Distributor'}
+                    </span>
+                    <ChevronsUpDown className="opacity-50 ml-1 shrink-0" />
                 </Button>
+
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0 border rounded-md">
                 <Command>
@@ -69,7 +72,9 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                                         setOpen(false);
                                     }}
                                 >
-                                    {d.name}
+                                    <span className="truncate max-w-[200px] inline-block align-middle">
+                                        {d.name}
+                                    </span>
                                     <Check
                                         className={cn(
                                             "ml-auto",
@@ -77,6 +82,7 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                                         )}
                                     />
                                 </CommandItem>
+
                             ))}
                         </CommandGroup>
                     </CommandList>

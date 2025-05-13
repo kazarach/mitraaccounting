@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
     Table,
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, fetcherpost } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
@@ -45,6 +45,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { id } from 'date-fns/locale';
+import BayarTPModal from '@/components/modal/tp-bayar-modal';
+import useSWRMutation from 'swr/mutation';
 
 
 const formSchema = z.object({
@@ -69,7 +71,24 @@ const formSchema = z.object({
 })
 
 
-
+type PayloadType = {
+    th_type: string;
+    supplier: number;
+    // th_ppn: number;
+    cashier: number;
+    // th_disc: number;
+    th_date: string;
+    th_note: string;
+    th_payment_type: string;
+    items: {
+        stock: number;
+        stock_code: string;
+        stock_name: string;
+        stock_price_buy: number;
+        quantity: number;
+        // disc: number;
+    }[];
+};
 
 interface Props {
     tableName: string;
@@ -83,6 +102,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     const [value, setValue] = React.useState("")
     const [distributor, setDistributor] = useState<number | null>(null);
     const data = useSelector((state: RootState) => state.table["order"] || []);
+    const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | null>(null);
 
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -94,11 +114,82 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!
+    const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
+        `${API_URL}/api/transactions/calculate_preview/`,
+        fetcherpost
+    );
+
+
+
     function onSubmit(values: z.infer<typeof formSchema>) {
-        toast.success("Form berhasil disubmit!")
-        console.log(values)
-        dispatch(clearTable({ tableName }));
+        if (!data.length) {
+            toast.error("Silakan tambahkan produk terlebih dahulu.");
+            return;
+        }
+
+        if (submitAction === "simpan") {
+            const payload: PayloadType = {
+                th_type: "PURCHASE",
+                supplier: values.supplier,
+                cashier: 3,
+                th_date: values.th_date,
+                th_note: "Test",
+                th_payment_type: "BANK",
+                items: data.map((item) => ({
+                    stock: item.stock,
+                    stock_code: item.stock_code || "",
+                    stock_name: item.stock_name,
+                    stock_price_buy: item.stock_price_buy,
+                    quantity: item.quantity,
+                    disc: item.disc || 0,
+                    disc_percent: item.disc_percent || 0,
+                    disc_percent2: item.disc_percent2 || 0,
+                })),
+            };
+            trigger(payload)
+                .then((res) => {
+                    console.log(res)
+                })
+                .catch((err) => {
+                    toast.error(err.message);
+                });
+            setSubmitAction("bayar");
+        }
+
+        if (submitAction === "bayar") {
+            const payload: PayloadType = {
+                th_type: "ORDERIN",
+                supplier: values.supplier,
+                cashier: 3,
+                th_date: values.th_date,
+                th_note: "Test",
+                th_payment_type: "BANK",
+                items: data.map((item) => ({
+                    stock: item.stock,
+                    stock_code: item.stock_code || "",
+                    stock_name: item.stock_name,
+                    stock_price_buy: item.stock_price_buy,
+                    quantity: item.quantity,
+                    disc: item.disc || 0,
+                    disc_percent: item.disc_percent || 0,
+                    disc_percent2: item.disc_percent2 || 0,
+                })),
+            };
+
+            console.log(JSON.stringify(payload, null, 1));
+            toast.success("Pembayaran berhasil");
+            // post(payload)
+            //     .then((res) => {
+            //         console.log(res)
+            //         toast.success("Pembayaran berhasil");
+            //     })
+            //     .catch((err) => {
+            //         toast.error(err.message);
+            //     });
+        }
     }
+
 
     const columns: ColumnDef<any>[] = [
         {
@@ -106,22 +197,22 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
             accessorKey: "stock_name",
         },
         {
-                    header: "Barang",
-        
-                    cell: ({ row }) => {
-                        const jumlahBarang = row.original.quantity || 0;
-        
-                        return (
-                            <input
-                                type="number"
-                                defaultValue={jumlahBarang}
-                                onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
-                                className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                                placeholder="0"
-                            />
-                        );
-                    },
-                },
+            header: "Barang",
+
+            cell: ({ row }) => {
+                const jumlahBarang = row.original.quantity || 0;
+
+                return (
+                    <input
+                        type="number"
+                        defaultValue={jumlahBarang}
+                        onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
+                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        placeholder="0"
+                    />
+                );
+            },
+        },
         {
             header: "Satuan",
             accessorKey: "unit",
@@ -146,7 +237,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                 );
             },
         },
-        
+
         {
             header: "Action",
             cell: ({ row }) => (
@@ -188,46 +279,59 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>, rowId: number, field: string) => {
-            const value = parseFloat(e.target.value) || 0;
-    
-            const updatedData = data.map((item) => {
-                if (item.id === rowId) {
-                    const updatedItem = { ...item };
-    
-                    if (field === 'quantity') {
-                        updatedItem.quantity = value;
-                    } else if (field === 'stock_price_buy') {
-                        updatedItem.stock_price_buy = value;
-                    }
-    
-                    updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
-    
-                    return updatedItem;
+        const value = parseFloat(e.target.value) || 0;
+
+        const updatedData = data.map((item) => {
+            if (item.id === rowId) {
+                const updatedItem = { ...item };
+
+                if (field === 'quantity') {
+                    updatedItem.quantity = value;
+                } else if (field === 'stock_price_buy') {
+                    updatedItem.stock_price_buy = value;
                 }
-                return item;
-            });
-    
-            dispatch(setTableData({ tableName: "order", data: updatedData }));
-    
-            const total = updatedData.reduce((acc, item) => acc + (item.subtotal || 0), 0);
-            dispatch(setTableData({ tableName: "order", data: updatedData }));
-        };
+
+                updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
+
+                return updatedItem;
+            }
+            return item;
+        });
+
+        dispatch(setTableData({ tableName: "order", data: updatedData }));
+
+        const total = updatedData.reduce((acc, item) => acc + (item.subtotal || 0), 0);
+        dispatch(setTableData({ tableName: "order", data: updatedData }));
+    };
 
     const handleClear = () => {
         dispatch(clearTable({ tableName: "order" }));
         toast.error("Table berhasil dihapus!");
     };
 
-    const handleInputClick = () => {
-        const inputData = {
-            tanggal: date ? format(date, "yyyy-MM-dd") : null,
-            distributor: value || null,
-            // tabel: data,
-        };
-        console.log("Input Data:", inputData);
-        toast.success("Produk berhasil diinput!");
-        dispatch(clearTable({ tableName: "order" }));
-    };
+
+    const totalSummary = useMemo(() => {
+            const subtotal = data.reduce((acc, item) => {
+                const price = item.stock_price_buy || 0;
+                const qty = item.quantity || 0;
+                const disc = item.disc || 0;
+                const disc1 = item.disc_percent || 0;
+                const disc2 = item.disc_percent2 || 0;
+    
+                const afterDisc1 = price - disc;
+                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+                const subtotalItem = qty * afterDisc3;
+    
+                return acc + subtotalItem;
+            }, 0);
+    
+      
+    
+            return {
+                subtotal
+            };
+        }, [data]);
 
 
     return (
@@ -250,7 +354,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                                                         <Button
                                                             variant="outline"
                                                             className={cn(
-                                                                "w-[200px] justify-start text-left font-normal",
+                                                                "w-[150px] h-[30px] justify-start text-left font-normal",
                                                                 !field.value && "text-muted-foreground"
                                                             )}
                                                         >
@@ -317,50 +421,79 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
 
                     <div className="rounded-md border overflow-auto">
                         <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id} className="text-left">
-                                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {table.getRowModel().rows.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow key={row.id}>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id} className="text-left">
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
-                                            Belum menambahkan produk
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-white">
-                                    <TableCell colSpan={6} className="text-right font-bold">
-                                        Total:
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold">
-                                        Rp{(data.reduce((acc, item) => acc + item.subtotal, 0) * 1.11).toLocaleString("id-ID")}
-                                    </TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
+                                                    <TableHeader>
+                                                        {table.getHeaderGroups().map((headerGroup) => (
+                                                            <TableRow key={headerGroup.id}>
+                                                                {headerGroup.headers.map((header) => (
+                                                                    <TableHead key={header.id} className="text-left">
+                                                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                                                    </TableHead>
+                                                                ))}
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {table.getRowModel().rows.length ? (
+                                                            table.getRowModel().rows.map((row) => (
+                                                                <TableRow key={row.id}>
+                                                                    {row.getVisibleCells().map((cell) => (
+                                                                        <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
+                                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                                        </TableCell>
+                                                                    ))}
+                                                                </TableRow>
+                                                            ))
+                                                        ) : (
+                                                            <TableRow>
+                                                                <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
+                                                                    Belum menambahkan produk
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </TableBody>
+                                                    <TableFooter>
+                                                        <TableRow className="bg-white">
+                                                            <TableCell colSpan={1} className="text-right font-bold border">
+                                                                Total Barang:
+                                                            </TableCell>
+                                                            <TableCell className="text-left font-bold border">
+                                                                {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                                            </TableCell>
+                                                            <TableCell colSpan={3} className="text-right font-bold border">
+                                                                Total:
+                                                            </TableCell>
+                                                            <TableCell className="text-left font-bold border">
+                                                                <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                                                    maximumFractionDigits: 2,
+                                                                })}</span>
+                                                            </TableCell>
+                                                            <TableCell className="text-left font-bold border">
+                        
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    </TableFooter>
+                                                </Table>
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
-                        <Button className='font-medium bg-blue-500 hover:bg-blue-600 ' onClick={handleInputClick}>Input</Button>
+                        <Dialog>
+                            {data.length > 0 ? (
+                                <DialogTrigger asChild>
+                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
+                                        Simpan
+                                    </Button>
+                                </DialogTrigger>
+                            ) : (
+                                <Button
+                                    className='font-medium bg-blue-500 hover:bg-blue-600'
+                                >
+                                    Simpan
+                                </Button>
+                            )}
+
+                            <DialogContent className="w-1/4 max-h-11/12">
+                                <BayarTPModal review={review} />
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </form>
             </Form >

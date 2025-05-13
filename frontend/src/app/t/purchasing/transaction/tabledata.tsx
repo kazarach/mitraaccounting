@@ -131,6 +131,20 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!
+    const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
+        `${API_URL}/api/transactions/calculate_preview/`,
+        fetcherpost
+    );
+    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
+        any,
+        any,
+        string,
+        PayloadType
+    >(
+        `${API_URL}/api/transactions/`,
+        fetcherpost
+    );
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
@@ -170,54 +184,44 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         }
 
         if (submitAction === "bayar") {
-            const payload: PayloadType = {
-                th_type: "PURCHASE",
-                th_ppn: isPpnIncluded ? 0 : 11,
-                supplier: values.supplier,
-                cashier: 3,
-                th_disc: values.th_disc,
-                th_date: values.th_date,
-                th_note: "Test",
-                th_payment_type: "BANK",
-                items: data.map((item) => ({
-                    stock: item.stock,
-                    stock_code: item.stock_code || "",
-                    stock_name: item.stock_name,
-                    stock_price_buy: item.stock_price_buy,
-                    quantity: item.quantity,
-                    disc: item.disc || 0,
-                    disc_percent: item.disc_percent || 0,
-                    disc_percent2: item.disc_percent2 || 0,
-                })),
-            };
+            if (data[0].transactions === "ORDERIN") {
+                const payload: PayloadType = {
+                    th_type: "PURCHASE",
+                    th_ppn: isPpnIncluded ? 0 : 11,
+                    supplier: values.supplier,
+                    cashier: 3,
+                    th_disc: values.th_disc,
+                    th_date: values.th_date,
+                    th_note: "Test",
+                    th_payment_type: "BANK",
+                    items: data.map((item) => ({
+                        stock: item.stock,
+                        stock_code: item.stock_code || "",
+                        stock_name: item.stock_name,
+                        stock_price_buy: item.stock_price_buy,
+                        quantity: item.quantity,
+                        disc: item.disc || 0,
+                        disc_percent: item.disc_percent || 0,
+                        disc_percent2: item.disc_percent2 || 0,
+                    })),
+                }
 
-            console.log(JSON.stringify(payload, null, 1));
-            toast.success("Pembayaran berhasil");
-            // post(payload)
-            //     .then((res) => {
-            //         console.log(res)
-            //         toast.success("Pembayaran berhasil");
-            //     })
-            //     .catch((err) => {
-            //         toast.error(err.message);
-            //     });
-        }
+
+                console.log(JSON.stringify(payload, null, 1));
+                toast.success("Pembayaran berhasil");
+                // post(payload)
+                //     .then((res) => {
+                //         console.log(res)
+                //         toast.success("Pembayaran berhasil");
+                //     })
+                //     .catch((err) => {
+                //         toast.error(err.message);
+                //     });
+            }
+        };
     }
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!
-    const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
-        `${API_URL}/api/transactions/calculate_preview/`,
-        fetcherpost
-    );
-    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
-        any,
-        any,
-        string,
-        PayloadType
-    >(
-        `${API_URL}/api/transactions/`,
-        fetcherpost
-    );
+
 
     const columns: ColumnDef<TransactionRow>[] = [
         {
@@ -448,7 +452,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             });
 
             dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
-        }, 750);
+        }, 200);
     };
 
     const totalSummary = useMemo(() => {
@@ -657,7 +661,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             </TableBody>
                             <TableFooter>
                                 <TableRow className="bg-white">
-                                    <TableCell colSpan={1} className="text-right font-bold border">
+                                    <TableCell colSpan={3} className="text-right font-bold border">
                                         Total Barang:
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">
@@ -667,7 +671,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     <TableCell className="text-left font-bold border">
                                         {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
                                     </TableCell>
-                                    <TableCell colSpan={6} className="text-right font-bold border">
+                                    <TableCell colSpan={4} className="text-right font-bold border">
                                         Total:
                                     </TableCell>
                                     <TableCell className="text-left font-bold border">

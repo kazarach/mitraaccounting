@@ -59,11 +59,15 @@ const TpModal = () => {
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=PURCHASE${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
   const handleAddProduct = (row: any) => {
+    const supplier = row.original.supplier; 
+    const th_type = row.original.th_type;   
+    const transaction_id = row.original.id; 
+
     if (row.original.items && row.original.items.length > 0) {
       row.original.items.forEach((item: any) => {
         const newItem = {
@@ -72,27 +76,30 @@ const TpModal = () => {
           stock_name: item.stock_name,
           unit: item.unit,
           conversion_unit: item.conversion_unit,
-          jumlah_pesanan: parseFloat(item.quantity) || 1, 
-          quantity: parseFloat(item.quantity) || 1, 
-          stock_price_buy: parseFloat(item.stock_price_buy) || 0, 
-          stock_price_sell: parseFloat(item.sell_price) || 0, 
-          discount: item.disc ?? 0, 
-          netto: parseFloat(item.netto) || 0, 
-          total: parseFloat(item.total) || 0, 
-          stock: item.stock, 
+          jumlah_pesanan: parseFloat(item.quantity) || 1,
+          quantity: parseFloat(item.quantity) || 1,
+          stock_price_buy: parseFloat(item.stock_price_buy) || 0,
+          stock_price_sell: parseFloat(item.sell_price) || 0,
+          discount: item.disc ?? 0,
+          netto: parseFloat(item.netto) || 0,
+          total: parseFloat(item.total) || 0,
+          stock: item.stock,
+          th_type,      
+          supplier,      
+          transaction_id, 
         };
-  
+        
         dispatch(addRow({ tableName: "transaksi", row: newItem }));
       });
-  
+
       // Success message
       toast.success("Items berhasil ditambahkan");
     } else {
       toast.error("No items found in this invoice.");
     }
   };
-  
-  
+
+
 
 
   const columns: ColumnDef<any>[] = [

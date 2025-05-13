@@ -19,7 +19,10 @@ export const fetcher = (url: string) => {
   return fetch(url, { headers }).then((res) => res.json());
 };
 
-export const fetcherpost = async (url: string, { arg }: { arg: any }) => {
+export const fetcherpost = async (
+  url: string,
+  { arg }: { arg: any & { _method?: 'POST' | 'PUT' } }
+) => {
   const access = localStorage.getItem("access");
   const refresh = localStorage.getItem("refresh");
 
@@ -30,15 +33,19 @@ export const fetcherpost = async (url: string, { arg }: { arg: any }) => {
   if (access) headers["Authorization"] = `Bearer ${access}`;
   if (refresh) headers["x-refresh-token"] = refresh;
 
+  const method = arg._method || 'POST';
+  const payload = { ...arg };
+  delete payload._method; // remove _method before sending to backend
+
   const res = await fetch(url, {
-    method: 'POST',
+    method,
     headers,
-    body: JSON.stringify(arg),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}));
-    throw new Error(errorBody.message || 'Gagal menghitung pratinjau transaksi');
+    throw new Error(errorBody.message || 'Gagal melakukan transaksi');
   }
 
   return res.json();
