@@ -30,11 +30,15 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
-import CustomerDDTS from './customer-dd';
-import TambahProdukModalSelling from './tambahprodukmodalselling';
-import TpModalSelling from './modalpesanan';
+// import CustomerDDTS from './customer-dd';
+// import TambahProdukModalSelling from './tambahprodukmodalselling';
+// import TpModalSelling from './modalpesanan';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import BayarTPModalJual from './previewmodal';
+import TambahProdukModalOrderSelling from './tambahprodukmodalorderselling';
+import CustomerDDTOS from './customer-dd';
+import SalesOrderDD, {  } from './sales-dd';
+import BayarTPModalOrderJual from './previewmodalorder';
+// import BayarTPModalJual from './previewmodal';
 
 type Customer = {
     id: number;
@@ -55,6 +59,7 @@ const formSchema = z.object({
     th_disc: z.number({
         required_error: "Masukkan Diskon Nota"
     }),
+    sales: z.number().nullable()
     // items: z.array(z.object({
     //     stock: z.number(),
     //     quantity: z.number(),
@@ -95,7 +100,7 @@ interface Props {
     tableName: string;
 }
 
-const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
+const TransactionOrderSellingTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
     const [date, setDate] = React.useState<Date>()
     const [value, setValue] = React.useState("")
@@ -103,8 +108,6 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [previewData, setPreviewData] = useState<any>(null); // untuk menyimpan response dari API
     const [thDisc, setThDisc] = useState(0);
-    const [thDp, setThDp] = useState(0); // Tambahkan ini
-    const [cashierId, setCashierId] = useState<number | null>(null);    
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
     // console.log("🟡 data dari Redux:", data);
@@ -115,6 +118,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             th_date: new Date().toISOString(),
             customer: undefined,
             th_disc: 0,
+            sales: null // ✅ TAMBAHKAN INI
         },
     })
     console.log("zod", form)
@@ -315,12 +319,13 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
 
     const handleClear = () => {
         dispatch(clearTable({ tableName }));
-        toast.error("Tabel berhasil dihapus!");
+        toast.success("Tabel berhasil dihapus!");
       
         form.reset({
           th_date: new Date().toISOString(), // ← reset ke hari ini atau kosongkan
           customer: null,
           th_disc: 0,
+          sales: null, // ✅ RESET SALES JUGA
         });
       
         setCustomer(null);
@@ -347,10 +352,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         const th_disc = form.getValues("th_disc");
         const th_ppn = isPpnIncluded ? 0 : 11;
         const th_payment_type = 'BANK';
-        const transactionId = previewData?.transactionId;
+        const operator_id = form.getValues("sales");
 
         if (!customer_id) {
             toast.error("Pilih customer terlebih dahulu!");
+            return;
+        }
+        if (!operator_id) {
+            toast.error("Pilih Operator terlebih dahulu!");
             return;
         }
         if (!data.length) {
@@ -377,15 +386,13 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             const customer_id = form.getValues("customer"); // sudah ID, bukan name
       
           const payload = {
-            th_type: "SALE", // ← masih wajib karena backend minta
+            th_type: "SALE",
             customer: customer_id,
             th_disc: th_disc,
             th_ppn: th_ppn,
             th_payment_type: th_payment_type,
-            th_dp: thDp,
-            cashier: cashierId ?? null,
-            ...(transactionId && { id: transactionId }),
-            items,
+            cashier: operator_id,
+            items
           };
       
           const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -414,16 +421,13 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         setPreviewData({
             ...result,
             customer_name: customer?.name ?? "",
-            th_dp: thDp,
-            fromOrderModal: true,
-            transactionId: result?.id ?? payload.id,
             _rawPayload: {
               th_type: "SALE",
               customer: customer_id,
               th_disc: th_disc,
               th_ppn: th_ppn,
               th_payment_type: th_payment_type,
-              id: result?.id ?? payload.id,
+              cashier: operator_id,
               items
             }
           });          
@@ -486,12 +490,29 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             <div className="flex flex-col space-y-2">
                             <FormField
                                 control={form.control}
+                                name="sales"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Operator</FormLabel>
+                                    <FormControl>
+                                        <SalesOrderDD
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                            </div>
+                            <div className="flex flex-col space-y-2">
+                            <FormField
+                                control={form.control}
                                 name="customer"
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Customer</FormLabel>
                                     <FormControl>
-                                    <CustomerDDTS
+                                    <CustomerDDTOS
                                         value={customer?.id ?? null}
                                         onChange={(selectedCustomer) => {
                                             setCustomer(selectedCustomer);
@@ -552,49 +573,11 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                         <div className='flex items-end gap-2'>
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
-                                </DialogTrigger>
-                                <DialogContent className="w-[70vw] max-h-[90vh]">
-                                <TpModalSelling
-                                onCustomerSelect={(id, name, priceCategoryId, thDate, thDisc, thPpn, thDp, transactionId, cashierId) => {
-                                    const customerData = {
-                                    id,
-                                    name,
-                                    price_category: { id: priceCategoryId, name: "" }
-                                    };
-                                    setCustomer(customerData);
-                                    form.setValue("customer", id);
-                                    if (thDate) form.setValue("th_date", new Date(thDate).toISOString());
-                                    form.setValue("th_disc", Number(thDisc));
-                                    setIsPpnIncluded(thPpn === 11);
-                                    setThDp(thDp ?? 0);
-                                    setCashierId(cashierId ?? null);
-
-                                    // ⬇️ TAMBAHKAN INI agar transactionId tidak hilang
-                                    setPreviewData((prev: typeof previewData)=> ({
-                                    ...prev,
-                                    fromOrderModal: true,
-                                    transactionId: transactionId ?? null,
-                                    _rawPayload: {
-                                        th_type: "SALE",
-                                        customer: id,
-                                        th_disc: Number(thDisc),
-                                        th_ppn: thPpn,
-                                        th_dp: thDp,
-                                        items: data, // ← kalau belum ada data dari invoice, bisa kosong
-                                    }
-                                    }));
-                                }}
-                                />
-                                </DialogContent>
-                            </Dialog>
-                            <Dialog>
-                                <DialogTrigger asChild>
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[100vw] max-h-[90vh]">
-                                <TambahProdukModalSelling
-                                    tableName="s_transaksi"
+                                <TambahProdukModalOrderSelling
+                                    tableName="s_pesanan"
                                     priceCategoryId={customer?.price_category?.id ?? 1}
                                     />
                                 </DialogContent>
@@ -686,8 +669,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             Simpan
                             </Button>
                             <DialogContent className="w-[30vw] max-h-[90vh]">
-                            <BayarTPModalJual
-                                data={{ ...previewData, transactionId: previewData?.transactionId, fromOrderModal: previewData?.fromOrderModal }}
+                            <BayarTPModalOrderJual
+                                data={previewData}
                                 onSuccess={() => {
                                 dispatch(clearTable({ tableName }));
                                 setIsBayarModalOpen(false);
@@ -695,6 +678,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     th_date: new Date().toISOString(),
                                     customer: null,
                                     th_disc: 0,
+                                    sales: null,
                                 });
                                 setCustomer(null);
                                 }}
@@ -708,4 +692,4 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     );
 };
 
-export default TransactionSellingTable;
+export default TransactionOrderSellingTable;

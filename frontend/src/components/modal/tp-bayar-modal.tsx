@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { HutangData } from '@/data/product';
 import { CalendarIcon } from 'lucide-react';
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 
 interface BayarTPModalProps {
     review: any;
+
 }
 
 const formSchema = z.object({
@@ -35,10 +36,7 @@ const formSchema = z.object({
 })
 
 const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
-
-
     const [date, setDate] = React.useState<Date>()
-
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -54,7 +52,7 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
 
     return (
         <Form {...form}>
-             <form onSubmit={form.handleSubmit(onSubmit2)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit2)} className="space-y-8">
                 <div className=" flex flex-col " >
                     <DialogHeader>
                         <DialogTitle className="text-sm font-bold text-gray-800 mb-2">
@@ -83,28 +81,32 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
 
                             <TableBody>
                                 <TableRow>
+                                    <TableCell>Supplier</TableCell>
+                                    {/* <TableCell className="text-left border-l">{review.supplier}</TableCell> */}
+                                </TableRow>
+                                <TableRow>
                                     <TableCell>Subtotal</TableCell>
-                                    <TableCell className="text-left border-l">Rp{review?.subtotal?.toLocaleString("id-ID") || "0"}</TableCell>
+                                    <TableCell className="text-right border-l">{review?.subtotal?.toLocaleString("id-ID") || "0"}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>(-) Diskon</TableCell>
-                                    <TableCell className="text-left border-l">{review?.th_disc?.toLocaleString("id-ID") || "0"}%</TableCell>
+                                    <TableCell className="text-right border-l">{review?.th_disc?.toLocaleString("id-ID") || "0"}%</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>(+) PPN</TableCell>
-                                    <TableCell className="text-left border-l">{review?.th_ppn?.toLocaleString("id-ID") || "0"}%</TableCell>
+                                    <TableCell className="text-right border-l">{review?.th_ppn?.toLocaleString("id-ID") || "0"}%</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>Total</TableCell>
-                                    <TableCell className="text-left border-l ">Rp{((review?.th_total || 0) - (review?.th_round || 0)).toLocaleString("id-ID")}</TableCell>
+                                    <TableCell className="text-right border-l ">{((review?.th_total || 0) - (review?.th_round || 0)).toLocaleString("id-ID")}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>Pembulatan</TableCell>
-                                    <TableCell className="text-left border-l ">Rp{review?.th_round?.toLocaleString("id-ID") || "0"}</TableCell>
+                                    <TableCell className="text-right border-l ">{review?.th_round?.toLocaleString("id-ID") || "0"}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-bold">Total Net</TableCell>
-                                    <TableCell className="text-left border-l font-bold">Rp{review?.th_total?.toLocaleString("id-ID") || "0"}</TableCell>
+                                    <TableCell className="text-right border-l font-bold">{review?.th_total?.toLocaleString("id-ID") || "0"}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className=''></TableCell>
@@ -124,9 +126,9 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                                                 <SelectValue placeholder="Tipe Bayar" className="text-xs" />
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                <SelectItem value="a">Bank</SelectItem>
-                                                                <SelectItem value="b">Cash</SelectItem>
-                                                                <SelectItem value="c">CC</SelectItem>
+                                                                <SelectItem value="BANK">Transfer Bank</SelectItem>
+                                                                <SelectItem value="CASH">Tunai</SelectItem>
+                                                                <SelectItem value="CREDIT">Kartu Kredit</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                     </FormControl>
@@ -138,13 +140,13 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className=''>Jatuh tempo</TableCell>
-                                    <TableCell className="text-left border-l  p-0 ">
+                                    <TableCell className="text-right border-l  p-0 ">
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant={"outline"}
                                                     className={cn(
-                                                        "w-full justify-start text-left font-normal border-0 rounded-none  bg-white",
+                                                        "w-full justify-start text-right font-normal border-0 rounded-none  bg-white",
                                                     )}
                                                 >
                                                     <CalendarIcon />
@@ -197,12 +199,12 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                 <TableRow>
                                     <TableCell>DP</TableCell>
                                     <TableCell className="text-right border-l p-0 ">
-                                        <TableCell className="text-left border-l ">Rp{review?.th_dp?.toLocaleString("id-ID") || "0"}</TableCell>
+                                        <TableCell className="text-left border-l ">{review?.th_dp?.toLocaleString("id-ID") || "0"}</TableCell>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className='font-bold'>Sisa Bayar</TableCell>
-                                    <TableCell className="text-left border-l font-bold">Rp{((review?.th_total || 0) - (review?.th_dp || 0)).toLocaleString("id-ID")}</TableCell>
+                                    <TableCell className="text-left border-l font-bold">{((review?.th_total || 0) - (review?.th_dp || 0)).toLocaleString("id-ID")}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className=''>Pembayaran</TableCell>
@@ -219,7 +221,7 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                         </Table>
                     </div>
                     <div className="flex justify-end mb-0 pb-0">
-                        <Button className="bg-blue-500 hover:bg-blue-600" type='submit'>Bayar</Button>
+                        <Button className="bg-blue-500 hover:bg-blue-600" type='submit' >Bayar</Button>
 
                     </div>
                 </div >
