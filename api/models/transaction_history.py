@@ -122,14 +122,41 @@ class TransactionHistory(models.Model):
                 }
                 prefix = prefix_map.get(self.th_type, "TRX")  # Default to "TRX" if no match
                 today = timezone.now().date()
-                count_today = TransactionHistory.objects.filter(
+                date_str = today.strftime('%Y%m%d')
+                
+                # Find the highest sequence number for this type and date
+                # by parsing existing codes with a more reliable method
+                today_codes = TransactionHistory.objects.filter(
                     th_type=self.th_type,
-                    th_date__date=today
-                ).count()
-                self.th_code = f"{prefix}-{today.strftime('%Y%m%d')}-{count_today + 1:04d}"
+                    th_date__date=today,
+                    th_code__startswith=f"{prefix}-{date_str}-"
+                ).values_list('th_code', flat=True)
+                
+                max_sequence = 0
+                for code in today_codes:
+                    try:
+                        # Extract the sequence number part (last 4 digits)
+                        sequence_str = code[-4:]
+                        sequence = int(sequence_str)
+                        if sequence > max_sequence:
+                            max_sequence = sequence
+                    except (ValueError, IndexError):
+                        # Skip if format is incorrect
+                        pass
+                
+                # Generate the new code with incremented sequence
+                new_sequence = max_sequence + 1
+                self.th_code = f"{prefix}-{date_str}-{new_sequence:04d}"
+                
+                # As an extra safety measure, verify uniqueness
+                base_code = f"{prefix}-{date_str}-"
+                attempt = new_sequence
+                while TransactionHistory.objects.filter(th_code=self.th_code).exists():
+                    attempt += 1
+                    self.th_code = f"{base_code}{attempt:04d}"
 
-            # Save the transaction first
-            super().save(*args, **kwargs)
+            # Save the transaction
+                super().save(*args, **kwargs)
 
             # Calculate points only if not already set, and avoid duplicate saves
             if not self.th_point:  
