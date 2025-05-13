@@ -56,12 +56,13 @@ class TransactionHistory(models.Model):
     event_discount = models.ForeignKey(EventDisc, on_delete=models.SET_NULL, blank=True, null=True)
     
     th_so = models.ForeignKey(Sales, on_delete=models.SET_NULL, blank=True, null=True, related_name="sales_orders")
-    th_retur = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="returns")  # Self-referencing for returns
+    th_retur = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="returns")
     
     th_status = models.BooleanField(default=True)
     th_delivery = models.BooleanField(default=False)
     th_order = models.BooleanField(default=False)
-    
+    th_order_reference = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
+
     th_point = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)

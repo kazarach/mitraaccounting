@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from django.utils import timezone
-from django.db.models import Sum, Count, F, DecimalField, Max
+from django.db.models import Sum, Count, F, DecimalField, Max, Prefetch
 from django.db.models.functions import Coalesce
 from datetime import timedelta, datetime 
 from decimal import Decimal
@@ -62,9 +62,14 @@ import pytz
     )
 )
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
-    queryset = TransactionHistory.objects.prefetch_related('items').select_related(
+    queryset = TransactionHistory.objects.select_related(
         'supplier', 'customer', 'cashier', 'bank', 'event_discount', 'th_so', 'th_retur'
-    )
+    ).prefetch_related(
+        Prefetch(
+            'items',
+            queryset=TransItemDetail.objects.select_related('stock__unit')
+        )
+    ).order_by('-th_date')
     serializer_class = TransactionHistorySerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = TransactionHistoryFilter

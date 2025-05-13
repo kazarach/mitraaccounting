@@ -70,6 +70,6 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
         if items_data is not None:
             instance.items.all().delete()
             for item_data in items_data:
-                item_data.pop('transaction', None)  # ✅ hilangkan jika ada
+                item_data.pop('transaction', None)
                 TransItemDetail.objects.create(transaction=instance, **item_data)
         return instance
