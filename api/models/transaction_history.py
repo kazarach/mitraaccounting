@@ -203,7 +203,7 @@ class TransItemDetail(models.Model):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
     def save(self, *args, **kwargs):
-        if self.transaction.th_type in [TransactionType.SALE, TransactionType.RETURN_SALE, TransactionType.ORDEROUT]:
+        if self.transaction.th_type in [TransactionType.SALE, TransactionType.RETURN_SALE, TransactionType.ORDERIN]:
             is_return = self.transaction.th_type == TransactionType.RETURN_SALE
             sign = -1 if is_return else 1
 
@@ -223,8 +223,8 @@ class TransItemDetail(models.Model):
                 self.sell_price = self.stock.hpp
                 
             # Code block for selling (only for SALE transactions)
-            self.total = self.quantity * (self.stock_price_buy or 0)
-            price_after_disc = (self.stock_price_buy or 0) - (self.disc or 0)
+            self.total = self.quantity * (self.sell_price or 0)
+            price_after_disc = (self.sell_price or 0) - (self.disc or 0)
             price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
             
@@ -246,7 +246,7 @@ class TransItemDetail(models.Model):
             self.sell_price = final_price_sell
             
 
-        elif self.transaction.th_type in [TransactionType.PURCHASE, TransactionType.RETURN_PURCHASE, TransactionType.ORDERIN]:
+        elif self.transaction.th_type in [TransactionType.PURCHASE, TransactionType.RETURN_PURCHASE, TransactionType.ORDEROUT]:
             # Code block for buying (only for PURCHASE transactions)
             is_return = self.transaction.th_type == TransactionType.RETURN_PURCHASE
             sign = -1 if is_return else 1

@@ -45,9 +45,9 @@ class StockPrice(models.Model):
         return None
     
     def clean(self):
-        if not self.allow_below_cost and self.price_sell < self.stock.hpp:
+        if not self.allow_below_cost and self.price_sell < self.stock.hpp + self.margin:
             raise ValidationError({
-                'price_sell': f"Warning: The selling price ({self.price_sell}) is below cost price ({self.stock.hpp})."
+                'price_sell': f"Warning: The selling price ({self.price_sell}) is below cost price ({self.stock.hpp+self.margin})."
             })
     
     def save(self, *args, **kwargs):
