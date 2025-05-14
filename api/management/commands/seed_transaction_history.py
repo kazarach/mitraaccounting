@@ -11,7 +11,6 @@ from api.models.supplier import Supplier
 from api.models.customer import Customer
 from api.models.bank import Bank
 from api.models.event_discount import EventDisc
-from api.models.sales import Sales
 from api.models.stock import Stock
 from django.contrib.auth import get_user_model
 
@@ -63,9 +62,9 @@ class Command(BaseCommand):
                     items = [TransItemDetail(**item_data) for item_data in items_data]
                     TransItemDetail.objects.bulk_create(items)
                 
-                # Only now set order references
-                self.stdout.write("Setting order references...")
-                self.set_order_references(all_transactions)
+                # Set up return references for some transactions
+                self.stdout.write("Setting up return and order references...")
+                self.set_transaction_references(all_transactions)
                 
                 # Finally, update points and totals for all transactions
                 self.stdout.write("Calculating transaction points and totals...")
@@ -88,29 +87,56 @@ class Command(BaseCommand):
             import traceback
             self.stdout.write(self.style.ERROR(traceback.format_exc()))
 
-    def set_order_references(self, transactions):
+    def set_transaction_references(self, transactions):
         """
-        Update transactions with order references as a separate operation
-        after all transactions have been created and have primary keys
+        Set up return and order references for some transactions
         """
-        # Only 20% of transactions get references
-        transactions_to_update = random.sample(
+        # For return references - 10% of transactions become returns
+        return_candidates = random.sample(
             transactions, 
+            k=min(len(transactions) // 10, len(transactions))
+        )
+        
+        # For order references - 20% of transactions get order references
+        order_candidates = random.sample(
+            [t for t in transactions if t not in return_candidates],  # Don't overlap with returns
             k=min(len(transactions) // 5, len(transactions))
         )
         
-        for transaction in transactions_to_update:
-            # Only set reference if it's a relevant transaction type
-            if transaction.th_type in ['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE']:
-                # Find suitable references (excluding self)
-                potential_references = [t for t in transactions if t.id != transaction.id]
+        # Set return references
+        for transaction in return_candidates:
+            # Find a suitable original transaction to return (excluding self)
+            potential_originals = [t for t in transactions 
+                                   if t.id != transaction.id 
+                                   and t not in return_candidates  # Don't make returns of returns
+                                   and t.th_type in ['SALE', 'PURCHASE']]  # Can only return sales/purchases
+            
+            if potential_originals:
+                original_transaction = random.choice(potential_originals)
                 
-                if potential_references:
-                    reference = random.choice(potential_references)
-                    # Use update directly to avoid any save() method issues
-                    TransactionHistory.objects.filter(id=transaction.id).update(
-                        th_order_reference=reference
-                    )
+                # Mark this transaction as a return and set the reference
+                TransactionHistory.objects.filter(id=transaction.id).update(
+                    th_return=True,
+                    th_return_reference=original_transaction,
+                    # Also update the transaction type to match the return type
+                    th_type='RETURN_SALE' if original_transaction.th_type == 'SALE' else 'RETURN_PURCHASE'
+                )
+        
+        # Set order references
+        for transaction in order_candidates:
+            # Find suitable references (excluding self and returns)
+            potential_references = [t for t in transactions 
+                                   if t.id != transaction.id
+                                   and not t.th_return  # Don't reference returns
+                                   and t.th_type in ['SALE', 'PURCHASE']]  # Only reference regular transactions
+            
+            if potential_references:
+                reference = random.choice(potential_references)
+                # Use update directly to avoid any save() method issues
+                TransactionHistory.objects.filter(id=transaction.id).update(
+                    th_order=True,
+                    th_order_reference=reference
+                )
 
     def ensure_related_models_exist(self):
         """
@@ -139,10 +165,6 @@ class Command(BaseCommand):
         # Ensure we have some event discounts
         if not EventDisc.objects.exists():
             EventDisc.objects.create(code='ED001', name='Summer Sale', type='Percentage')
-        
-        # Ensure we have some sales records
-        if not Sales.objects.exists():
-            Sales.objects.create(so_number='SO-001')
         
         # Ensure we have some stocks
         if not Stock.objects.exists():
@@ -178,12 +200,10 @@ class Command(BaseCommand):
             
         bank = random.choice(list(Bank.objects.all()))
         event_discount = random.choice(list(EventDisc.objects.all()) + [None])
-        sales_order = random.choice(list(Sales.objects.all()) + [None])
 
         # Generate transaction types
-        transaction_types = ['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 
-                             'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE', 
-                             'ORDERIN', 'ORDEROUT']
+        transaction_types = ['SALE', 'PURCHASE', 'USAGE', 'TRANSFER', 
+                            'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE']
         payment_types = ['CASH', 'BANK', 'CREDIT']
 
         # Select transaction type
@@ -210,11 +230,10 @@ class Command(BaseCommand):
             'th_status': random.random() > 0.1,  # 90% chance of being active
             'bank': bank,
             'event_discount': event_discount,
-            'th_so': sales_order,
-            'th_delivery': random.random() > 0.5,
-            'th_order': random.random() > 0.5,
+            'th_delivery': random.random() > 0.7,  # 30% chance of delivery
+            'th_return': False,  # Will be set later for some transactions
+            'th_order': False,   # Will be set later for some transactions
             # th_code will be auto-generated in the model's save method
-            # Order reference will be set later
         }
 
         return transaction_data

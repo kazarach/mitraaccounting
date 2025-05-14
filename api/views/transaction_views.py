@@ -63,7 +63,7 @@ import pytz
 )
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
     queryset = TransactionHistory.objects.select_related(
-        'supplier', 'customer', 'cashier', 'bank', 'event_discount', 'th_so', 'th_retur'
+        'supplier', 'customer', 'cashier', 'bank', 'event_discount', 'th_return_reference'
     ).prefetch_related(
         Prefetch(
             'items',
@@ -142,14 +142,6 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 enum=['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 
                       'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE'],
             ),
-            # OpenApiParameter(
-            #     name='bank_type',
-            #     description='Type of transaction to filter. Options: SALE, PURCHASE, RETURN_SALE, etc.',
-            #     required=False,
-            #     type=str,
-            #     enum=['SALE', 'PURCHASE', 'RETURN_SALE', 'RETURN_PURCHASE', 'USAGE', 
-            #           'TRANSFER', 'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE'],
-            # ),
             OpenApiParameter(name='start_date', type=str, required=False, description='Format: YYYY-MM-DD'),
             OpenApiParameter(name='end_date', type=str, required=False, description='Format: YYYY-MM-DD'),
             OpenApiParameter(name='cashier', type=str, required=False, description='Filter by cashier ID'),
@@ -363,39 +355,32 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     def _calculate_item_totals(self, item):
         """Helper method to calculate item totals without saving to database"""
         # Replicate the calculation logic from TransItemDetail.save()
-        if item.transaction.th_type == 'SALE':
-            # Get price based on customer category - simplified for preview
-            item.sell_price = item.sell_price or item.stock.hpp
-            
-            # Calculate totals
-            item.total = item.quantity * (item.sell_price or Decimal('0'))
-            
-            # Apply item-level discounts
-            price_after_disc = item.sell_price - (item.disc or Decimal('0'))
-            price_after_disc1 = (price_after_disc or Decimal('0')) * (Decimal('1') - Decimal(item.disc_percent or 0) / Decimal('100'))
-            price_after_disc2 = price_after_disc1 * (Decimal('1') - Decimal(item.disc_percent2 or 0) / Decimal('100'))
-            
-            
-            # Calculate netto
-            item.netto = item.quantity * price_after_disc2
-            
-            # Apply transaction-level discounts and taxes 
-            # (This is simplified for preview; actual logic may differ)
-            # if item.transaction.th_disc:
-            #     item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
-                
-            # if item.transaction.th_ppn:
-            #     item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
+        if item.transaction.th_type in ['SALE', 'RETURN_SALE', 'ORDEROUT']:
+            base_price = item.sell_price or item.stock.hpp
+            sign = -1 if item.transaction.th_type == 'RETURN_SALE' else 1
+
+            item.sell_price = base_price
+            item.total = item.quantity * base_price * sign
+
+            # Apply discounts
+            price_after_disc = base_price - item.disc
+            price_after_disc1 = price_after_disc * (Decimal('1') - item.disc_percent / Decimal('100'))
+            price_after_disc2 = price_after_disc1 * (Decimal('1') - item.disc_percent2 / Decimal('100'))
+
+            item.netto = item.quantity * price_after_disc2 * sign
         
-        elif item.transaction.th_type == 'PURCHASE':
-            # Similar logic for purchase items
-            item.total = item.quantity * (item.stock_price_buy or Decimal('0'))
-            
-            price_after_disc = item.stock_price_buy - (item.disc or Decimal('0'))
-            price_after_disc1 = (item.stock_price_buy or Decimal('0')) * (Decimal('1') - Decimal(item.disc_percent or 0) / Decimal('100'))
-            price_after_disc2 = price_after_disc1 * (Decimal('1') - Decimal(item.disc_percent2 or 0) / Decimal('100'))
-            
-            item.netto = item.quantity * price_after_disc2
+        elif item.transaction.th_type in ['PURCHASE', 'RETURN_PURCHASE', 'ORDERIN']:
+            base_price = item.stock_price_buy or Decimal('0')
+            sign = -1 if item.transaction.th_type == 'RETURN_PURCHASE' else 1
+
+            item.total = item.quantity * base_price * sign
+
+            # Apply discounts
+            price_after_disc = base_price - item.disc
+            price_after_disc1 = price_after_disc * (Decimal('1') - item.disc_percent / Decimal('100'))
+            price_after_disc2 = price_after_disc1 * (Decimal('1') - item.disc_percent2 / Decimal('100'))
+
+            item.netto = item.quantity * price_after_disc2 * sign
             
             # if item.transaction.th_disc:
             #     item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))

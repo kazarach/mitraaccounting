@@ -54,17 +54,18 @@ class TransactionHistory(models.Model):
 
     bank = models.ForeignKey('Bank', on_delete=models.SET_NULL, blank=True, null=True)
     event_discount = models.ForeignKey(EventDisc, on_delete=models.SET_NULL, blank=True, null=True)
-    
-    th_so = models.ForeignKey(Sales, on_delete=models.SET_NULL, blank=True, null=True, related_name="sales_orders")
-    th_retur = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="returns")
-    
-    th_status = models.BooleanField(default=True)
     th_delivery = models.BooleanField(default=False)
+    
+    # th_so = models.ForeignKey(Sales, on_delete=models.SET_NULL, blank=True, null=True, related_name="sales_orders")
+    th_return = models.BooleanField(default=False)
+    th_return_reference = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="returns")
     th_order = models.BooleanField(default=False)
     th_order_reference = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
 
     th_point = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
+    th_status = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -202,7 +203,10 @@ class TransItemDetail(models.Model):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
     def save(self, *args, **kwargs):
-        if self.transaction.th_type == TransactionType.SALE:
+        if self.transaction.th_type in [TransactionType.SALE, TransactionType.RETURN_SALE, TransactionType.ORDEROUT]:
+            is_return = self.transaction.th_type == TransactionType.RETURN_SALE
+            sign = -1 if is_return else 1
+
             price_category = self.transaction.customer.price_category if self.transaction.customer else None
             if price_category:
                 # Retrieve the selling price based on the price category for the stock
@@ -224,7 +228,7 @@ class TransItemDetail(models.Model):
             price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
             
-            netto = self.quantity * price_after_disc2
+            netto = self.quantity * price_after_disc2 * sign
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
@@ -242,14 +246,17 @@ class TransItemDetail(models.Model):
             self.sell_price = final_price_sell
             
 
-        elif self.transaction.th_type == TransactionType.PURCHASE:
+        elif self.transaction.th_type in [TransactionType.PURCHASE, TransactionType.RETURN_PURCHASE, TransactionType.ORDERIN]:
             # Code block for buying (only for PURCHASE transactions)
+            is_return = self.transaction.th_type == TransactionType.RETURN_PURCHASE
+            sign = -1 if is_return else 1
+
             self.total = self.quantity * (self.stock_price_buy or 0)
             price_after_disc = (self.stock_price_buy or 0) - (self.disc or 0)
             price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
             
-            netto = self.quantity * price_after_disc2
+            netto = self.quantity * price_after_disc2 * sign
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
