@@ -36,8 +36,9 @@ import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TambahProdukModalOrderSelling from './tambahprodukmodalorderselling';
 import CustomerDDTOS from './customer-dd';
-import SalesOrderDD, {  } from './sales-dd';
+import SalesOrderDD, {  } from './cashier-dd';
 import BayarTPModalOrderJual from './previewmodalorder';
+import CashierOrderDD from './cashier-dd';
 // import BayarTPModalJual from './previewmodal';
 
 type Customer = {
@@ -495,9 +496,10 @@ const TransactionOrderSellingTable: React.FC<Props> = ({ tableName }) => {
                                     <FormItem>
                                     <FormLabel>Operator</FormLabel>
                                     <FormControl>
-                                        <SalesOrderDD
-                                        value={field.value}
-                                        onChange={field.onChange}
+                                        <CashierOrderDD
+                                        onChange={(id, data) => {
+                                            field.onChange(id); // isi field 'sales'
+                                        }}
                                         />
                                     </FormControl>
                                     </FormItem>

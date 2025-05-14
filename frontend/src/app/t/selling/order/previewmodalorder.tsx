@@ -41,6 +41,7 @@ interface BayarTPModalJualProps {
               th_due_date: date?.toISOString() || null,
               th_type: "ORDERIN",
               cashier: rawPayload.cashier ?? null,
+              th_order: true
             };
             console.log("Payload modal:", JSON.stringify(payload, null, 2));
           

@@ -46,6 +46,7 @@ interface BayarTPModalJualProps {
     cashier: rawPayload.cashier ?? null,
     id: transactionId ?? undefined, // pastikan tetap dikirim kalau PATCH
     th_type: "SALE", // paksa tetap SALE
+    th_order: false,
     th_dp: (dp || 0) + (payment || 0),
     bank: selectedBank || null,
     th_due_date: date?.toISOString() || null,

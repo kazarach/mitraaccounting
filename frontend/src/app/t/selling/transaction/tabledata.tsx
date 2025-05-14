@@ -424,6 +424,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
               th_ppn: th_ppn,
               th_payment_type: th_payment_type,
               id: result?.id ?? payload.id,
+              cashier:cashierId,
               items
             }
           });          

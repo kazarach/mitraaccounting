@@ -73,7 +73,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
@@ -87,8 +87,9 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const thPpn = parseFloat(row.original.th_ppn) || 0;
       const thDp = parseFloat(row.original.th_dp) || 0;
       const transactionId = row.original.id;
+      const cashierId = row.original.cashier;
 
-    onCustomerSelect(customerId, customerName, priceCategory, thDate, thDisc, thPpn, thDp, transactionId);
+    onCustomerSelect(customerId, customerName, priceCategory, thDate, thDisc, thPpn, thDp, transactionId, cashierId);
     console.log("🧪 Transaction ID yang di-pick:", row.original.id);
 
     }
