@@ -41,57 +41,64 @@ interface BayarTPModalJualProps {
     return;
   }
 
-  const payload = {
-    ...rawPayload,
-    cashier: rawPayload.cashier ?? null,
-    id: transactionId ?? undefined, // pastikan tetap dikirim kalau PATCH
-    th_type: "SALE", // paksa tetap SALE
-    th_order: false,
-    th_dp: (dp || 0) + (payment || 0),
-    bank: selectedBank || null,
-    th_due_date: date?.toISOString() || null,
-  };
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const isPatch = isFromOrderModal && transactionId !== undefined;
-
-  const endpoint = isPatch
-    ? `${API_URL}api/transactions/${transactionId}/`
-    : `${API_URL}api/transactions/`;
-
-  const method = isPatch ? "PATCH" : "POST";
-
-  console.log("🔁 METHOD:", method);
-  console.log("🧪 transactionId:", transactionId);
-  console.log("📦 Payload:", JSON.stringify(payload, null, 2));
+  const th_dp_total = (dp || 0) + (payment || 0);
 
   try {
-    const response = await fetch(endpoint, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    // STEP 1: PATCH jika dari order modal
+    if (isFromOrderModal && transactionId) {
+      const patchPayload = { th_order: false };
+      console.log("🛠 PATCH Payload:", JSON.stringify(patchPayload, null, 2));
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+      const patchResponse = await fetch(`${API_URL}api/transactions/${transactionId}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patchPayload),
+      });
+
+      if (!patchResponse.ok) {
+        const patchError = await patchResponse.text();
+        throw new Error(`PATCH gagal: ${patchError}`);
+      }
+
+      console.log("✅ PATCH sukses", JSON.stringify(patchPayload, null, 2));
     }
 
-    const result = await response.json();
-    console.log("✅ Transaksi berhasil:", result);
+    // STEP 2: POST transaksi baru
+    const postPayload = {
+      ...rawPayload,
+      cashier: rawPayload.cashier ?? null,
+      th_type: "SALE",
+      th_order: false,
+      th_dp: th_dp_total,
+      bank: selectedBank || null,
+      th_due_date: date?.toISOString() || null,
+      th_status: true,
+    };
+
+    console.log("🆕 POST Payload:", JSON.stringify(postPayload, null, 2));
+
+    const postResponse = await fetch(`${API_URL}api/transactions/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(postPayload),
+    });
+
+    if (!postResponse.ok) {
+      const postError = await postResponse.text();
+      throw new Error(`POST gagal: ${postError}`);
+    }
+
+    const result = await postResponse.json();
+    console.log("✅ POST sukses:", result);
     toast.success("Transaksi berhasil disimpan!");
+
     if (onSuccess) onSuccess();
   } catch (err) {
     console.error("❌ Gagal menyimpan transaksi:", err);
     toast.error("Gagal menyimpan transaksi.");
   }
 };
-
-
-                    
-          
 
     return (
         <div className=" flex flex-col " >
