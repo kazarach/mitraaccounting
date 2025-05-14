@@ -119,6 +119,15 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         `${API_URL}/api/transactions/calculate_preview/`,
         fetcherpost
     );
+    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
+            any,
+            any,
+            string,
+            PayloadType
+        >(
+            `${API_URL}api/transactions/`,
+            fetcherpost
+        );
 
 
 
@@ -178,15 +187,14 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
             };
 
             console.log(JSON.stringify(payload, null, 1));
-            toast.success("Pembayaran berhasil");
-            // post(payload)
-            //     .then((res) => {
-            //         console.log(res)
-            //         toast.success("Pembayaran berhasil");
-            //     })
-            //     .catch((err) => {
-            //         toast.error(err.message);
-            //     });
+            post(payload)
+                .then((res) => {
+                    console.log(res)
+                    toast.success("Pembayaran berhasil");
+                })
+                .catch((err) => {
+                    toast.error(err.message);
+                });
         }
     }
 
@@ -491,7 +499,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                             )}
 
                             <DialogContent className="w-1/4 max-h-11/12">
-                                <BayarTPModal review={review} />
+                                <BayarTPModal review={review} form={form} date={date} setDate={setDate} />
                             </DialogContent>
                         </Dialog>
                     </div>

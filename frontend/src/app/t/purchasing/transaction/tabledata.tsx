@@ -43,7 +43,7 @@ import DatePick from '@/components/dropdown-normal/datePick_dd';
 import { z } from "zod"
 import { id } from 'date-fns/locale'
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, UseFormReturn } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import useSWRMutation from 'swr/mutation';
@@ -52,25 +52,14 @@ import useSWRMutation from 'swr/mutation';
 
 
 const formSchema = z.object({
-    th_date: z.string({
-        required_error: "Pilih Tanggal!"
-    }).datetime({ message: "Pilih Tanggal!" }),
-    supplier: z.number({
-        required_error: "Pilih Supplier!"
-    }),
-    th_disc: z.number({
-        required_error: "Masukkan Diskon Nota"
-    }),
-    // items: z.array(z.object({
-    //     stock: z.number(),
-    //     quantity: z.number(),
-    //     stock_price_buy: z.number(),
-    //     unit: z.number(),
-    //     disc: z.number(),
-    //     total: z.string(),
-    //     netto: z.number(),
-    // }))
-})
+    th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
+    supplier: z.number({ required_error: "Pilih Supplier!" }),
+    th_disc: z.number({ required_error: "Masukkan Diskon Nota" }),
+    th_payment_type: z.string({ required_error: "Pilih Tipe Bayar" }).optional(),
+    th_dp: z.number({ required_error: "Masukkan Pembayaran" }).optional(),
+    bank: z.number().optional()
+});
+
 
 type PayloadType = {
     th_type: string;
@@ -81,6 +70,8 @@ type PayloadType = {
     th_date: string;
     th_note: string;
     th_payment_type: string;
+    th_dp: number;
+    bank?: number;
     items: {
         stock: number;
         stock_code: string;
@@ -89,6 +80,7 @@ type PayloadType = {
         quantity: number;
         disc: number;
     }[];
+    _method?: 'POST' | 'PUT'; 
 };
 
 
@@ -110,6 +102,9 @@ interface Props {
     tableName: string;
 }
 
+
+
+
 const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
     const [date, setDate] = React.useState<Date>()
@@ -128,6 +123,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             th_date: new Date().toISOString(),
             supplier: undefined,
             th_disc: 0,
+            th_dp: undefined,
+            th_payment_type: "",       // nilai awal wajib
+            bank: undefined,
         },
     })
 
@@ -142,7 +140,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         string,
         PayloadType
     >(
-        `${API_URL}/api/transactions/`,
+        `${API_URL}api/transactions/`,
         fetcherpost
     );
 
@@ -151,7 +149,6 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
         }
-
         if (submitAction === "simpan") {
             const payload: PayloadType = {
                 th_type: "PURCHASE",
@@ -162,6 +159,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 th_date: values.th_date,
                 th_note: "Test",
                 th_payment_type: "BANK",
+                th_dp: values.th_dp || 0,
+                bank: undefined,
                 items: data.map((item) => ({
                     stock: item.stock,
                     stock_code: item.stock_code || "",
@@ -181,9 +180,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     toast.error(err.message);
                 });
             setSubmitAction("bayar");
+            
         }
 
         if (submitAction === "bayar") {
+            const values2 = form.getValues();
             if (data[0].transactions === "ORDERIN") {
                 const payload: PayloadType = {
                     th_type: "PURCHASE",
@@ -193,7 +194,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     th_disc: values.th_disc,
                     th_date: values.th_date,
                     th_note: "Test",
-                    th_payment_type: "BANK",
+                    th_payment_type: values2.th_payment_type || "",
+                    th_dp: (values?.th_dp || 0) + (values2.th_dp || 0),
+                    bank: values2.bank,
                     items: data.map((item) => ({
                         stock: item.stock,
                         stock_code: item.stock_code || "",
@@ -204,20 +207,58 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         disc_percent: item.disc_percent || 0,
                         disc_percent2: item.disc_percent2 || 0,
                     })),
+
                 }
 
 
                 console.log(JSON.stringify(payload, null, 1));
-                toast.success("Pembayaran berhasil");
-                // post(payload)
-                //     .then((res) => {
-                //         console.log(res)
-                //         toast.success("Pembayaran berhasil");
-                //     })
-                //     .catch((err) => {
-                //         toast.error(err.message);
-                //     });
+                post({ ...payload, _method: 'PUT' })
+                    .then((res) => {
+                        console.log(res)
+                        toast.success("Pembayaran berhasil");
+                    })
+                    .catch((err) => {
+                        toast.error(err.message);
+                    });
             }
+            else{
+                const payload: PayloadType = {
+                    th_type: "PURCHASE",
+                    th_ppn: isPpnIncluded ? 0 : 11,
+                    supplier: values.supplier,
+                    cashier: 3,
+                    th_disc: values.th_disc,
+                    th_date: values.th_date,
+                    th_note: "Test",
+                    th_payment_type: values2.th_payment_type || "",
+                    th_dp: values2.th_dp || 0,
+                    bank: values2.bank,
+                    items: data.map((item) => ({
+                        stock: item.stock,
+                        stock_code: item.stock_code || "",
+                        stock_name: item.stock_name,
+                        stock_price_buy: item.stock_price_buy,
+                        quantity: item.quantity,
+                        disc: item.disc || 0,
+                        disc_percent: item.disc_percent || 0,
+                        disc_percent2: item.disc_percent2 || 0,
+                    })),
+
+                }
+
+
+                console.log(JSON.stringify(payload, null, 1));
+                
+                post(payload)
+                    .then((res) => {
+                        console.log(res)
+                        toast.success("Pembayaran berhasil");
+                    })
+                    .catch((err) => {
+                        toast.error(err.message);
+                    });
+            }
+            
         };
     }
 
@@ -345,7 +386,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <div className="text-left">
-                        Rp{subtotal.toLocaleString("id-ID", {
+                        {subtotal.toLocaleString("id-ID", {
                             maximumFractionDigits: 2,
                         })}
                     </div>
@@ -370,7 +411,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                 return (
                     <div className="text-left">
-                        Rp{final.toLocaleString("id-ID", {
+                        {final.toLocaleString("id-ID", {
                             maximumFractionDigits: 2,
                         })}
                     </div>
@@ -709,7 +750,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             )}
 
                             <DialogContent className="w-1/4 max-h-11/12">
-                                <BayarTPModal review={review} />
+                                <BayarTPModal review={review} form={form} date={date} setDate={setDate} />
+
                             </DialogContent>
                         </Dialog>
 

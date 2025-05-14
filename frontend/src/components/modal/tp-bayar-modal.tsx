@@ -1,10 +1,8 @@
 "use client";
-import React, { useEffect } from 'react';
+import React from 'react';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { HutangData } from '@/data/product';
 import { CalendarIcon } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableBody, TableCell } from '../ui/table';
-import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn, fetcher } from '@/lib/utils';
@@ -12,45 +10,26 @@ import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import { Calendar } from '../ui/calendar';
 import { Input } from '../ui/input';
-import { any, z } from 'zod';
 import { Description } from '@radix-ui/react-dialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { UseFormReturn } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '../ui/form';
-import DistributorDD from '../dropdown-normal/distributor_dd';
-import { toast } from 'sonner';
 import useSWR from 'swr';
 
 interface BayarTPModalProps {
     review: any;
-
+    form: UseFormReturn<{
+        th_date: string;
+        supplier: number;
+        th_disc: number;
+        th_payment_type?: string;
+        th_dp?: number;
+        bank?: number;
+    }>;
+    date: Date | undefined;
+    setDate: (date: Date | undefined) => void;
 }
 
-
-
-const formSchema = z.object({
-    th_payment_type: z.string({
-        required_error: "Pilih Tipe Bayar"
-    }),
-    th_dp: z.number({
-        required_error: "Masukkan Pembayaran"
-    })
-
-})
-
-const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
-    const [date, setDate] = React.useState<Date>()
-
-
-    const form = useForm<any>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            th_payment_type: "",
-            th_dp: undefined,
-            bank_name: "",
-        },
-    })
-
+const BayarTPModal: React.FC<BayarTPModalProps> = ({ review, form, date, setDate }) => {
     const bayar = form.watch("th_dp") || 0;
     const totalBayar = review?.th_total || 0;
     const dp = review?.th_dp || 0;
@@ -63,49 +42,24 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
         isCash: paymentType === "CASH",
     };
 
-
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!
-    const { data: bank, error, isLoading, mutate } = useSWR(`${API_URL}api/banks/`, fetcher);
-
-    const onSubmit2 = (values: z.infer<typeof formSchema>) => {
-        console.log(values);
-
-    }
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+    const { data: bank } = useSWR(`${API_URL}api/banks/`, fetcher);
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit2)} className="space-y-8">
-                <div className=" flex flex-col " >
+            <form className="space-y-8">
+                <div className="flex flex-col">
                     <DialogHeader>
-                        <DialogTitle className="text-sm font-bold text-gray-800 mb-2">
-                            Pembayaran
-                        </DialogTitle>
-                        <Description></Description>
+                        <DialogTitle className="text-sm font-bold text-gray-800 mb-2">Pembayaran</DialogTitle>
+                        <Description />
                     </DialogHeader>
 
-                    <div className="flex  gap-4 mb-3 ">
-                        <div className="flex flex-col gap-2 justify-between w-full">
-                            <div className="flex justify-between" >
-
-                            </div>
-
-
-                        </div>
-                    </div>
-                    <div className='border rounded-md overflow-auto mb-2 '>
-                        <Table  >
-                            <TableHeader>
-                                <TableRow>
-
-                                </TableRow>
-                            </TableHeader>
-
-
+                    <div className="border rounded-md overflow-auto mb-2">
+                        <Table>
+                            <TableHeader><TableRow /></TableHeader>
                             <TableBody>
                                 <TableRow>
                                     <TableCell>Supplier</TableCell>
-                                    {/* <TableCell className="text-left border-l">{review.supplier}</TableCell> */}
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>Subtotal</TableCell>
@@ -121,22 +75,21 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>Total</TableCell>
-                                    <TableCell className="text-right border-l ">{((review?.th_total || 0) - (review?.th_round || 0)).toLocaleString("id-ID")}</TableCell>
+                                    <TableCell className="text-right border-l">{((review?.th_total || 0) - (review?.th_round || 0)).toLocaleString("id-ID")}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>Pembulatan</TableCell>
-                                    <TableCell className="text-right border-l ">{review?.th_round?.toLocaleString("id-ID") || "0"}</TableCell>
+                                    <TableCell className="text-right border-l">{review?.th_round?.toLocaleString("id-ID") || "0"}</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-bold">Total Net</TableCell>
                                     <TableCell className="text-right border-l font-bold">{review?.th_total?.toLocaleString("id-ID") || "0"}</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className=''></TableCell>
-
+                                    <TableCell></TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className=''>Tipe Bayar</TableCell>
+                                    <TableCell>Tipe Bayar</TableCell>
                                     <TableCell className="text-left border-l p-0">
                                         <FormField
                                             control={form.control}
@@ -144,7 +97,7 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                        <Select {...field} onValueChange={field.onChange} value={field.value}>
+                                                        <Select value={field.value} onValueChange={field.onChange}>
                                                             <SelectTrigger className="relative w-full bg-white text-sm border-0 rounded-none">
                                                                 <SelectValue placeholder="Tipe Bayar" className="text-xs" />
                                                             </SelectTrigger>
@@ -159,25 +112,24 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                             )}
                                         />
                                     </TableCell>
-
                                 </TableRow>
+
                                 <TableRow>
-                                    <TableCell className=''>Jatuh tempo</TableCell>
-                                    <TableCell className="text-right border-l  p-0 ">
+                                    <TableCell>Jatuh Tempo</TableCell>
+                                    <TableCell className="text-right border-l p-0">
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     variant="outline"
                                                     disabled={!paymentFlags.isCredit}
                                                     className={cn(
-                                                        "w-full justify-start text-right font-normal  text-sm border-0 rounded-none bg-white",
+                                                        "w-full justify-start text-right font-normal text-sm border-0 rounded-none bg-white",
                                                         !paymentFlags.isCredit && "bg-gray-300 cursor-not-allowed"
                                                     )}
                                                 >
                                                     <CalendarIcon />
                                                     {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
                                                 </Button>
-
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0 bg-white border rounded-md">
                                                 <Calendar
@@ -190,19 +142,20 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                         </Popover>
                                     </TableCell>
                                 </TableRow>
+
                                 <TableRow>
                                     <TableCell>Bank</TableCell>
                                     <TableCell className="text-left border-l p-0">
                                         <FormField
                                             control={form.control}
-                                            name="bank_name"
+                                            name="bank"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
                                                         <Select
                                                             disabled={!paymentFlags.isBank}
-                                                            value={field.value}
-                                                            onValueChange={field.onChange}
+                                                            value={field.value !== undefined ? String(field.value) : ""}
+                                                            onValueChange={(val) => field.onChange(Number(val))}
                                                         >
                                                             <SelectTrigger
                                                                 className={cn(
@@ -220,44 +173,47 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-
                                                     </FormControl>
                                                 </FormItem>
                                             )}
                                         />
+
                                     </TableCell>
                                 </TableRow>
 
                                 <TableRow>
-                                    <TableCell className=''>No. Kartu</TableCell>
-                                    <TableCell className="text-right border-l "> - </TableCell>
+                                    <TableCell>No. Kartu</TableCell>
+                                    <TableCell className="text-right border-l">-</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className=''>Surcharge</TableCell>
-                                    <TableCell className="text-right border-l "> 0 </TableCell>
+                                    <TableCell>Surcharge</TableCell>
+                                    <TableCell className="text-right border-l">0</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className=''>Subsidi</TableCell>
-                                    <TableCell className="text-right border-l p-0 ">
-                                        <Input type='number' placeholder='0' className='bg-gray-100 text-right border-0 m-0 p-0 rounded-none ' />
+                                    <TableCell>Subsidi</TableCell>
+                                    <TableCell className="text-right border-l p-0">
+                                        <Input type="number" placeholder="0" className="bg-gray-100 text-right border-0 m-0 p-0 rounded-none" />
                                     </TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className=''></TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell>DP</TableCell>
-                                    <TableCell className="text-right border-l p-0 ">
+                                    <TableCell className="text-right border-l ">
                                         {review?.th_dp?.toLocaleString("id-ID") || "0"}
                                     </TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell className='font-bold'>Sisa Bayar</TableCell>
-                                    <TableCell className="text-right border-l font-bold">{((review?.th_total || 0) - (review?.th_dp || 0)).toLocaleString("id-ID")}</TableCell>
+                                    <TableCell className="font-bold">Sisa Bayar</TableCell>
+                                    <TableCell className="text-right border-l font-bold">
+                                        {((review?.th_total || 0) - (review?.th_dp || 0)).toLocaleString("id-ID")}
+                                    </TableCell>
                                 </TableRow>
+
                                 <TableRow>
-                                    <TableCell className=''>Pembayaran</TableCell>
-                                    <TableCell className="text-right border-l p-0 ">
+                                    <TableCell>Pembayaran</TableCell>
+                                    <TableCell className="text-right border-l p-0">
                                         <FormField
                                             control={form.control}
                                             name="th_dp"
@@ -270,35 +226,33 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({ review }) => {
                                                             onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                                                             type="number"
                                                             placeholder="0"
-                                                            className="..."
+                                                            className="rounded-none border-0"
                                                         />
-
                                                     </FormControl>
                                                 </FormItem>
                                             )}
                                         />
-
                                     </TableCell>
                                 </TableRow>
+
                                 <TableRow>
-                                    <TableCell className=''>Kurang bayar</TableCell>
-                                    <TableCell className="text-right border-l ">
+                                    <TableCell>Kurang Bayar</TableCell>
+                                    <TableCell className="text-right border-l">
                                         {kurangBayar.toLocaleString("id-ID")}
                                     </TableCell>
                                 </TableRow>
-
                             </TableBody>
-
                         </Table>
                     </div>
+
                     <div className="flex justify-end mb-0 pb-0">
-                        <Button className="bg-blue-500 hover:bg-blue-600" type='submit' >Bayar</Button>
-
+                        <Button className="bg-blue-500 hover:bg-blue-600" type="submit" >
+                            Bayar
+                        </Button>
                     </div>
-                </div >
+                </div>
             </form>
-        </Form >
-
+        </Form>
     );
 };
 
