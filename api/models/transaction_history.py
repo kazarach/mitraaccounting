@@ -77,6 +77,9 @@ class TransactionHistory(models.Model):
         """
         Calculate points based on transaction items, excluding items in specific categories.
         """
+        if not self.pk:  # Skip if we don't have a primary key yet
+            return None
+            
         total_amount = 0
         # Loop through each item in the transaction and calculate the total amount
         for item in self.items.all():
@@ -103,72 +106,73 @@ class TransactionHistory(models.Model):
         # Assign the aware datetime to th_date
         self.th_date = th_date_aware
 
-        # Use a transaction to ensure atomic behavior
-        with transaction.atomic():
-            # Generate th_code based on transaction type and date
-            if not self.th_code:
-                prefix_map = {
-                    TransactionType.SALE: "SAL",
-                    TransactionType.PURCHASE: "PUR",
-                    TransactionType.RETURN_SALE: "RTS",
-                    TransactionType.RETURN_PURCHASE: "RTP",
-                    TransactionType.USAGE: "USG",
-                    TransactionType.TRANSFER: "TRF",
-                    TransactionType.PAYMENT: "PAY",
-                    TransactionType.RECEIPT: "REC",
-                    TransactionType.ADJUSTMENT: "ADJ",
-                    TransactionType.EXPENSE: "EXP",
-                    TransactionType.ORDERIN: "OIN",
-                    TransactionType.ORDEROUT: "OOU",
-                }
-                prefix = prefix_map.get(self.th_type, "TRX")  # Default to "TRX" if no match
-                today = timezone.now().date()
-                date_str = today.strftime('%Y%m%d')
-                
-                # Find the highest sequence number for this type and date
-                # by parsing existing codes with a more reliable method
-                today_codes = TransactionHistory.objects.filter(
-                    th_type=self.th_type,
-                    th_date__date=today,
-                    th_code__startswith=f"{prefix}-{date_str}-"
-                ).values_list('th_code', flat=True)
-                
-                max_sequence = 0
-                for code in today_codes:
-                    try:
-                        # Extract the sequence number part (last 4 digits)
-                        sequence_str = code[-4:]
-                        sequence = int(sequence_str)
-                        if sequence > max_sequence:
-                            max_sequence = sequence
-                    except (ValueError, IndexError):
-                        # Skip if format is incorrect
-                        pass
-                
-                # Generate the new code with incremented sequence
-                new_sequence = max_sequence + 1
-                self.th_code = f"{prefix}-{date_str}-{new_sequence:04d}"
-                
-                # As an extra safety measure, verify uniqueness
-                base_code = f"{prefix}-{date_str}-"
-                attempt = new_sequence
-                while TransactionHistory.objects.filter(th_code=self.th_code).exists():
-                    attempt += 1
-                    self.th_code = f"{base_code}{attempt:04d}"
+        # Generate th_code based on transaction type and date if not already set
+        if not self.th_code:
+            prefix_map = {
+                TransactionType.SALE: "SAL",
+                TransactionType.PURCHASE: "PUR",
+                TransactionType.RETURN_SALE: "RTS",
+                TransactionType.RETURN_PURCHASE: "RTP",
+                TransactionType.USAGE: "USG",
+                TransactionType.TRANSFER: "TRF",
+                TransactionType.PAYMENT: "PAY",
+                TransactionType.RECEIPT: "REC",
+                TransactionType.ADJUSTMENT: "ADJ",
+                TransactionType.EXPENSE: "EXP",
+                TransactionType.ORDERIN: "OIN",
+                TransactionType.ORDEROUT: "OOU",
+            }
+            prefix = prefix_map.get(self.th_type, "TRX")  # Default to "TRX" if no match
+            today = timezone.now().date()
+            date_str = today.strftime('%Y%m%d')
+            
+            # Find the highest sequence number for this type and date
+            today_codes = TransactionHistory.objects.filter(
+                th_type=self.th_type,
+                th_date__date=today,
+                th_code__startswith=f"{prefix}-{date_str}-"
+            ).values_list('th_code', flat=True)
+            
+            max_sequence = 0
+            for code in today_codes:
+                try:
+                    # Extract the sequence number part (last 4 digits)
+                    sequence_str = code[-4:]
+                    sequence = int(sequence_str)
+                    if sequence > max_sequence:
+                        max_sequence = sequence
+                except (ValueError, IndexError):
+                    # Skip if format is incorrect
+                    pass
+            
+            # Generate the new code with incremented sequence
+            new_sequence = max_sequence + 1
+            self.th_code = f"{prefix}-{date_str}-{new_sequence:04d}"
+            
+            # As an extra safety measure, verify uniqueness
+            base_code = f"{prefix}-{date_str}-"
+            attempt = new_sequence
+            while TransactionHistory.objects.filter(th_code=self.th_code).exists():
+                attempt += 1
+                self.th_code = f"{base_code}{attempt:04d}"
 
-            # Save the transaction
-                super().save(*args, **kwargs)
-
-            # Calculate points only if not already set, and avoid duplicate saves
-            if not self.th_point:  
-                self.th_point = self.calculate_points()
-                super().save(update_fields=["th_point"])  # Update only the points field
-
-            # Calculate th_total by summing netto from all related TransItemDetails
-            self.th_total = sum(item.netto for item in self.items.all())
-
-            # Save the updated th_total value
-            super().save(update_fields=["th_total"])
+        # First save to ensure we have a primary key
+        super().save(*args, **kwargs)
+        
+        # Now that we have a primary key, we can work with related objects
+        if not self.th_point and self.pk:  
+            self.th_point = self.calculate_points()
+            if self.th_point is not None:
+                # Use update_fields to avoid triggering a full save again
+                TransactionHistory.objects.filter(pk=self.pk).update(th_point=self.th_point)
+        
+        # Calculate th_total only if we have related items
+        if self.pk:
+            calculated_total = sum(item.netto for item in self.items.all())
+            if calculated_total != self.th_total:
+                self.th_total = calculated_total
+                # Use update_fields to avoid triggering a full save again
+                TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
 
     class Meta:
         verbose_name = "Transaction History"
