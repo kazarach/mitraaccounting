@@ -39,6 +39,7 @@ import Loading from '@/components/loading';
 import { DateRange } from 'react-day-picker';
 import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface TpModalSellingProps {
   onCustomerSelect?: (
@@ -137,7 +138,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
     },
 
     { accessorKey: "customer_name", header: "Pelanggan" },
-    { accessorKey: "supplier_name", header: "Pemasok" },
+    // { accessorKey: "supplier_name", header: "Pemasok" },
     {
       accessorKey: "th_total",
       header: "Total",
@@ -161,14 +162,22 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
     },
   ];
   const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onGlobalFilterChange: setSearch,
-    state: { globalFilter: search }
-  });
+  data,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getFilteredRowModel: getFilteredRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  onGlobalFilterChange: setSearch,
+  state: { globalFilter: search },
+  columnResizeDirection: "ltr",
+  columnResizeMode: "onChange",
+  defaultColumn: {
+    size: 150,
+    minSize: 50,
+    maxSize: 600,
+    enableResizing: true,
+  },
+});
 
   return (
     <div>
@@ -236,65 +245,73 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
             />
           </div>
         </div>
-        <div className="rounded-md border overflow-x-auto max-h-[70vh] min-h-[70vh] bg-white relative">
-          <Table className="w-full min-w-[1000px] bg-white">
-            <TableHeader className="sticky top-0 bg-gray-100 z-20">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className={cn(
-                      "text-left truncate w-[90px]",
-                      header.id === "th_code" && "w-[100px]",
-                      header.id === "th_date" && "w-[100px]",
-                      header.id === "supplier_name" && "w-[150px]",
-                      header.id === "th_total" && "w-[150px]",
-                      header.id === "th_dp" && "w-[150px]",
-                      header.id === "cashier_username" && "w-[150px]",
-                      header.id === "action" && "w-[20px]"
 
-                    )}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody className="overflow-y-auto max-h-[60vh]">
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center">
-                    <Loading />
-                  </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="text-center text-red-500">
+        <ScrollArea className="h-[calc(100vh-250px)] overflow-x-auto overflow-y-auto w-full max-w-screen">
+          <div className="min-w-[1000px] w-max text-sm border-separate border-spacing-0">
+            <Table className=" bg-white ">
+              <TableHeader className="bg-gray-100 sticky top-0 z-10 border">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} className="relative h-[40px]">
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100"
+                        style={{
+                          position: "absolute",
+                          left: header.getStart(),
+                          width: header.getSize(),
+                        }}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
 
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="bg-white">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        "text-left truncate w-[90px]",
-                        cell.column.id === "th_code" && "w-[100px]",
-                        cell.column.id === "th_date" && "w-[100px]",
-                        cell.column.id === "supplier_name" && "w-[150px]",
-                        cell.column.id === "th_total" && "w-[150px]",
-                        cell.column.id === "th_dp" && "w-[150px]",
-                        cell.column.id === "action" && "w-[20px]"
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {header.column.getCanResize() && (
+                          <div
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none bg-transparent hover:bg-blue-300"
+                            style={{ transform: "translateX(50%)" }}
+                          />
+                        )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={columns.length} className="text-center"><Loading /></TableCell></TableRow>
+                ) : error ? (
+                  <TableRow><TableCell colSpan={columns.length} className="text-center text-red-500">Gagal mengambil data</TableCell></TableRow>
+                ) : table.getRowModel().rows.length > 0 ? (
+                  table.getRowModel().rows.map((row, rowIndex) => (
+                    <TableRow key={row.id} className="relative h-[40px]">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          style={{
+                            position: "absolute",
+                            left: cell.column.getStart(),
+                            width: cell.column.getSize(),
+                            height: "100%",
+                          }}
+                          className="p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis"
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={columns.length} className="text-center text-gray-400">Tidak ada produk ditemukan</TableCell></TableRow>
+                )}
+              </TableBody>
+
+
+            </Table>
         </div>
+        <ScrollBar orientation="horizontal"/>
+        </ScrollArea>
 
       </div>
     </div>

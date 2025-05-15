@@ -29,20 +29,37 @@ interface BayarTPModalJualProps {
             }, [data]);
         const [payment, setPayment] = React.useState<number>(0);
         const [selectedBank, setSelectedBank] = React.useState<number | null>(null);
-        const [payType, setPayType] = React.useState<string | null>(null);
+        const [payType, setPayType] = React.useState<string | null>('CASH');
+        const [open, setOpen] = React.useState(false);
+        const [bankCode, setBankCode] = React.useState<string>("");
+        const [showValidation, setShowValidation] = React.useState(false);
 
         const handlePostTransaction = async () => {
-  const rawPayload = data?._rawPayload;
-  const transactionId = data?.transactionId ?? data?._rawPayload?.id;
-  const isFromOrderModal = data?.fromOrderModal;
+        setShowValidation(true);
+        const rawPayload = data?._rawPayload;
+        const transactionId = data?.transactionId ?? data?._rawPayload?.id;
+        const isFromOrderModal = data?.fromOrderModal;
+            if (payType === "BANK" && !selectedBank) {
+            toast.error("Silakan pilih bank terlebih dahulu.");
+            return;
+            }
 
-  if (!rawPayload) {
-    toast.error("Payload transaksi tidak tersedia.");
-    return;
-  }
+            if (payType === "CREDIT" && !date) {
+            toast.error("Silakan pilih tanggal jatuh tempo terlebih dahulu.");
+            return;
+            }
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const th_dp_total = (dp || 0) + (payment || 0);
+            if (!rawPayload) {
+                toast.error("Payload transaksi tidak tersedia.");
+                return;
+            }
+            if (!payment || payment <= 0) {
+                toast.error("Silakan isi jumlah pembayaran terlebih dahulu.");
+                return;
+            }
+
+        const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+        const th_dp_total = (dp || 0) + (payment || 0);
 
   try {
     // STEP 1: PATCH jika dari order modal
@@ -186,10 +203,16 @@ interface BayarTPModalJualProps {
                         <TableRow>
                             <TableCell className=''>Bank</TableCell>
                             <TableCell className="text-left border-l p-0">
-                            <div className={payType !== "BANK" ? "pointer-events-none opacity-50" : ""}>
+                            <div className={cn(
+                            payType !== "BANK" ? "pointer-events-none opacity-50" : "",
+                            showValidation && payType === "BANK" && !selectedBank ? "border border-red-500 rounded" : ""
+                            )}>
                                 <BankDDTS
-                                    value={selectedBank}
-                                    onChange={(bank) => setSelectedBank(bank?.id ?? null)}
+                                value={selectedBank}
+                                onChange={(bank) => {
+                                    setSelectedBank(bank?.id ?? null);
+                                    setBankCode(bank?.code ?? "");
+                                }}
                                 />
                                 </div>
                             </TableCell>
@@ -197,37 +220,47 @@ interface BayarTPModalJualProps {
                         <TableRow>
                             <TableCell className=''>Jatuh tempo</TableCell>
                             <TableCell className="text-left border-l  p-0 ">
-                                <div className={payType === "BANK" ? "pointer-events-none opacity-50" : ""}>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal border-0 rounded-none  bg-white",
-                                            )}
-                                        >
-                                            <CalendarIcon />
-                                            {date ? format(date, "dd/MM/yyyy") : <span>Pilih Tanggal</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0 bg-white border rounded-md">
-                                        <Calendar
-                                            mode="single"
-                                            selected={date}
-                                            onSelect={(date) => {
-                                            if (payType !== "BANK") setDate(date);
-                                            }}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                </div>
-                            </TableCell>
+                            <div className={cn(
+                            payType !== "CREDIT" ? "pointer-events-none opacity-50" : "",
+                            showValidation && payType === "CREDIT" && !date ? "border border-red-500 rounded" : ""
+                            )}>
+                            <Popover open={open} onOpenChange={setOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal border-0 rounded-none  bg-white",
+                                        )}
+                                    >
+                                        <CalendarIcon />
+                                        {date ? format(date, "dd/MM/yyyy") : <span>Pilih Tanggal</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-white border rounded-md">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date}
+                                        onSelect={(date) => {
+                                        if (payType === "CREDIT") setDate(date);
+                                        }}
+                                        initialFocus
+                                    />
+                                    <div className='flex justify-between'>
+
+                                    <Button className="m-2 h-[30px] bg-red-500 hover:bg-red-600" onClick={() => (setOpen(false),setDate(undefined))}>Hapus</Button>
+                                    <Button className="m-2 h-[30px]" onClick={() => setOpen(false)}>Pilih</Button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            </div>
+                        </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>No. Kartu</TableCell>
                             <TableCell className="text-left border-l p-0">
-                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none '/>
+                                <div className="border-0 m-0 p-2 rounded-none text-sm">
+                                {bankCode || "-"}
+                                </div>
                             </TableCell>
                         </TableRow>
                         <TableRow>
@@ -253,15 +286,20 @@ interface BayarTPModalJualProps {
                             <TableCell className=''>Pembayaran</TableCell>
                             <TableCell className="text-left border-l p-0 ">
                                 <Input
-                                type="number"
-                                value={payment === 0 ? "" : payment}
+                                type="text"
+                                inputMode="numeric"
+                                value={payment === 0 ? "" : payment.toLocaleString("id-ID")}
                                 onChange={(e) => {
-                                    const raw = e.target.value.replace(/^0+(?!$)/, "");
-                                    setPayment(parseFloat(raw) || 0);
+                                const raw = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                const numeric = parseInt(raw || "0", 10);
+                                setPayment(numeric);
                                 }}
                                 placeholder='0'
-                                className='bg-gray-100 text-left border-0 m-0 p-2 rounded-none'
-                                />
+                                className={cn(
+                                "bg-gray-100 text-left border-0 m-0 p-2 rounded-none",
+                                showValidation && (!payment || payment <= 0) ? "border border-red-500" : ""
+                                )}
+                            />
                             </TableCell>
                         </TableRow>
                         <TableRow>
