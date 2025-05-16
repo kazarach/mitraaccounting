@@ -52,7 +52,7 @@ const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
             <ChevronsUpDown className="opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[250px] p-0 z-15 border rounded-md">
+        <PopoverContent className="w-[250px] h-[300px] p-0 z-15 border rounded-md">
           <Command>
             <CommandInput placeholder="Cari Bank..." />
             <CommandList>
@@ -73,6 +73,9 @@ const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
                 ))}
               </CommandGroup>
             </CommandList>
+            <div className='flex justify-between'>
+              <Button className="m-2 h-[30px] bg-red-500 hover:bg-red-600" onClick={() => (setOpen(false),onChange(null))}>Hapus</Button>
+            </div>
           </Command>
         </PopoverContent>
       </Popover>

@@ -31,7 +31,7 @@ import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-
 import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
-interface TpModalSellingProps {
+interface TpModalReturnSellingProps {
   onCustomerSelect?: (
     customerId: number,
     customerName: string,
@@ -45,7 +45,7 @@ interface TpModalSellingProps {
   ) => void;  
 }
 
-const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => {
+const TpModalReturnSelling: React.FC<TpModalReturnSellingProps> = ({ onCustomerSelect }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -64,7 +64,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=SALE&th_order=false&th_return=false${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
@@ -102,7 +102,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
           stock: item.stock, 
         };
   
-        dispatch(addRow({ tableName: "s_transaksi", row: newItem }));
+        dispatch(addRow({ tableName: "s_return", row: newItem }));
       });
   
       // Success message
@@ -172,7 +172,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
   return (
     <div>
       <DialogHeader>
-        <DialogTitle>Tambah Pesanan Penjualan</DialogTitle>
+        <DialogTitle>Tambah Transaksi Penjualan</DialogTitle>
       </DialogHeader>
       <div >
         <div className='flex justify-between'>
@@ -309,4 +309,4 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
   )
 }
 
-export default TpModalSelling
+export default TpModalReturnSelling

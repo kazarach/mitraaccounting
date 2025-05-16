@@ -550,7 +550,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                 <DialogTrigger asChild>
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
                                 </DialogTrigger>
-                                <DialogContent >
+                                <DialogContent className="min-w-[30vw] max-h-[90vh]" >
                                 <TpModalSelling
                                 onCustomerSelect={(id, name, priceCategoryId, thDate, thDisc, thPpn, thDp, transactionId, cashierId) => {
                                     const customerData = {
@@ -561,8 +561,9 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                                     setCustomer(customerData);
                                     form.setValue("customer", id);
                                     if (thDate) form.setValue("th_date", new Date(thDate).toISOString());
-                                    form.setValue("th_disc", Number(thDisc));
-                                    setIsPpnIncluded(thPpn === 11);
+                                    form.setValue("th_disc", 0); // kosongkan input, tidak menarik nilai
+                                    setThDisc(0); // tetap 0 untuk perhitungan
+                                    setIsPpnIncluded(thPpn === 0);
                                     setThDp(thDp ?? 0);
                                     setCashierId(cashierId ?? null);
 
@@ -733,7 +734,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             >
                             Simpan
                             </Button>
-                            <DialogContent className="w-[30vw] max-h-[90vh]">
+                            <DialogContent className="min-w-[30vw] max-h-[90vh]">
                             <BayarTPModalJual
                                 data={{ ...previewData, transactionId: previewData?.transactionId, fromOrderModal: previewData?.fromOrderModal }}
                                 onSuccess={() => {
