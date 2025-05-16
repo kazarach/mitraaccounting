@@ -381,12 +381,6 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             price_after_disc2 = price_after_disc1 * (Decimal('1') - item.disc_percent2 / Decimal('100'))
 
             item.netto = item.quantity * price_after_disc2 * sign
-            
-            # if item.transaction.th_disc:
-            #     item.netto -= item.netto * (item.transaction.th_disc / Decimal('100'))
-                
-            # if item.transaction.th_ppn:
-            #     item.netto += item.netto * (item.transaction.th_ppn / Decimal('100'))
     
     def _calculate_points(self, items):
         """Calculate potential loyalty points for preview"""

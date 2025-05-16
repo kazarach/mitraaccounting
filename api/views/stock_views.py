@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from ..models import Stock, TransItemDetail, TransactionType, TransactionHistory
 from ..models import StockPrice, PriceCategory, StockPriceHistory
-from ..serializers import StockSerializer, StockDetailSerializer
+from ..serializers import StockSerializer, StockDetailSerializer, StockPriceSerializer
 from ..filters.stock_filters import StockFilter
 
 @extend_schema_view(
@@ -513,8 +513,10 @@ class StockViewSet(viewsets.ModelViewSet):
     def update_prices(self, request):
         """
         Bulk update stock sell prices and margins.
-        Optionally calculates margin based on HPP (cost price).
+        Uses serializer validation to ensure data integrity.
         """
+        from rest_framework import serializers
+
         items = request.data.get('items', [])
         updated_stocks = []
         errors = []
@@ -523,20 +525,21 @@ class StockViewSet(viewsets.ModelViewSet):
             for item in items:
                 stock_id = item.get('stock_id')
                 price_category_id = item.get('price_category_id')
-                new_sell_price = Decimal(str(item.get('sell_price', 0)))
+                new_sell_price = item.get('sell_price')
 
-                if not stock_id or not price_category_id:
-                    errors.append("Both stock_id and price_category_id are required")
+                if not stock_id or not price_category_id or new_sell_price is None:
+                    errors.append("Stock ID, price category ID, and sell price are required")
                     continue
 
                 try:
+                    # Get the stock and price category
                     stock = Stock.objects.get(id=stock_id)
                     price_category = PriceCategory.objects.get(id=price_category_id)
-
-                    # Get or create StockPrice
+                    
+                    # Get or create the StockPrice
                     try:
                         stock_price = StockPrice.objects.get(
-                            stock=stock,
+                            stock=stock, 
                             price_category=price_category
                         )
                         old_sell_price = stock_price.price_sell
@@ -547,56 +550,54 @@ class StockViewSet(viewsets.ModelViewSet):
                             start_date=timezone.now().date()
                         )
                         old_sell_price = Decimal('0.00')
-
-                    stock_price.price_sell = new_sell_price
-
-                    # Calculate minimum allowed sell price
-                    margin_rupiah = Decimal(stock_price.margin or 0)
-                    min_sell_price = stock.hpp + margin_rupiah
-
-                    # Auto-correct sell price if it's too low
-                    if new_sell_price < min_sell_price:
-                        warning = (
-                            f"Provided sell price for {stock.name} is below HPP + margin. "
-                            f"Adjusted to minimum allowed sell price: {min_sell_price}"
-                        )
-                        new_sell_price = min_sell_price
-                    else:
-                        warning = None
-
-                    # Save the updated sell price
-                    stock_price.price_sell = new_sell_price
-                    stock_price.save()
-
+                    
+                    # Prepare data for validation
+                    price_data = {
+                        'price_sell': Decimal(str(new_sell_price)),
+                        'price_category': price_category.id,
+                        'margin': stock_price.margin,
+                        'margin_type': stock_price.margin_type,
+                        'allow_below_cost': stock_price.allow_below_cost,
+                        'start_date': stock_price.start_date,
+                        'end_date': stock_price.end_date,
+                    }
+                    
+                    # Use serializer for validation
+                    price_serializer = StockPriceSerializer(stock_price, data=price_data, partial=True)
+                    price_serializer.is_valid(raise_exception=True)
+                    
+                    # Update the stock price using the validated data
+                    updated_price = price_serializer.save()
+                    
                     # Log the price change
                     StockPriceHistory.objects.create(
                         stock=stock,
                         price_category=price_category,
                         old_price=old_sell_price,
-                        new_price=new_sell_price,
+                        new_price=updated_price.price_sell,
                         changed_by=request.user,
-                        change_reason="Price update (auto-corrected if below margin)"
+                        change_reason="Price update (validated through serializer)"
                     )
-
+                    
                     updated_stocks.append({
                         'id': stock.id,
                         'code': stock.code,
                         'name': stock.name,
                         'price_category': price_category.name,
                         'old_price': float(old_sell_price),
-                        'new_price': float(new_sell_price),
-                        'margin': float(margin_rupiah),
-                        'warning': warning
+                        'new_price': float(updated_price.price_sell),
+                        'margin': float(updated_price.margin or 0),
                     })
-
 
                 except Stock.DoesNotExist:
                     errors.append(f"Stock with ID {stock_id} not found")
                 except PriceCategory.DoesNotExist:
                     errors.append(f"Price category with ID {price_category_id} not found")
+                except serializers.ValidationError as e:
+                    errors.append(f"Validation error for stock {stock_id}: {str(e)}")
                 except Exception as e:
                     errors.append(f"Error updating stock {stock_id}: {str(e)}")
-
+        
         return Response({
             'updated': updated_stocks,
             'errors': errors
