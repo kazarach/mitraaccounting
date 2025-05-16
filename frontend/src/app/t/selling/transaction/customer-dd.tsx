@@ -1,7 +1,7 @@
 import { cn, fetcher } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import { Command,CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,12 @@ type CustomerDDTSProps = {
       `${API_URL}/api/customers/`,
       fetcher
     );
+
+    useEffect(() => {
+        if (data.length > 0 && value == null) {
+          onChange(data[0]); // customer paling atas
+        }
+      }, [data, value, onChange]);
   
     if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>;
     if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
