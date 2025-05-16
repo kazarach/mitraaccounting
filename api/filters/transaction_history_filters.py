@@ -24,6 +24,7 @@ class TransactionHistoryFilter(django_filters.FilterSet):
             'event_discount',
             'th_delivery',
             'th_order',
+            'th_return',
             'th_so',
             'start_date',
             'end_date',
