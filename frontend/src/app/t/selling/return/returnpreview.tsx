@@ -10,16 +10,16 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import BankDDTS from './bank-dd';
 import { toast } from 'sonner';
+import BankDDRS from './bank-dd';
 
 
-interface BayarTPModalJualProps {
+interface BayarTPModalReturnSellingProps {
   data: any;
   onSuccess?: () => void;
 }
 
-        const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) => {
+        const BayarTPModalReturnSelling: React.FC<BayarTPModalReturnSellingProps> = ({ data, onSuccess }) => {
         const [date, setDate] = React.useState<Date>()
         const [dp, setDp] = React.useState<number>(0); // ⬅️ state untuk input DP
         React.useEffect(() => {
@@ -64,7 +64,7 @@ interface BayarTPModalJualProps {
   try {
     // STEP 1: PATCH jika dari order modal
     if (isFromOrderModal && transactionId) {
-      const patchPayload = { th_order: false };
+      const patchPayload = { th_return: true };
       console.log("🛠 PATCH Payload:", JSON.stringify(patchPayload, null, 2));
 
       const patchResponse = await fetch(`${API_URL}api/transactions/${transactionId}/`, {
@@ -85,13 +85,14 @@ interface BayarTPModalJualProps {
     const postPayload = {
       ...rawPayload,
       cashier: rawPayload.cashier ?? null,
-      th_type: "SALE",
+      th_type: "RETURN_SALE",
       th_order: false,
+      th_return: true,
       th_dp: th_dp_total,
       bank: selectedBank || null,
       th_due_date: date?.toISOString() || null,
       th_status: true,
-      th_order_reference: transactionId ?? null,
+      th_return_reference: transactionId ?? null,
     };
 
     console.log("🆕 POST Payload:", JSON.stringify(postPayload, null, 2));
@@ -131,8 +132,6 @@ interface BayarTPModalJualProps {
                     <div className="flex justify-between" >
 
                     </div>
-
-
                 </div>
             </div>
             <div className='border rounded-md overflow-auto mb-2 '>
@@ -208,7 +207,7 @@ interface BayarTPModalJualProps {
                             payType !== "BANK" ? "pointer-events-none opacity-50" : "",
                             showValidation && payType === "BANK" && !selectedBank ? "border border-red-500 rounded" : ""
                             )}>
-                                <BankDDTS
+                                <BankDDRS
                                 value={selectedBank}
                                 onChange={(bank) => {
                                     setSelectedBank(bank?.id ?? null);
@@ -278,13 +277,13 @@ interface BayarTPModalJualProps {
                             <TableCell className="text-right border-l ">{data?.th_dp?.toLocaleString("id-ID", { maximumFractionDigits: 2 }) || "0"}</TableCell>
                             </TableRow>
                         <TableRow>
-                            <TableCell className='font-bold'>Harus Dibayar</TableCell>
+                            <TableCell className='font-bold'>Harus Membayar</TableCell>
                             <TableCell className="text-right border-l font-bold">
-                            {(Number(data?.th_total ?? 0) - dp).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                            {(Number(data?.th_total ?? 0)).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className=''>Pembayaran</TableCell>
+                            <TableCell className=''>Kembalian</TableCell>
                             <TableCell className="text-left border-l p-0 ">
                                 <Input
                                 type="text"
@@ -303,12 +302,6 @@ interface BayarTPModalJualProps {
                             />
                             </TableCell>
                         </TableRow>
-                        <TableRow>
-                            <TableCell className=''>Kurang bayar</TableCell>
-                            <TableCell className="text-right border-l ">
-                                {(Math.max(0, (Number(data?.th_total ?? 0) - dp - payment))).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
-                            </TableCell>
-                        </TableRow>
                     </TableBody>
 
                 </Table>
@@ -322,4 +315,4 @@ interface BayarTPModalJualProps {
     );
 };
 
-export default BayarTPModalJual;
+export default BayarTPModalReturnSelling;

@@ -22,12 +22,12 @@ type Bank = {
   };
 };
 
-type BankDDTSProps = {
+type BankDDRSProps = {
   value: number | null;
   onChange: (bank: Bank | null) => void;
 };
 
-const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
+const BankDDRS: React.FC<BankDDRSProps> = ({ value, onChange }) => {
   useAuthGuard();
   const [open, setOpen] = React.useState(false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -46,7 +46,7 @@ const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="justify-between font-normal w-full rounded-none bg-white border-none"
+            className="justify-between font-normal bg-white w-full rounded-none border-none"
           >
             {selectedBank ? selectedBank.name : 'Pilih Bank'}
             <ChevronsUpDown className="opacity-50" />
@@ -71,17 +71,16 @@ const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
                     <Check className={cn("ml-auto", value === bank.id ? "opacity-100" : "opacity-0")} />
                   </CommandItem>
                 ))}
-                
               </CommandGroup>
             </CommandList>
             <div className='flex justify-between'>
-              <Button className="m-2 h-[30px] bg-red-500 hover:bg-red-600" onClick={() => (setOpen(false),onChange(null))}>Hapus</Button>
+                <Button className="m-2 h-[30px] bg-red-500 hover:bg-red-600" onClick={() => (setOpen(false),onChange(null))}>Hapus</Button>
             </div>
           </Command>
-          </PopoverContent>
+        </PopoverContent>
       </Popover>
     </div>
   );
 };
 
-export default BankDDTS;
+export default BankDDRS;
