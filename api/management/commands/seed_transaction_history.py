@@ -252,6 +252,7 @@ class Command(BaseCommand):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
             sell_price = (stock.price_buy * Decimal(random.uniform(1.1, 1.5))).quantize(Decimal('0.01'))
+            price_order = (stock.price_buy * Decimal(random.uniform(0.9, 1))).quantize(Decimal('0.01'))
             discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
             discount_percent = random.choice(discount_values) if random.random() > 0.5 else None
             disc_values = [Decimal(x) for x in range(0, 1001, 50)]
@@ -271,6 +272,7 @@ class Command(BaseCommand):
                 'stock_code': stock.code,
                 'stock_name': stock.name,
                 'stock_price_buy': stock.price_buy,
+                'stock_price_order': price_order,
                 'quantity': quantity,
                 'sell_price': sell_price,
                 'disc': discount,

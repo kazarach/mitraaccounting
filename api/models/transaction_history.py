@@ -189,7 +189,8 @@ class TransItemDetail(models.Model):
     
     stock_code = models.CharField(max_length=50)
     stock_name = models.CharField(max_length=255)
-    stock_price_buy = models.DecimalField(max_digits=15, decimal_places=2)
+    stock_price_buy = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    stock_price_order = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
 
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
     sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
