@@ -325,6 +325,12 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         if temp_transaction.th_ppn:
             tax_amount = th_total * (temp_transaction.th_ppn / Decimal('100'))
             th_total += tax_amount
+        
+        th_round = Decimal('0.00')
+        last_two_digits = th_total % Decimal('100')
+        if last_two_digits > Decimal('0'):
+            th_round = Decimal('100') - last_two_digits
+            th_total += th_round
 
         # Calculate potential loyalty points
         potential_points = 0

@@ -174,12 +174,6 @@ class TransactionHistory(models.Model):
                 self.th_total = calculated_total
                 # Use update_fields to avoid triggering a full save again
                 TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
-
-        th_round = Decimal('0.00')
-        last_two_digits = th_total % Decimal('100')
-        if last_two_digits > Decimal('0'):
-            th_round = Decimal('100') - last_two_digits
-            th_total += th_round
             
     class Meta:
         verbose_name = "Transaction History"
