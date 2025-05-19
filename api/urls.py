@@ -14,6 +14,7 @@ from api.views import SupplierViewSet
 from api.views import ARAPViewSet, ARAPPaymentViewSet
 from api.views import CustomerViewSet
 from api.views import BankViewSet
+from api.views import PointTransactionViewSet, CustomerPointsViewSet
 # Create a router and register viewsets
 router = DefaultRouter()
 router.register(r'users', UserAccountViewSet, basename='user')
@@ -30,6 +31,8 @@ router.register(r'araps', ARAPViewSet, basename='hutang_piutang')
 router.register(r'arap-payments', ARAPPaymentViewSet, basename='bayar_hutang_piutang')
 router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'banks', BankViewSet, basename='bank')
+router.register(r'point-transactions', PointTransactionViewSet)
+router.register(r'customer-points', CustomerPointsViewSet)
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

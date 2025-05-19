@@ -9,3 +9,4 @@ django-mptt
 faker
 drf-spectacular
 pytz
+django-celery-beat

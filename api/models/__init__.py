@@ -19,3 +19,4 @@ from .event_discount import EventDisc, EventDiscItem
 from .transaction_history import TransactionHistory, TransItemDetail, TransactionType, PaymentType
 from .payment_record import Payment
 from .arap import ARAP, ARAPTransaction
+from .point_transaction import PointTransaction

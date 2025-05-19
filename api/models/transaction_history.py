@@ -92,6 +92,17 @@ class TransactionHistory(models.Model):
         return points
 
     def save(self, *args, **kwargs):
+        # Store original point value to detect changes
+        is_new = not self.pk
+        original_point = None
+        
+        if not is_new:
+            try:
+                original = TransactionHistory.objects.get(pk=self.pk)
+                original_point = original.th_point
+            except TransactionHistory.DoesNotExist:
+                pass
+        
         # Ensure th_date is a datetime object (combine with midnight time if it's a date object)
         if isinstance(self.th_date, datetime):
             th_date_aware = self.th_date
@@ -161,20 +172,115 @@ class TransactionHistory(models.Model):
         super().save(*args, **kwargs)
         
         # Now that we have a primary key, we can work with related objects
-        if not self.th_point and self.pk:  
-            self.th_point = self.calculate_points()
-            if self.th_point is not None:
-                # Use update_fields to avoid triggering a full save again
-                TransactionHistory.objects.filter(pk=self.pk).update(th_point=self.th_point)
-        
-        # Calculate th_total only if we have related items
         if self.pk:
+            # Calculate points if not set
+            if not self.th_point:  
+                self.th_point = self.calculate_points()
+                if self.th_point is not None:
+                    # Use update_fields to avoid triggering a full save again
+                    TransactionHistory.objects.filter(pk=self.pk).update(th_point=self.th_point)
+            
+            # Calculate th_total only if we have related items
             calculated_total = sum(item.netto for item in self.items.all())
             if calculated_total != self.th_total:
                 self.th_total = calculated_total
                 # Use update_fields to avoid triggering a full save again
                 TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
+                
+            # Create point transaction record if this is a sale and customer exists
+            # and we have points to add (either new transaction or updated points)
+            if self.th_type == TransactionType.SALE and self.customer and self.th_point:
+                should_create_point_transaction = is_new or (original_point != self.th_point)
+                
+                if should_create_point_transaction:
+                    from .point_transaction import PointTransaction, PointTransactionType
+                    
+                    # Update customer's point balance
+                    self.customer.point += self.th_point
+                    self.customer.save(update_fields=['point'])
+                    
+                    # Create point transaction record
+                    PointTransaction.objects.create(
+                        customer=self.customer,
+                        transaction=self,
+                        points=self.th_point,
+                        transaction_type=PointTransactionType.EARNED,
+                        balance_after=self.customer.point,
+                        note=f"Points earned from transaction {self.th_code}"
+                    )
+                    
+            # For sales returns, deduct points if applicable
+            elif self.th_type == TransactionType.RETURN_SALE and self.customer and self.th_return_reference:
+                if hasattr(self.th_return_reference, 'th_point') and self.th_return_reference.th_point:
+                    from .point_transaction import PointTransaction, PointTransactionType
+                    
+                    # Points to deduct are the original points from the sale being returned
+                    points_to_deduct = -self.th_return_reference.th_point
+                    
+                    # Update customer's point balance
+                    self.customer.point += points_to_deduct  # Adding negative points = deduction
+                    self.customer.save(update_fields=['point'])
+                    
+                    # Create point transaction record for the deduction
+                    PointTransaction.objects.create(
+                        customer=self.customer,
+                        transaction=self,
+                        points=points_to_deduct,
+                        transaction_type=PointTransactionType.ADJUSTED,
+                        balance_after=self.customer.point,
+                        note=f"Points adjusted due to sales return {self.th_code}"
+                    )
+
+    def redeem_points(self, points_to_redeem, user=None):
+        """
+        Redeem customer points for this transaction
+        
+        Args:
+            points_to_redeem (Decimal): Number of points to redeem
+            user (User, optional): The user performing the redemption
             
+        Returns:
+            bool: True if redemption successful, False otherwise
+        """
+        from decimal import Decimal
+        from .point_transaction import PointTransaction, PointTransactionType
+        
+        # Validation
+        if not self.customer:
+            return False
+            
+        if not self.pk:
+            raise ValueError("Transaction must be saved before redeeming points")
+            
+        points_to_redeem = Decimal(str(points_to_redeem))  # Ensure Decimal type
+        
+        # Make sure customer has enough points
+        if self.customer.point < points_to_redeem:
+            return False
+            
+        # Make sure points are positive
+        if points_to_redeem <= 0:
+            return False
+            
+        # Update customer's point balance
+        self.customer.point -= points_to_redeem
+        self.customer.save(update_fields=['point'])
+        
+        # Create point transaction record
+        PointTransaction.objects.create(
+            customer=self.customer,
+            transaction=None,  # No earning transaction 
+            redemption_transaction=self,  # This is where points are used
+            points=-points_to_redeem,  # Negative because points are being used
+            transaction_type=PointTransactionType.REDEEMED,
+            balance_after=self.customer.point,
+            created_by=user,
+            note=f"Points redeemed for transaction {self.th_code}"
+        )
+        
+        return True
+    
+    
     class Meta:
         verbose_name = "Transaction History"
         verbose_name_plural = "Transaction Histories"
