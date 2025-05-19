@@ -30,6 +30,7 @@ class Command(BaseCommand):
             'seed_transaction_history',
             'seed_payment_record',
             'seed_event_discount',
+            'seed_point'
         ]
 
         # Run each seeder
