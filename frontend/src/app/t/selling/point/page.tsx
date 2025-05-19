@@ -1,175 +1,265 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Eye, Trash } from 'lucide-react';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { Dialog, DialogTrigger, DialogContent,  } from '@/components/ui/dialog';
-import { useDispatch, useSelector } from 'react-redux';
-import { setTableData, deleteRow, clearTable } from '@/store/features/tableSlicer';
-import { RootState } from '@/store/store';
-import { toast } from 'sonner';
-import { DialogTitle } from '@radix-ui/react-dialog';
+import { cn, fetcher } from '@/lib/utils';
+import { Eye, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { useSidebar } from '@/components/ui/sidebar';
+import { ColumnResizeDirection, ColumnDef, useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
+import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Loading from '@/components/loading';
+import { PurchaseDetailModal } from './modal-point';
+import { Dialog } from '@/components/ui/dialog';
 
-const SellingPoint = () => {
-
-  const dispatch = useDispatch();
-  const data = useSelector((state: RootState) => state.table["s_poin"] || []);
-
-  useEffect(() => {
-    if (data.length === 0) {
-      dispatch(setTableData({
-        tableName: "s_poin",
-        data: [
-          {
-            id: 1,
-            produk: "Edwin",
-            jumlah_barang: "Fulanah",
-            jumlah_poin: 300,
-            sisa_poin: 100,
-            tipe_tukar: "Cash",
-            satuan: "Poin",
-            nominal_tukar: "Rp 30.000",
-            kadaluarsa: "19 January 2025",
-          }
-        ]
-      }));
-    }
-  }, [dispatch]);
-
-  const handleDelete = (id: number) => {
-    dispatch(deleteRow({ tableName: "s_poin", id }));
-    toast.error("Produk berhasil dihapus!");
-  };
-
-  const handleClear = () => {
-    dispatch(clearTable({ tableName: "s_poin" }));
-    toast.error("Table berhasil dihapus!");
-  };
-
+const PurchaseArchive = () => {
+  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/customers/`, fetcher);
+
+  const flatData = useMemo(() => {
+    if (!json) return [];
+  
+    return json.map((transaction: any, index: number) => ({
+      id: `${transaction.id}`,
+      name: transaction.name,
+      address: transaction.address,
+      point: transaction.point,
+      operator: transaction.cashier_username,
+      duedate: format(new Date(transaction.duedate), "dd/MM/yyyy"),
+    }));
+  }, [json]);
+  console.log("data", json)
+      
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return flatData;
+        const lowerSearch = searchQuery.toLowerCase();
+        
+        return flatData.filter((item: any) =>
+          Object.values(item).some(value =>
+            String(value).toLowerCase().includes(lowerSearch)
+          )
+        );
+      }, [flatData, searchQuery]);
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "Nama", accessorKey: "name", size:200},
+    { header: "Alamat", accessorKey: "address", size:400 },
+    { header: "Kadaluarsa", accessorKey: "duedate", size:200},
+    { header: "Jumlah Poin", accessorKey: "point", size:200 },
+    {
+      header: "Action",
+      size: 200,
+      id: "action", // kolom tanpa accessorKey harus pakai id
+      cell: ({ row }) => (
+        <Button
+          className='size-7 bg-blue-500'
+          onClick={() => {
+            const transaksiId = row.original.id;
+            const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
+            if (transaksi) {
+              setSelectedTransaction(transaksi);
+              setIsDialogOpen(true);
+            }
+          }}
+        >
+          <Eye/>
+        </Button>
+      ),
+    },
+  ], []);
+  
+    const table = useReactTable({
+      data: filteredData,
+      columns,
+      defaultColumn: {
+        
+      enableResizing: true,
+      },
+      getCoreRowModel: getCoreRowModel(),
+      columnResizeDirection,
+      enableColumnResizing: true,
+      columnResizeMode: 'onChange'
+    });
+
+    const handleOpenDetail = (transaksi: any) => {
+      setSelectedTransaction(transaksi);
+      setIsDialogOpen(true);
+    };
 
   return (
-    <div className="flex justify-center w-full pt-4">
-      <Card className="w-full mx-4">
-        <div className='flex justify-between'>
-        <CardHeader>
-          <CardTitle>Tukar Poin</CardTitle>
-        </CardHeader>
-        <div className='flex items-end gap-2 mx-4'>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Tambah Produk</Button>
-            </DialogTrigger>
-            <DialogContent className="w-[75vw] max-h-[90vh]">
-              <TambahProdukModal tableName='s_poin'/>
-            </DialogContent>
-          </Dialog>
-          <Button onClick={handleClear} className='border-red-500 border bg-white text-red-500 hover:bg-red-500 hover:text-white'>Batal</Button>
-        </div>
-        </div>
+    <div className="flex justify-left w-auto px-4 pt-4">
+          <Card
+            className={cn(
+              state === "expanded" ? "min-w-[180vh]" : "w-full",
+              "min-h-[calc(100vh-80px)] transition-all duration-300"
+            )}
+          >
+        {/* <CardHeader>
+          <CardTitle>Arsip Pembelian</CardTitle>
+        </CardHeader> */}
         <CardContent>
           <div className="flex flex-col space-y-4">
+            <div className="flex justify-between gap-4 mb-4">
+              <div className="flex flex-wrap items-end gap-4">
+              <h1 className='font-semibold'>
+                Tukar Poin
+              </h1>
+              </div>              
+              <div className='flex items-end gap-2'>
+                <div className={cn(
+                          "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                        )}>
+                    <Search size={20} style={{ marginRight: '10px' }} />
+                    <input
+                      type="text"
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ border: 'none', outline: 'none', flex: '1' }}
+                    />
+                  </div>
+                </div>              
+            </div>
 
-            <div className="rounded-md border overflow-auto">
-              <Table>
-              <TableHeader>
-                  <TableRow>
-                    <TableHead>Pelanggan</TableHead>
-                    <TableHead className="text-left">Jumlah Poin</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
+            <ScrollArea className="h-[calc(100vh-180px)] overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '20px',
+                              minHeight: '20px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-300"
+                            />
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
+
                 <TableBody>
-                  {data.length === 0 ? (
+                  {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center text-gray-400 bg-gray-200">
-                        Belum menambahkan produk
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
                       </TableCell>
                     </TableRow>
                   ) : (
-                  data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.produk}</TableCell>
-                      <TableCell className="font-medium">{item.jumlah_poin}</TableCell>
-                      <TableCell className="text-right">
-                        <Button onClick={() => {setSelectedItemId(item.id);
-                                                setIsDialogOpen(true);
-                                }} className='bg-blue-500 hover:bg-blue-600 size-7'>
-                          <Eye/>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        onClick={() => {
+                          const transaksiId = row.original.id;
+                          const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
+                          if (transaksi) {
+                            setSelectedTransaction(transaksi);
+                            setIsDialogOpen(true);
+                          }
+                        }}
+                        className="cursor-pointer "
+                        style={{ position: 'relative', height: '40px' }}
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
+                            }}
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-            </div>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent>
-              <DialogTitle>Detail Poin</DialogTitle>
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Edwin</h2>
-                {selectedItemId !== null && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Pelanggan</TableHead>
-                        <TableHead>Jumlah Poin</TableHead>
-                        <TableHead>Tipe Tukar</TableHead>
-                        <TableHead>Nominal Tukar</TableHead>
-                        <TableHead>Kadaluarsa</TableHead>
-                        <TableHead>Sisa Poin</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data
-                        .filter((item) => item.id === selectedItemId)
-                        .map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{item.produk}</TableCell>
-                            <TableCell>{item.jumlah_poin}</TableCell>
-                            <TableCell>{item.tipe_tukar}</TableCell>
-                            <TableCell>{item.nominal_tukar}</TableCell>
-                            <TableCell>{item.kadaluarsa}</TableCell>
-                            <TableCell>{item.sisa_poin}</TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                )}
               </div>
-            </DialogContent>
-          </Dialog>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" className='z-40' />
+            </ScrollArea>
 
-            <div className='flex gap-2 justify-end '>
-                <Button className='bg-blue-500 hover:bg-blue-600'>Simpan</Button>
-              </div>
+            {isDialogOpen && selectedTransaction && (
+              <PurchaseDetailModal
+                open={isDialogOpen}
+                onClose={setIsDialogOpen}
+                transaction={selectedTransaction}
+              />
+            )}
+
+
           </div>
         </CardContent>
       </Card>
@@ -177,4 +267,4 @@ const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   );
 };
 
-export default SellingPoint; 
+export default PurchaseArchive; 

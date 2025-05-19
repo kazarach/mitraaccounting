@@ -369,7 +369,8 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
           }          
         try {
             const items = data
-            .filter(item => typeof item.id === "number")
+            // .filter(item => typeof item.id === "number")
+            .filter(item => typeof item.id === "number" && Number(item.return_quantity) > 0) //biar ga kekirim semua item
             .map(item => ({
                 stock: item.stock,
                 stock_code: item.stock_code,

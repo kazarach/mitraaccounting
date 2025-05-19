@@ -30,6 +30,8 @@ import { DateRange } from 'react-day-picker';
 import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
 import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { CustomerDropdownAS } from '@/app/a/selling/customer-dropdown';
+import { CustomerDropdown2 } from './customer-dd2';
 
 interface TpModalSellingProps {
   onCustomerSelect?: (
@@ -62,7 +64,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
     () => {
       const startParam = start ? `&start_date=${start}` : "";
       const endParam = end ? `&end_date=${end}` : "";
-      const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
+      const supplierParam = distributor.length > 0 ? `&customer=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
       return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
@@ -185,7 +187,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
                       id="date-range"
                       variant={"outline"}
                       className={cn(
-                        "w-[200px]  justify-start text-left font-normal",
+                        "w-[150px] h-[30px] justify-start text-left font-normal",
                         !date && "text-muted-foreground"
                       )}
                     >
@@ -218,7 +220,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
                 </PopoverContent>
               </Popover>
               <div className="flex flex-col space-y-2">
-                <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
+                <CustomerDropdown2 onChange={(ids) => setDistributor(ids)} />
               </div>
               <div className="flex flex-col space-y-2">
                 <OperatorDropdown onChange={(id) => setOperator(id)} />

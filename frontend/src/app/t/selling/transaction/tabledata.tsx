@@ -212,30 +212,30 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             },
             },
         {
-  header: "Total",
-  cell: ({ row }) => {
-    const harga = row.original.stock_price_sell || 0;
-    const quantity = row.original.quantity || 0;
-    const disc = row.original.discount || 0;
-    const subtotal = (harga - disc) * quantity;
-    return (
-      <div className="">{subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>
-    );
-  },
-},
-{
-  header: "Inc. PPN",
-  cell: ({ row }) => {
-    const harga = row.original.stock_price_sell || 0;
-    const quantity = row.original.quantity || 0;
-    const disc = row.original.discount || 0;
-    const subtotal = (harga - disc) * quantity;
-    const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
-    return (
-      <div className="text-left">{finalTotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>
-    );
-  },
-}, 
+            header: "Total",
+            cell: ({ row }) => {
+                const harga = row.original.stock_price_sell || 0;
+                const quantity = row.original.quantity || 0;
+                const disc = row.original.discount || 0;
+                const subtotal = (harga - disc) * quantity;
+                return (
+                <div className="">{subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>
+                );
+            },
+            },
+            {
+            header: "Inc. PPN",
+            cell: ({ row }) => {
+                const harga = row.original.stock_price_sell || 0;
+                const quantity = row.original.quantity || 0;
+                const disc = row.original.discount || 0;
+                const subtotal = (harga - disc) * quantity;
+                const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
+                return (
+                <div className="text-left">{finalTotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>
+                );
+            },
+            }, 
         {
             header: "Action",
             cell: ({ row }) => (

@@ -18,7 +18,7 @@ const CustomerDD = () => {
     const [open, setOpen] = React.useState(false)
     const [value, setValue] = React.useState<number | null>(null)
     const { data = [], error, isLoading } = useSWR<Operator[]>(
-        "http://100.82.207.117:8000/api/users/by_role/?role_id=3",
+        "http://100.82.207.117:8000/api/customers",
         fetcher
     )
 
