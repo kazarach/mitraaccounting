@@ -31,8 +31,8 @@ router.register(r'araps', ARAPViewSet, basename='hutang_piutang')
 router.register(r'arap-payments', ARAPPaymentViewSet, basename='bayar_hutang_piutang')
 router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'banks', BankViewSet, basename='bank')
-router.register(r'point-transactions', PointTransactionViewSet)
-router.register(r'customer-points', CustomerPointsViewSet)
+router.register(r'point-transactions', PointTransactionViewSet, basename='point_transaction')
+router.register(r'customer-points', CustomerPointsViewSet, basename='point_customer')
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
