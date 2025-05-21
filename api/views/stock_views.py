@@ -34,31 +34,6 @@ from ..filters.stock_filters import StockFilter
                 location=OpenApiParameter.QUERY
             ),
             OpenApiParameter(
-                name='include_summary',
-                description='Include summary for all',
-                required=False,
-                type=bool,
-                location=OpenApiParameter.QUERY
-            ),
-            OpenApiParameter(
-                name='breakdown',
-                description='Field to breakdown statistics by (e.g. category, supplier)',
-                required=False,
-                type=str
-            ),
-            OpenApiParameter(
-                name='category',
-                description='Filter by category ID',
-                required=False,
-                type=int
-            ),
-            OpenApiParameter(
-                name='supplier',
-                description='Filter by supplier ID',
-                required=False,
-                type=int
-            ),
-            OpenApiParameter(
                 name='transaction_type',
                 description='PURCHASE, SALE',
                 required=False,
@@ -459,21 +434,7 @@ class StockViewSet(viewsets.ModelViewSet):
         include_sales = request.query_params.get('include_sales', '').lower() == 'true'
         include_orders = request.query_params.get('include_orders', '').lower() == 'true'
         transaction_type = request.query_params.get('transaction_type', 'PURCHASE').upper()
-        include_summary = request.query_params.get('include_summary', '').lower() == 'true'
 
-        summary_data = None
-        if include_summary:
-            # Use the filter's get_summary method
-            stock_filter = self.filterset_class(request.query_params, queryset=queryset)
-            summary_data = stock_filter.get_summary(queryset)
-            
-            # Check if breakdown is requested
-            breakdown = request.query_params.get('breakdown')
-            if breakdown:
-                breakdown_data = stock_filter.get_breakdown(queryset, breakdown)
-                summary_data[f'by_{breakdown}'] = breakdown_data
-
-        # Get paginated results if pagination is enabled
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -486,9 +447,6 @@ class StockViewSet(viewsets.ModelViewSet):
             # Add order quantities if requested
             if include_orders:
                 self._enhance_with_order_quantities(data, transaction_type)
-        
-            if include_summary:
-                response.data['summary'] = summary_data
                 
             return self.get_paginated_response(data)
         
@@ -503,16 +461,8 @@ class StockViewSet(viewsets.ModelViewSet):
         # Add order quantities if requested
         if include_orders:
             self._enhance_with_order_quantities(data, transaction_type)
-        
-        if include_summary:
-            response_data = {
-                'summary': summary_data,
-                'results': data
-            }
-            return Response(response_data)
-        else:
-            # Regular non-paginated response
-            return Response(data)
+
+        return Response(data)
         
     @extend_schema(
         summary="Get stock summary statistics",
