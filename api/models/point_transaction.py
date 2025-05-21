@@ -6,7 +6,7 @@ class PointTransactionType(models.TextChoices):
     EARNED = 'EARNED', 'Points Earned'
     REDEEMED = 'REDEEMED', 'Points Redeemed'
     EXPIRED = 'EXPIRED', 'Points Expired'
-    ADJUSTED = 'ADJUSTED', 'Points Adjusted'  # For manual adjustments by admin
+    ADJUSTED = 'ADJUSTED', 'Points Adjusted'
     
 class PointTransaction(models.Model):
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='point_transactions')
