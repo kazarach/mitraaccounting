@@ -32,7 +32,7 @@ import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import CustomerDDTS from './customer-dd';
 import TambahProdukModalSelling from './tambahprodukmodalselling';
 import TpModalSelling from './modalpesanan';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import BayarTPModalJual from './previewmodal';
 
 type Customer = {
@@ -724,6 +724,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
 
                         </Table>
                     </div>
+                    <ScrollBar orientation="horizontal" />
+                    <ScrollBar orientation="vertical" className='z-40' />
                     </ScrollArea>
                     <div className='flex justify-end gap-2 mt-4 '>
                         <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>

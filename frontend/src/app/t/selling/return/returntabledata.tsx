@@ -32,7 +32,7 @@ import BayarTPModal from '@/components/modal/tp-bayar-modal';
 // import CustomerDDTS from './customer-dd';
 // import TambahProdukModalSelling from './tambahprodukmodalselling';
 // import TpModalOrderSelling from './modalpesanan';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import CustomerDDRS from './customer-dd';
 import TpModalReturnSelling from './modaltransaksi';
 import BayarTPModalReturnSelling from './returnpreview';
@@ -178,7 +178,6 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Satuan",
             accessorKey: "unit",
-            size: 90,
         },
         {
             header: "Harga Jual",
@@ -191,7 +190,6 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
                 </div>
               );
             },
-            size: 100,
           },          
         {
             header: "Diskon (Rp)",
@@ -275,7 +273,7 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
         columnResizeMode: "onChange",
         columnResizeDirection: "ltr",
         defaultColumn: {
-            size: 150,
+            size: 130,
             minSize: 50,
             maxSize: 600,
             enableResizing: true,
@@ -742,6 +740,8 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
 
                         </Table>
                     </div>
+                    <ScrollBar orientation="horizontal" />
+                    <ScrollBar orientation="vertical" className='z-40' />
                     </ScrollArea>
                     <div className='flex justify-end gap-2 mt-4 '>
                         <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>

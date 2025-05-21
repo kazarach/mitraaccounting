@@ -8,7 +8,7 @@ import TransactionSellingTable from "./tabledata";
 
 const SellingTransaction = () => {
   return (
-    <div className="flex justify-center w-full pt-4">
+    <div className="flex justify-left w-auto pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
           <CardTitle>Transaksi Penjualan</CardTitle>

@@ -8,7 +8,7 @@ import TransactionOrderSellingTable from "./tabledata";
 
 const OrderTransaction = () => {
   return (
-    <div className="flex justify-center w-full pt-4">
+    <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
           <CardTitle>Pesanan Penjualan</CardTitle>

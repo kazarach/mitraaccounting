@@ -31,6 +31,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/
 import { ScrollArea } from '@/components/ui/scroll-area';
 // import BayarTPModalJual from './previewmodal';
 import TambahProdukModalOpname from './tambahprodukmodal';
+import CashierOpnameDD from './cashier';
 
 type Customer = {
     id: number;
@@ -51,6 +52,7 @@ const formSchema = z.object({
     th_disc: z.number({
         required_error: "Masukkan Diskon Nota"
     }),
+    sales: z.number().nullable()
 })
 
 interface TransactionRow {
@@ -323,17 +325,10 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
       const th_disc = form.watch("th_disc") || 0;
       const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
       
-      const postOnlyTableItems = async () => {
-        const customer_id = form.getValues("customer");
-        const th_disc = form.getValues("th_disc");
-        const th_ppn = isPpnIncluded ? 0 : 11;
-        const th_payment_type = 'BANK';
+      const postOpname = async () => {
         const transactionId = previewData?.transactionId;
+        const operator_id = form.getValues("sales");
 
-        if (!customer_id) {
-            toast.error("Pilih customer terlebih dahulu!");
-            return;
-        }
         if (!data.length) {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
@@ -353,23 +348,17 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
             }));          
             console.log("✅ items yang akan dikirim:");
             console.table(items);
-
-            const customer_id = form.getValues("customer"); // sudah ID, bukan name
       
           const payload = {
-            th_type: "SALE", // ← masih wajib karena backend minta
-            customer: customer_id,
-            th_disc: th_disc,
-            th_ppn: th_ppn,
-            th_payment_type: th_payment_type,
-            th_dp: thDp,
-            cashier: cashierId ?? null,
+            th_type: "ADJUSTMENT", // ← masih wajib karena backend minta
+            th_payment_type:"CASH",
+            cashier: operator_id,
             ...(transactionId && { id: transactionId }),
             items,
           };
       
           const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-          const endpoint = `${API_URL}api/transactions/calculate_preview/`;
+          const endpoint = `${API_URL}api/transactions/`;
       
           console.log("Payload:", JSON.stringify(payload, null, 2));
       
@@ -388,40 +377,40 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
       
           const result = await response.json();
         console.log("Response dari server:", result);
-        toast.success("Data dari table berhasil dikirim ke server modal!");
+        toast.success("Data dari table berhasil dikirim!");
 
-        // Simpan hasil ke state
-        setPreviewData({
-            ...result,
-            customer_name: customer?.name ?? "",
-            th_dp: thDp,
-            fromOrderModal: true,
-            transactionId: result?.id ?? payload.id,
-            _rawPayload: {
-              th_type: "SALE",
-              customer: customer_id,
-              th_disc: th_disc,
-              th_ppn: th_ppn,
-              th_payment_type: th_payment_type,
-              id: result?.id ?? payload.id,
-              cashier:cashierId,
-              items
-            }
-          });          
-        setIsBayarModalOpen(true);
+        // ✅ Bersihkan data & reset form
+        dispatch(clearTable({ tableName }));
         } catch (error) {
           console.error("Gagal kirim data:", error);
           toast.error("Gagal mengirim data.");
         }
-        setIsBayarModalOpen(true);
       };            
 
     return (
         <div className="flex flex-col space-y-4 ">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-22">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
-                    <div className="flex justify-end gap-4 mb-4 mt-[-40px]">
+                    <div className="flex justify-between gap-4 mb-4">
+                        <div>
+                            <FormField
+                                control={form.control}
+                                name="sales"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Operator</FormLabel>
+                                    <FormControl>
+                                        <CashierOpnameDD
+                                        onChange={(id, data) => {
+                                            field.onChange(id); // isi field 'sales'
+                                        }}
+                                        />
+                                    </FormControl>
+                                    </FormItem>
+                                )}
+                                />
+                        </div>
                         <div className='flex items-end gap-2'>
                             <Dialog>
                                 <DialogTrigger asChild>
@@ -438,7 +427,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
-                    <ScrollArea className="h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+                    <div className="h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
                     <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                         <Table>
                             <TableHeader className="bg-gray-100 sticky top-0 z-10">
@@ -492,7 +481,10 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
                             ))
                         ) : (
                             <TableRow>
-                            <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
+                             <TableCell
+                                colSpan={columns.length}
+                                className="text-center text-gray-400 bg-gray-200"
+                            >
                                 Belum menambahkan produk
                             </TableCell>
                             </TableRow>
@@ -560,32 +552,15 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
 
                         </Table>
                     </div>
-                    </ScrollArea>
+                    </div>
                     <div className='flex justify-end gap-2 mt-4 '>
-                        <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>
-                            <Button
-                            type="button"
-                            onClick={postOnlyTableItems}
-                            className='font-medium bg-blue-500 hover:bg-blue-600'
-                            >
-                            Simpan
-                            </Button>
-                            <DialogContent className="min-w-[30vw] max-h-[90vh]">
-                            {/* <BayarTPModalJual
-                                data={{ ...previewData, transactionId: previewData?.transactionId, fromOrderModal: previewData?.fromOrderModal }}
-                                onSuccess={() => {
-                                dispatch(clearTable({ tableName }));
-                                setIsBayarModalOpen(false);
-                                form.reset({
-                                    th_date: new Date().toISOString(),
-                                    customer: null,
-                                    th_disc: 0,
-                                });
-                                setCustomer(null);
-                                }}
-                            /> */}
-                            </DialogContent>
-                        </Dialog>
+                        <Button
+                        type="button"
+                        onClick={postOpname}
+                        className='font-medium bg-blue-500 hover:bg-blue-600'
+                        >
+                        Simpan
+                        </Button>                            
                     </div>
                 </form>
             </Form >

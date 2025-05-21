@@ -1,0 +1,309 @@
+"use client";
+import React, { useMemo, useState } from 'react';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { cn, fetcher } from '@/lib/utils';
+import { Eye, PencilLine, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { useSidebar } from '@/components/ui/sidebar';
+import { ColumnResizeDirection, ColumnDef, useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
+import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Loading from '@/components/loading';
+import { TukarPointModal } from './modal-point';
+import { Dialog } from '@/components/ui/dialog';
+import DetailPointModal from './modal-detailpoint';
+
+const RedeemPoint = () => {
+  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  const { data: json, error, isLoading } = useSWR(`${API_URL}api/customers/`, fetcher);
+
+  const flatData = useMemo(() => {
+    if (!json) return [];
+  
+    return json.map((transaction: any, index: number) => ({
+      id: transaction.id,
+      name: transaction.name,
+      address: transaction.address,
+      point: transaction.point,
+      operator: transaction.cashier_username,
+      duedate: format(new Date(transaction.duedate), "dd/MM/yyyy"),
+    }));
+  }, [json]);
+  // console.log("data", json)
+      
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return flatData;
+        const lowerSearch = searchQuery.toLowerCase();
+        
+        return flatData.filter((item: any) =>
+          Object.values(item).some(value =>
+            String(value).toLowerCase().includes(lowerSearch)
+          )
+        );
+      }, [flatData, searchQuery]);
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "Nama", accessorKey: "name", size:200},
+    { header: "Alamat", accessorKey: "address", size:400 },
+    { header: "Kadaluarsa", accessorKey: "duedate", size:200},
+    { header: "Jumlah Poin", accessorKey: "point", size:200,
+      cell: ({ getValue }) => {
+        const raw = getValue();
+        const num = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : NaN;
+
+        return isNaN(num)
+          ? "-"
+          : num.toLocaleString("id-ID", {
+              // minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+      }
+     },
+    {
+      header: "Edit",
+      size: 60,
+      id: "action",
+      cell: ({ row }) => {
+      const transaksi = row.original;
+      console.log("Klik edit", transaksi);
+
+
+        return (
+          <div className="flex gap-2">
+            <div>
+              <Button
+              className="size-7 bg-green-500 hover:bg-green-600"
+              style={{
+                position: 'relative',
+                pointerEvents: 'auto', // ⬅️ ini yang penting
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (transaksi) {
+                  setSelectedTransaction(transaksi);
+                  setIsDialogOpen(true);
+                }
+              }}
+            >
+            <PencilLine />
+          </Button>
+
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Detail",
+      size: 200,
+      cell: ({ row }) => {
+      const transaksi = row.original;
+
+      return (
+        <div className="flex gap-2">
+          <div>
+            <Button
+              className="size-7 bg-blue-500 hover:bg-blue-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (transaksi) {
+                  setSelectedTransaction(transaksi);
+                  setIsDetailOpen(true);
+                }
+              }}
+            >
+              <Eye />
+            </Button>
+          </div>
+        </div>
+      );
+    },
+    }
+  ], []);
+  
+    const table = useReactTable({
+      data: filteredData,
+      columns,
+      defaultColumn: {
+        
+      enableResizing: true,
+      },
+      getCoreRowModel: getCoreRowModel(),
+      columnResizeDirection,
+      enableColumnResizing: true,
+      columnResizeMode: 'onChange'
+    });
+
+    const handleOpenDetail = (transaksi: any) => {
+      setSelectedTransaction(transaksi);
+      setIsDialogOpen(true);
+      setIsDetailOpen(true);
+    };
+
+  return (
+    <div className="flex flex-col space-y-4">
+            <div className="flex justify-between gap-4 mb-4">
+              <div className="flex flex-wrap items-end gap-4">
+              <h1 className='font-semibold'>
+                Tukar Poin
+              </h1>
+              </div>              
+              <div className='flex items-end gap-2'>
+                <div className={cn(
+                          "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                        )}>
+                    <Search size={20} style={{ marginRight: '10px' }} />
+                    <input
+                      type="text"
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ border: 'none', outline: 'none', flex: '1' }}
+                    />
+                  </div>
+                </div>              
+            </div>
+
+            <ScrollArea className="h-[calc(100vh-180px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                <Table >
+                <TableHeader className="bg-gray-100 sticky top-0 z-10" >
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <TableRow key={headerGroup.id} style={{ position: 'relative', height: '40px' }}>
+                      {headerGroup.headers.map(header => (
+                        <TableHead
+                          key={header.id}
+                          style={{
+                            position: 'absolute',
+                            left: header.getStart(),   // ⬅️ posisi horizontal
+                            width: header.getSize(),   // ⬅️ width sesuai header
+                          }}
+                          className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis bg-gray-100"
+                        >
+                          <div
+                            className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                            style={{
+                              lineHeight: '20px',
+                              minHeight: '20px',
+                            }}
+                            title={String(header.column.columnDef.header ?? '')}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </div>
+
+                          {header.column.getCanResize() && (
+                            <div
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none hover:bg-blue-300"
+                            />
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center">
+                        <Loading />
+                      </TableCell>
+                    </TableRow>
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-red-500">
+                        Gagal mengambil data
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center text-gray-400">
+                        Tidak ada produk ditemukan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    table.getRowModel().rows.map((row, rowIndex) => (
+                      <TableRow
+                        key={row.id}
+                        className="hover:bg-gray-100 "
+                        style={{ position: 'relative', height: '40px' }}
+                      >
+                        {row.getVisibleCells().map(cell => (
+                          <TableCell
+                            key={cell.id}
+                            style={{
+                              position: 'absolute',
+                              left: cell.column.getStart(),
+                              width: cell.column.getSize(),
+                              height: '100%',
+                            }}
+                            className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
+                          >
+                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
+                              style={{
+                                lineHeight: '20px',
+                                minHeight: '20px',
+                              }}
+                              title={String(cell.getValue() ?? '')}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              </div>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" className='z-40' />
+            </ScrollArea>
+
+            {isDialogOpen && selectedTransaction && (
+              <TukarPointModal
+                open={isDialogOpen}
+                onClose={setIsDialogOpen}
+                transaction={selectedTransaction}
+              />
+            )}
+            {isDetailOpen && selectedTransaction && (
+              <DetailPointModal
+                open={isDetailOpen}
+                onClose={setIsDetailOpen}
+                transaction={selectedTransaction}
+              />
+            )}
+
+    </div>
+  );
+};
+
+export default RedeemPoint; 
