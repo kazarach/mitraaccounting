@@ -17,7 +17,7 @@ class PointTransaction(models.Model):
     redemption_transaction = models.ForeignKey('TransactionHistory', on_delete=models.SET_NULL, 
                                              blank=True, null=True, related_name='point_redemptions')
     
-    points = models.DecimalField(max_digits=10, decimal_places=2)  # Can be positive or negative
+    points = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_type = models.CharField(max_length=20, choices=PointTransactionType.choices)
     
     balance_after = models.DecimalField(max_digits=10, decimal_places=2)
