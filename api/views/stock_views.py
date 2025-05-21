@@ -34,6 +34,31 @@ from ..filters.stock_filters import StockFilter
                 location=OpenApiParameter.QUERY
             ),
             OpenApiParameter(
+                name='include_summary',
+                description='Include summary for all',
+                required=False,
+                type=bool,
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                name='breakdown',
+                description='Field to breakdown statistics by (e.g. category, supplier)',
+                required=False,
+                type=str
+            ),
+            OpenApiParameter(
+                name='category',
+                description='Filter by category ID',
+                required=False,
+                type=int
+            ),
+            OpenApiParameter(
+                name='supplier',
+                description='Filter by supplier ID',
+                required=False,
+                type=int
+            ),
+            OpenApiParameter(
                 name='transaction_type',
                 description='PURCHASE, SALE',
                 required=False,
@@ -433,8 +458,21 @@ class StockViewSet(viewsets.ModelViewSet):
         # Check if we need to include sales data and order quantities
         include_sales = request.query_params.get('include_sales', '').lower() == 'true'
         include_orders = request.query_params.get('include_orders', '').lower() == 'true'
-        transaction_type = request.query_params.get('transaction_type', 'PURCHASE').upper()  # Default to 'PURCHASE'
-        
+        transaction_type = request.query_params.get('transaction_type', 'PURCHASE').upper()
+        include_summary = request.query_params.get('include_summary', '').lower() == 'true'
+
+        summary_data = None
+        if include_summary:
+            # Use the filter's get_summary method
+            stock_filter = self.filterset_class(request.query_params, queryset=queryset)
+            summary_data = stock_filter.get_summary(queryset)
+            
+            # Check if breakdown is requested
+            breakdown = request.query_params.get('breakdown')
+            if breakdown:
+                breakdown_data = stock_filter.get_breakdown(queryset, breakdown)
+                summary_data[f'by_{breakdown}'] = breakdown_data
+
         # Get paginated results if pagination is enabled
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -448,7 +486,10 @@ class StockViewSet(viewsets.ModelViewSet):
             # Add order quantities if requested
             if include_orders:
                 self._enhance_with_order_quantities(data, transaction_type)
-            
+        
+            if include_summary:
+                response.data['summary'] = summary_data
+                
             return self.get_paginated_response(data)
         
         # Handle non-paginated results
@@ -463,8 +504,130 @@ class StockViewSet(viewsets.ModelViewSet):
         if include_orders:
             self._enhance_with_order_quantities(data, transaction_type)
         
-        return Response(data)
+        if include_summary:
+            response_data = {
+                'summary': summary_data,
+                'results': data
+            }
+            return Response(response_data)
+        else:
+            # Regular non-paginated response
+            return Response(data)
+        
+    @extend_schema(
+        summary="Get stock summary statistics",
+        description="Retrieve summary statistics for stocks with optional breakdown by category",
+        parameters=[
+            OpenApiParameter(
+                name='breakdown',
+                description='Field to breakdown statistics by (e.g. category, supplier)',
+                required=False,
+                type=str
+            ),
+            OpenApiParameter(
+                name='exclude_breakdown',
+                description='Comma-separated list of values to exclude from breakdown (e.g. "4,5,6" for categories)',
+                required=False,
+                type=str
+            ),
+            # Include other common filter parameters that might be used
+            OpenApiParameter(
+                name='category',
+                description='Filter by category ID',
+                required=False,
+                type=str
+            ),
+            OpenApiParameter(
+                name='supplier',
+                description='Filter by supplier ID',
+                required=False,
+                type=str
+            )
+        ],
+        responses={
+            200: OpenApiExample(
+                'Success',
+                value={
+                    "total_count": 156,
+                    "total_value": "45869.25",
+                    "average_price": "294.03",
+                    "low_stock_count": 23,
+                    "by_category": {
+                        "Electronics": {
+                            "count": 47,
+                            "value": "28450.75"
+                        },
+                        "Furniture": {
+                            "count": 32,
+                            "value": "12580.50"
+                        }
+                    }
+                },
+                response_only=True
+            )
+        },
+        tags=["Summary", "Stock"]
+    )
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
 
+        # Helper function to parse multiple values
+        def parse_multi_values(param_name):
+            raw = request.query_params.get(param_name)
+            if not raw:
+                return None
+            try:
+                return [int(x.strip()) for x in raw.split(',')]
+            except ValueError:
+                return [x.strip() for x in raw.split(',')]
+
+        # Parse filter parameters that support multiple values
+        category_filter = parse_multi_values('category')
+        supplier_filter = parse_multi_values('supplier')
+
+        # Parse exclude parameters (can be separate params or reuse exclude_breakdown)
+        exclude_breakdown = parse_multi_values('exclude_breakdown') or []
+
+        breakdown = request.query_params.get('breakdown')
+
+        field_mappings = {
+            'category': 'category__id',
+            'warehouse': 'warehouse__id',
+            'supplier': 'supplier__id',
+            'unit': 'unit__id'
+        }
+
+        exclude_field = field_mappings.get(breakdown) if breakdown else None
+
+        # Apply include filters for category and supplier if provided
+        if category_filter:
+            queryset = queryset.filter(category__id__in=category_filter)
+        if supplier_filter:
+            queryset = queryset.filter(supplier__id__in=supplier_filter)
+
+        # Instantiate your filterset with the filtered queryset
+        stock_filter = self.filterset_class(request.query_params, queryset=queryset)
+
+        # Pass exclude_field and exclude_values to get_summary
+        summary_data = stock_filter.get_summary(
+            stock_filter.qs,  # filtered queryset from filterset_class
+            exclude_field=exclude_field,
+            exclude_values=exclude_breakdown if exclude_field else None
+        )
+
+        # Breakdown with exclusions
+        if breakdown:
+            breakdown_data = stock_filter.get_breakdown(
+                stock_filter.qs,
+                breakdown,
+                exclude_values=exclude_breakdown
+            )
+            summary_data[f'by_{breakdown}'] = breakdown_data
+
+        return Response(summary_data)
+
+    
     @extend_schema(
         summary="Bulk update stock prices and margins",
         description="Update stock sell prices and margins in bulk. Each item must include `stock_id`, `price_category_id`, and `sell_price`. Margin is optional and calculated automatically.",
