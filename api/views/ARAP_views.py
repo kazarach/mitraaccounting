@@ -158,7 +158,7 @@ class ARAPViewSet(viewsets.ModelViewSet):
         summary="Get ARAP summary",
         description="Get summary statistics of ARAP records including totals and counts for receivables and payables.",
         responses={200: OpenApiResponse(description="ARAP Summary")},
-        tags=["ARAP"]
+        tags=["ARAP","Summary"]
     )
     @action(detail=False, methods=['get'])
     def summary(self, request):

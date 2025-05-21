@@ -242,17 +242,16 @@ class StockFilter(django_filters.FilterSet):
             ))
         ).order_by('-total_value')
 
-        # print(breakdown_data)
-        # Format the results
-        result = {}
+        result = []
         for item in breakdown_data:
             name = item[field] or default_name
-            result[name] = {
+            result.append({
                 'id': item[id_field],
+                'name': name,
                 'count': item['item_count'],
                 'quantity': item['total_quantity'],
                 'value': item['total_value'],
                 'low_stock_count': item['low_stock_count']
-            }
-            
+            })
+
         return result
