@@ -1,20 +1,21 @@
+"use client"
+
+import React from 'react';
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableHeader,
   TableRow,
-  TableHead,
   TableBody,
   TableCell
 } from "@/components/ui/table"
-import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
+import { toast } from 'sonner';
 
-export function PurchaseDetailModal({
+export function TukarPointModal({
     open,
     onClose,
     transaction
@@ -23,12 +24,73 @@ export function PurchaseDetailModal({
     onClose: (open: boolean) => void
     transaction: any  // isi transaksi lengkap, termasuk items, tanggal, dsb
   }) {
-    const data = transaction?.items || [];
-  
+    const [redeemPoint, setRedeemPoint] = React.useState<number>(0);
+    const [addPoint, setAddPoint] = React.useState<number>(0);
+
+    const handleSubmit = async () => {
+  const token = localStorage.getItem("access");
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  const customerId = transaction?.id;
+  const expiryDate = transaction?.duedate;
+
+  try {
+    if (addPoint > 0) {
+      const res = await fetch(`${API_URL}api/point-transactions/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customer: customerId,
+          points: addPoint.toString(),
+          transaction_type: "EARNED",
+          expiry_date: expiryDate,
+        }),
+      });
+
+      const result = await res.json();
+      console.log("🟢 Response EARNED:", result);
+
+      if (!res.ok) throw new Error(`EARNED failed: ${res.status} ${res.statusText}`);
+    }
+
+    if (redeemPoint < 0) {
+      const res = await fetch(`${API_URL}api/point-transactions/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customer: customerId,
+          points: redeemPoint.toString(),
+          transaction_type: "REDEEMED",
+          expiry_date: expiryDate,
+        }),
+      });
+
+      const result = await res.json();
+      console.log("🟠 Response REDEEMED:", result);
+
+      if (!res.ok) throw new Error(`REDEEMED failed: ${res.status} ${res.statusText}`);
+    }
+
+    toast.success("Poin berhasil dikirim.");
+    onClose(false);
+  } catch (error) {
+    console.error("❌ Gagal mengirim poin:", error);
+    toast.error("Terjadi kesalahan saat mengirim poin.");
+  }
+};
+
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className=" min-w-[30vw]">
+      <DialogContent className=" min-w-[30vw]"
+      onInteractOutside={(e) => e.preventDefault()}
+      onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <div className=" flex flex-col " >
             <DialogHeader>
                 <DialogTitle className="text-sm font-bold text-gray-800 mb-2">
@@ -55,11 +117,10 @@ export function PurchaseDetailModal({
                         </TableRow>
                     </TableHeader>
 
-
                     <TableBody>
                         <TableRow >
                             <TableCell className='border-r' >Alamat</TableCell>
-                            <TableCell className='text-right'>
+                            <TableCell className='text-left'>
                                 {transaction?.address}
                             </TableCell>
                         </TableRow>
@@ -71,7 +132,7 @@ export function PurchaseDetailModal({
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Jumlah Poin</TableCell>
-                            <TableCell className="text-left border-l">
+                            <TableCell className="text-right border-l">
                                 {transaction?.point}
                             </TableCell>
                         </TableRow>
@@ -80,29 +141,47 @@ export function PurchaseDetailModal({
 
                         </TableRow>
                         <TableRow >
-                            <TableCell className='border-r'>(+) Tambah Poin</TableCell>
-                            <TableCell className="text-left border-l p-0 ">
-                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none ' />
+                            <TableCell className='border-r font-semibold'>(+) Tambah Poin</TableCell>
+                            <TableCell className="text-left border-l p-0">
+                                <Input
+                                type="text"
+                                inputMode="numeric"
+                                value={addPoint === 0 ? "" : addPoint.toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                                onChange={(e) => {
+                                const raw = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+                                const numeric = parseInt(raw || "0", 10);
+                                setAddPoint(numeric);
+                                }}
+                                placeholder='0'
+                                className="bg-green-100 border-0 m-0 p-2 rounded-none text-left"
+                                />
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell>(-) Tukar Poin</TableCell>
-                            <TableCell className="text-left border-l p-0 ">
-                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none ' />
-                            </TableCell>
+                        <TableCell className='font-semibold'>(-) Tukar Poin</TableCell>
+                        <TableCell className="text-left border-l p-0">
+                            <Input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="0"
+                            value={
+                                redeemPoint === 0
+                                ? ""
+                                : `-${Math.abs(redeemPoint).toLocaleString("id-ID", { maximumFractionDigits: 2 })}` // format 1.000 dst
+                            }
+                            onChange={(e) => {
+                                const raw = e.target.value
+                                .replace(/\./g, "") // hapus titik
+                                .replace(/[^0-9]/g, ""); // sisakan angka
+                                const numeric = parseInt(raw || "0", 10);
+                                setRedeemPoint(-Math.abs(numeric)); // selalu negatif
+                            }}
+                            className="bg-red-100 border-0 m-0 p-2 rounded-none text-left"
+                            />
+                        </TableCell>
                         </TableRow>
-                        <TableRow>
-                            <TableCell>Pembulatan</TableCell>
-                            <TableCell className="text-right border-l">
 
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className='font-bold'>Total Net</TableCell>
-                            <TableCell className="text-right border-l font-bold">
-
-                            </TableCell>
-                        </TableRow>
+                        
                         <TableRow>
                             <TableCell className=''></TableCell>
 
@@ -122,54 +201,17 @@ export function PurchaseDetailModal({
                             </Select>
                             </TableCell>
                         </TableRow>
+                        
                         <TableRow>
-                            <TableCell className=''>Bank</TableCell>
-                            <TableCell className="text-left border-l p-0">
-                            
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''>Jatuh tempo</TableCell>
-                            <TableCell className="text-left border-l  p-0 ">
-                            
-                        </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''>No. Kartu</TableCell>
-                            <TableCell className="text-left border-l p-0">
-
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''>Subsidi</TableCell>
-                            <TableCell className="text-left border-l p-0 ">
-                                <Input type='number' placeholder='0' className='bg-gray-100 border-0 m-0 p-2 rounded-none ' />
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''></TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell>DP</TableCell>
-                            <TableCell className="text-right border-l ">
-
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className='font-bold'>Harus Dibayar</TableCell>
+                            <TableCell className='font-semibold'>Poin Sebelum</TableCell>
                             <TableCell className="text-right border-l font-bold">
-
+                                {transaction?.point}
                             </TableCell>
                         </TableRow>
                         <TableRow>
-                            <TableCell className=''>Pembayaran</TableCell>
-                            <TableCell className="text-left border-l p-0 ">
-
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell className=''>Kurang bayar</TableCell>
-                            <TableCell className="text-right border-l ">
+                            <TableCell className='font-semibold bg-gray-100'>Poin Sesudah</TableCell>
+                            <TableCell className="text-right border-l font-bold bg-gray-100">
+                                {(parseFloat(transaction?.point ?? "0") + redeemPoint + addPoint).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
                             </TableCell>
                         </TableRow>
                     </TableBody>
@@ -177,8 +219,7 @@ export function PurchaseDetailModal({
                 </Table>
             </div>
             <div className="flex justify-end mb-0 pb-0">
-                <Button className="bg-blue-500 hover:bg-blue-600">Bayar</Button>
-
+                <Button className="bg-blue-500 hover:bg-blue-600" onClick={handleSubmit}>Simpan</Button>
             </div>
         </div>
       </DialogContent>

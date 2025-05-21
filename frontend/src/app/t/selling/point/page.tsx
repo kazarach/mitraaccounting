@@ -15,21 +15,23 @@ import {
 } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { cn, fetcher } from '@/lib/utils';
-import { Eye, Search } from 'lucide-react';
+import { Eye, PencilLine, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSidebar } from '@/components/ui/sidebar';
 import { ColumnResizeDirection, ColumnDef, useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import useSWR from 'swr';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
-import { PurchaseDetailModal } from './modal-point';
+import { TukarPointModal } from './modal-point';
 import { Dialog } from '@/components/ui/dialog';
+import DetailPointModal from './modal-detailpoint';
 
-const PurchaseArchive = () => {
+const RedeemPoint = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
   const [searchQuery, setSearchQuery] = useState('');
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
@@ -39,7 +41,7 @@ const PurchaseArchive = () => {
     if (!json) return [];
   
     return json.map((transaction: any, index: number) => ({
-      id: `${transaction.id}`,
+      id: transaction.id,
       name: transaction.name,
       address: transaction.address,
       point: transaction.point,
@@ -47,7 +49,7 @@ const PurchaseArchive = () => {
       duedate: format(new Date(transaction.duedate), "dd/MM/yyyy"),
     }));
   }, [json]);
-  console.log("data", json)
+  // console.log("data", json)
       
 
     const filteredData = useMemo(() => {
@@ -65,27 +67,79 @@ const PurchaseArchive = () => {
     { header: "Nama", accessorKey: "name", size:200},
     { header: "Alamat", accessorKey: "address", size:400 },
     { header: "Kadaluarsa", accessorKey: "duedate", size:200},
-    { header: "Jumlah Poin", accessorKey: "point", size:200 },
+    { header: "Jumlah Poin", accessorKey: "point", size:200,
+      cell: ({ getValue }) => {
+        const raw = getValue();
+        const num = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : NaN;
+
+        return isNaN(num)
+          ? "-"
+          : num.toLocaleString("id-ID", {
+              // minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+      }
+     },
     {
-      header: "Action",
-      size: 200,
-      id: "action", // kolom tanpa accessorKey harus pakai id
-      cell: ({ row }) => (
-        <Button
-          className='size-7 bg-blue-500'
-          onClick={() => {
-            const transaksiId = row.original.id;
-            const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
-            if (transaksi) {
-              setSelectedTransaction(transaksi);
-              setIsDialogOpen(true);
-            }
-          }}
-        >
-          <Eye/>
-        </Button>
-      ),
+      header: "Edit",
+      size: 60,
+      id: "action",
+      cell: ({ row }) => {
+      const transaksi = row.original;
+      console.log("Klik edit", transaksi);
+
+
+        return (
+          <div className="flex gap-2">
+            <div>
+              <Button
+              className="size-7 bg-green-500 hover:bg-green-600"
+              style={{
+                position: 'relative',
+                pointerEvents: 'auto', // ⬅️ ini yang penting
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (transaksi) {
+                  setSelectedTransaction(transaksi);
+                  setIsDialogOpen(true);
+                }
+              }}
+            >
+            <PencilLine />
+          </Button>
+
+            </div>
+          </div>
+        );
+      },
     },
+    {
+      header: "Detail",
+      size: 200,
+      cell: ({ row }) => {
+      const transaksi = row.original;
+
+      return (
+        <div className="flex gap-2">
+          <div>
+            <Button
+              className="size-7 bg-blue-500 hover:bg-blue-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (transaksi) {
+                  setSelectedTransaction(transaksi);
+                  setIsDetailOpen(true);
+                }
+              }}
+            >
+              <Eye />
+            </Button>
+          </div>
+        </div>
+      );
+    },
+    }
   ], []);
   
     const table = useReactTable({
@@ -104,6 +158,7 @@ const PurchaseArchive = () => {
     const handleOpenDetail = (transaksi: any) => {
       setSelectedTransaction(transaksi);
       setIsDialogOpen(true);
+      setIsDetailOpen(true);
     };
 
   return (
@@ -206,15 +261,7 @@ const PurchaseArchive = () => {
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
-                        onClick={() => {
-                          const transaksiId = row.original.id;
-                          const transaksi = json?.find((t: any) => String(t.id) === transaksiId);
-                          if (transaksi) {
-                            setSelectedTransaction(transaksi);
-                            setIsDialogOpen(true);
-                          }
-                        }}
-                        className="cursor-pointer "
+                        className="hover:bg-gray-100 "
                         style={{ position: 'relative', height: '40px' }}
                       >
                         {row.getVisibleCells().map(cell => (
@@ -227,7 +274,7 @@ const PurchaseArchive = () => {
                               height: '100%',
                             }}
                             className={cn(
-                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
                               rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
                             )}
                           >
@@ -252,13 +299,19 @@ const PurchaseArchive = () => {
             </ScrollArea>
 
             {isDialogOpen && selectedTransaction && (
-              <PurchaseDetailModal
+              <TukarPointModal
                 open={isDialogOpen}
                 onClose={setIsDialogOpen}
                 transaction={selectedTransaction}
               />
             )}
-
+            {isDetailOpen && selectedTransaction && (
+              <DetailPointModal
+                open={isDetailOpen}
+                onClose={setIsDetailOpen}
+                transaction={selectedTransaction}
+              />
+            )}
 
           </div>
         </CardContent>
@@ -267,4 +320,4 @@ const PurchaseArchive = () => {
   );
 };
 
-export default PurchaseArchive; 
+export default RedeemPoint; 
