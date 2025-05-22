@@ -69,7 +69,7 @@ export function CustomerDropdown2({ onChange }: { onChange: (ids: number[]) => v
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-[150px] h-[30px] justify-between font-normal">
+        <Button variant="outline" className="w-[150px] h-[30px] justify-between font-normal cursor-pointer">
           {selected.length > 0 ? `${selected.length} selected` : "Pilih Customer"}
           <ChevronsUpDown />
         </Button>

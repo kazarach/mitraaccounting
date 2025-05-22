@@ -11,7 +11,7 @@ const OpnameStock = () => {
     <div className="flex justify-left w-auto pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Opname Stock</CardTitle>
+          <CardTitle>Opname Persediaan</CardTitle>
         </CardHeader>
         <CardContent>
           <OpnameTable tableName='opname' />

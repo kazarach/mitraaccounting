@@ -46,7 +46,7 @@ const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="justify-between font-normal w-full rounded-none bg-white border-none"
+            className="justify-between font-normal w-full rounded-none bg-white border-none cursor-pointer"
           >
             {selectedBank ? selectedBank.name : 'Pilih Bank'}
             <ChevronsUpDown className="opacity-50" />

@@ -134,7 +134,7 @@ const MonitoringReport = () => {
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="waktu">Pesanan</Label>
                   <Select value={orderType} onValueChange={handleSelectChange}>
-                    <SelectTrigger className="w-[150px] h-[30px]">
+                    <SelectTrigger className="w-[150px] h-[30px] cursor-pointer">
                       <SelectValue placeholder="Penjualan" />
                     </SelectTrigger>
                     <SelectContent>

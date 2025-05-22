@@ -3,20 +3,19 @@
 import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
-  Table, TableBody, TableCaption, TableCell, TableHead,
+  Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow
 } from "@/components/ui/table";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Eye, Search, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Search } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DateRange } from "react-day-picker";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -27,37 +26,22 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { SupDropdown } from './sup-dd';
+import { SupexDropdown } from './supex-dd';
+import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
 
+const StockValue1 = () => {
 
-
-const FastMoving = () => {
-  const distributors = [
-    { value: "1", label: "Distributor A" },
-    { value: "2", label: "Distributor B" },
-    { value: "3", label: "Distributor C" },
-    { value: "4", label: "Distributor D" },
-    { value: "5", label: "Distributor E" },
-  ];
-
-  const [range, setRange] = useState("day");
-
-  const [value, setValue] = useState("");
-  const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<DateRange | undefined>(undefined);  // Ubah ke undefined
+  const [range, setRange] = useState("category");
   const [searchQuery, setSearchQuery] = useState('');
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
-  const { state } = useSidebar(); // "expanded" | "collapsed"
+  const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([]);
+  const [selectedSuppliersex, setSelectedSuppliersex] = useState<number[]>([]);
 
-
-  const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
-  const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-
-  const url = startDate && endDate
-  ? `${API_URL}api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
-  : range
-  ? `${API_URL}api/trans-items/fast_moving/?range=${range}`
-  : null;
+  const supplierParam = selectedSuppliers.length > 0 ? `&supplier=${selectedSuppliers.join(",")}` : "";
+  const supplierexParam = selectedSuppliersex.length > 0 ? `&exclude_breakdown=${selectedSuppliersex.join(",")}` : "";
+  const url = `${API_URL}api/stock/summary/?breakdown=${range}${supplierParam}${supplierexParam}`;
 
   console.log("🌐 URL yang digunakan:", url);
 
@@ -66,18 +50,23 @@ const FastMoving = () => {
     fetcher
   );
 
-  const flatData = useMemo(() => {
-      if (!json) return [];
-    
-      return json.map((transaction: any) => ({
-        id: transaction.stock_id,
-        name: transaction.stock_name,
-        code: transaction.stock_barcode,
-        quantity: transaction.total_quantity,
-        supplier: transaction.stock_supplier,
-      }));
-    }, [json]);
-  // console.log("data:",data)
+    const flatData = useMemo(() => {
+    const key = `by_${range}`;
+    const data = json?.[key];
+
+    if (!Array.isArray(data)) return [];
+
+    return data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        count: item.count,
+        quantity: item.quantity,
+        value: item.value,
+        low: item.low_stock_count,
+    }));
+    }, [json, range]);
+
+  // console.log("data:",json)
 
   const filteredData = useMemo(() => {
       if (!searchQuery) return flatData;
@@ -92,18 +81,65 @@ const FastMoving = () => {
 
     const totalBarang = useMemo(() => filteredData.length, [filteredData]);
 
+    const handleSupplierChange = (ids: number[]) => {
+    setSelectedSuppliers(ids);
+    if (ids.length > 0){
+    setRange("supplier"); // otomatis ubah breakdown
+    }
+    };
+    const handleSupplierexChange = (ids: number[]) => {
+    setSelectedSuppliersex(ids);
+    if (ids.length > 0){
+    setRange("supplier"); // otomatis ubah breakdown
+    }
+    };
+
     const columns = useMemo<ColumnDef<any>[]>(() => [
-      { header: "Code", accessorKey: "code"},
-      { header: "Nama Produk", accessorKey: "name"},
-      { header: "Jumlah", accessorKey: "quantity"},
-      { header: "Pemasok", accessorKey: "supplier"},
+      { header: "Nama Produk", accessorKey: "name", size:250},
+      { header: "Barang", accessorKey: "count"},
+      { header: "Jumlah Produk",
+            accessorKey: 'quantity',
+            cell: ({ row }) => {
+              const jumlah = row.original.quantity;
+          
+              return (
+                <div className="text-left">
+                  {Number(jumlah).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Nilai",
+            accessorKey: 'value',
+            cell: ({ row }) => {
+              const nilai = row.original.value;
+          
+              return (
+                <div className="text-left">
+                  {Number(nilai).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Stok Rendah",
+            accessorKey: 'low',
+            cell: ({ row }) => {
+              const lowstock = row.original.low;
+          
+              return (
+                <div className="text-left">
+                  {Number(lowstock).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
     ], []);
 
     const table = useReactTable({
       data: filteredData,
       columns,
       defaultColumn: {
-        size:300,
+        size:250,
         enableResizing: true,
       },
       getCoreRowModel: getCoreRowModel(),
@@ -113,75 +149,35 @@ const FastMoving = () => {
     });
 
     const exportToExcel = () => {
-  const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "FastMoving");
+    const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Opname Persediaan");
 
-  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(dataBlob, "FastMoving.xlsx");
-};
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(dataBlob, "Opname Persediaan.xlsx");
+  };
 
   return (
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
 
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="date-range">Tanggal</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date-range"
-                        variant={"outline"}
-                        className="w-[220px] h-[30px] justify-start text-left font-normal"
-                        disabled={false}  // Disable jika range dipilih
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                          date.to ? (
-                            <>
-                              {format(date.from, "dd/MM/y")} -{" "}
-                              {format(date.to, "dd/MM/y")}
-                            </>
-                          ) : (
-                            format(date.from, "dd/MM/y")
-                          )
-                        ) : (
-                          <span>Pilih Tanggal</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={date?.from}
-                        selected={date}
-                        onSelect={setDate}
-                        numberOfMonths={2}
-                      />
-                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex flex-col space-y-2 pointer-events-none">
+                    <Label>Kategori</Label>
+                    <CategoryDropdown/>
                 </div>
-
                 <div className="flex flex-col space-y-2">
-                  <Label htmlFor="waktu">Waktu</Label>
-                  <Select
-                    value={range}
-                    onValueChange={(val) => setRange(val)}
-                    disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
-                  >
-                    <SelectTrigger className="w-[120px] h-[30px] cursor-pointer">
-                      <SelectValue placeholder="Pilih Waktu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="day">Hari Ini</SelectItem>
-                      <SelectItem value="week">Mingguan</SelectItem>
-                      <SelectItem value="month">Bulanan</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <Label>Pengecualian Kategori</Label>
+                    <CategoryDropdown/>
+                </div>
+                <div className="flex flex-col space-y-2">
+                    <Label> Pemasok</Label>
+                    <SupDropdown onChange={handleSupplierChange}/>
+                </div>
+                <div className="flex flex-col space-y-2">
+                    <Label>Pengecualian Pemasok</Label>
+                    <SupexDropdown onChange={handleSupplierexChange}/>
                 </div>
 
 
@@ -205,7 +201,7 @@ const FastMoving = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-290px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea className="h-[calc(100vh-320px)] overflow-x-auto overflow-y-auto max-w-screen">
               <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
@@ -261,7 +257,7 @@ const FastMoving = () => {
                   ) : table.getRowModel().rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={columns.length} className="text-center text-gray-400 absolute left-1/2 -translate-x-1/2 ">
-                        Pilih Tanggal atau Rentang Waktu
+                        Pilih Rincian terlebih dahulu
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -305,14 +301,33 @@ const FastMoving = () => {
               <ScrollBar orientation="vertical" className='z-40' />
             </ScrollArea>
 
-            <div className='flex gap-2 justify-between'>
-              <h1 className='font-semibold'>
-                Total Transaksi: {totalBarang}
-              </h1>
+            <div className='flex justify-between'>
+                <div className='flex flex-col font-semibold'>
+                    <div className='grid grid-cols-3 gap-x-4 bg-gray-100 rounded-md p-2 shadow-md'>
+                    <h1>
+                        Total: <span className='text-blue-500'>{totalBarang}</span>
+                    </h1>
+                    <h1>
+                        Total Barang: <span className='text-blue-500'>{json?.total_items.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    </h1>
+                    <h1>
+                        Total Tipe: <span className='text-blue-500'>{json?.total_types.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    </h1>
+                    <h1>
+                        Total Quantity: <span className='text-blue-500'>{json?.total_quantity.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    </h1>
+                    <h1>
+                        Total Value: <span className='text-blue-500'>{json?.total_value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    </h1>
+                    <h1>
+                        Jumlah Stok Rendah: <span className='text-blue-500'>{json?.low_stock_count.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    </h1>
+                    </div>
+                </div>
               <Button onClick={exportToExcel} className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
             </div>
-          </div>
+    </div>
   );
 };
 
-export default FastMoving;
+export default StockValue1;

@@ -93,7 +93,7 @@ const RedeemPoint = () => {
           <div className="flex gap-2">
             <div>
               <Button
-              className="size-7 bg-green-500 hover:bg-green-600"
+              className="size-7 bg-green-500 hover:bg-green-600 cursor-pointer"
               style={{
                 position: 'relative',
                 pointerEvents: 'auto', // ⬅️ ini yang penting
@@ -124,7 +124,7 @@ const RedeemPoint = () => {
         <div className="flex gap-2">
           <div>
             <Button
-              className="size-7 bg-blue-500 hover:bg-blue-600"
+              className="size-7 bg-blue-500 hover:bg-blue-600 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (transaksi) {

@@ -27,10 +27,11 @@ import { useSidebar } from '@/components/ui/sidebar';
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import StockDD from './stock-dd';
 
 
 
-const FastMoving = () => {
+const Stocktype = () => {
   const distributors = [
     { value: "1", label: "Distributor A" },
     { value: "2", label: "Distributor B" },
@@ -54,9 +55,7 @@ const FastMoving = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const url = startDate && endDate
-  ? `${API_URL}api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
-  : range
-  ? `${API_URL}api/trans-items/fast_moving/?range=${range}`
+  ? `${API_URL}api/stock-changes/?start_date=${startDate}&end_date=${endDate}&stock=35`
   : null;
 
   console.log("🌐 URL yang digunakan:", url);
@@ -67,16 +66,23 @@ const FastMoving = () => {
   );
 
   const flatData = useMemo(() => {
-      if (!json) return [];
-    
-      return json.map((transaction: any) => ({
-        id: transaction.stock_id,
-        name: transaction.stock_name,
-        code: transaction.stock_barcode,
-        quantity: transaction.total_quantity,
-        supplier: transaction.stock_supplier,
-      }));
-    }, [json]);
+  if (!json || !json.transactions) return [];
+
+  return json.transactions.map((item: any) => {
+  const quantity = Number(item.quantity);
+  return {
+    date: format(new Date(item.transaction_time), "dd/MM/yyyy"),
+    type: item.transaction_type,
+    inQuantity: quantity > 0 ? quantity : 0,
+    outQuantity: quantity < 0 ? Math.abs(quantity) : 0,
+    changeto: Number(item.stock_changed_to),
+    buy: Number(item.buy_price),
+    customer: item.customer,
+    supplier: item.supplier,
+  };
+});
+}, [json]);
+
   // console.log("data:",data)
 
   const filteredData = useMemo(() => {
@@ -93,9 +99,57 @@ const FastMoving = () => {
     const totalBarang = useMemo(() => filteredData.length, [filteredData]);
 
     const columns = useMemo<ColumnDef<any>[]>(() => [
-      { header: "Code", accessorKey: "code"},
-      { header: "Nama Produk", accessorKey: "name"},
-      { header: "Jumlah", accessorKey: "quantity"},
+      { header: "Tanggal", accessorKey: "date", size:130},
+      { header: "Tipe Transaksi", accessorKey: "type"},
+      { header: "Masuk",
+            accessorKey: 'inQuantity',
+            cell: ({ row }) => {
+              const masuk = row.original.inQuantity;
+          
+              return (
+                <div className="text-left">
+                  {Number(masuk).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Keluar",
+            accessorKey: 'outQuantity',
+            cell: ({ row }) => {
+              const keluar = row.original.outQuantity;
+          
+              return (
+                <div className="text-left">
+                  -{Number(keluar).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Hasil Perubahan Stok",
+            accessorKey: 'changeto',
+            cell: ({ row }) => {
+              const changedto = row.original.changeto;
+          
+              return (
+                <div className="text-left">
+                  {Number(changedto).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Harga Beli",
+            accessorKey: 'buy',
+            cell: ({ row }) => {
+              const pricebuy = row.original.buy;
+          
+              return (
+                <div className="text-left">
+                  {Number(pricebuy).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                </div>
+              );
+            },
+      },
+      { header: "Pelanggan", accessorKey: "customer"},
       { header: "Pemasok", accessorKey: "supplier"},
     ], []);
 
@@ -103,7 +157,7 @@ const FastMoving = () => {
       data: filteredData,
       columns,
       defaultColumn: {
-        size:300,
+        size:180,
         enableResizing: true,
       },
       getCoreRowModel: getCoreRowModel(),
@@ -182,6 +236,10 @@ const FastMoving = () => {
                       <SelectItem value="month">Bulanan</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex flex-col space-y-2">
+                    <Label>Stok</Label>
+                    <StockDD/>
                 </div>
 
 
@@ -315,4 +373,4 @@ const FastMoving = () => {
   );
 };
 
-export default FastMoving;
+export default Stocktype;

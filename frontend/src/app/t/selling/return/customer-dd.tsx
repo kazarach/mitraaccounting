@@ -51,7 +51,7 @@ type CustomerDDRSProps = {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
+                        className="w-[150px] h-[30px] justify-between font-normal cursor-pointer"
                     >
                         {selectedCustomer ? selectedCustomer.name : 'Pilih'}
                         <ChevronsUpDown className="opacity-50" />

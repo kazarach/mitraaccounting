@@ -414,7 +414,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
                         <div className='flex items-end gap-2'>
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
+                                    <Button className="font-medium bg-blue-500 hover:bg-blue-600 cursor-pointer">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="max-h-[90vh]">
                                 <TambahProdukModalOpname
@@ -423,7 +423,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
                                     />
                                 </DialogContent>
                             </Dialog>
-                            <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+                            <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer'>Batal</Button>
                         </div>
                     </div>
 
@@ -557,7 +557,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
                         <Button
                         type="button"
                         onClick={postOpname}
-                        className='font-medium bg-blue-500 hover:bg-blue-600'
+                        className='font-medium bg-blue-500 hover:bg-blue-600 cursor-pointer'
                         >
                         Simpan
                         </Button>                            

@@ -46,7 +46,7 @@ const BankDDRS: React.FC<BankDDRSProps> = ({ value, onChange }) => {
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="justify-between font-normal bg-white w-full rounded-none border-none"
+            className="justify-between font-normal bg-white w-full rounded-none border-none cursor-pointer"
           >
             {selectedBank ? selectedBank.name : 'Pilih Bank'}
             <ChevronsUpDown className="opacity-50" />

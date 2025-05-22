@@ -11,7 +11,7 @@ const FastMoving1 = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Fast Moving</CardTitle>
+          <CardTitle>Laporan Fast Moving</CardTitle>
         </CardHeader>
         <CardContent>
           <FastMoving />

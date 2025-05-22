@@ -139,54 +139,6 @@ const OpnameReport = () => {
           <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
               <div className="flex flex-wrap items-end gap-4">
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Jenis Transaksi</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value)?.label
-                          : "Pilih Jenis Transaksi"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label}
-                                data-value={d.value}
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  setValue(selectedDistributor?.value || "");
-                                  setOpen(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
 
                 <div className="flex flex-col space-y-2">
                   <Label htmlFor="date-range">Tanggal</Label>
@@ -195,7 +147,7 @@ const OpnameReport = () => {
                       <Button
                         id="date-range"
                         variant={"outline"}
-                        className="w-[220px] justify-start text-left font-normal"
+                        className="w-[220px] justify-start text-left font-normal cursor-pointer"
                         disabled={false}  // Disable jika range dipilih
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -234,7 +186,7 @@ const OpnameReport = () => {
                     onValueChange={(val) => setRange(val)}
                     disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
                   >
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[120px] cursor-pointer">
                       <SelectValue placeholder="Pilih Waktu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -330,7 +282,7 @@ const OpnameReport = () => {
                       <TableRow
                         key={row.id}
                         className="hover:bg-gray-100 "
-                        style={{ position: 'relative', height: '40px' }}
+                        style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (
                           <TableCell
