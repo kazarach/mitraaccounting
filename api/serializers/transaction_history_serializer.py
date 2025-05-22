@@ -13,7 +13,6 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'stock_name',
             'stock_price_buy',
             'stock_price_order',
-            'stock_change',
             'quantity',
             'conversion_unit',
             'unit',

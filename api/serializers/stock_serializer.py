@@ -131,3 +131,19 @@ class StockDetailSerializer(StockSerializer):
     def get_related_stocks(self, obj):
         related = obj.get_related_stocks()
         return StockSerializer(related, many=True).data
+    
+class StockSummarySerializer(serializers.Serializer):
+    """
+    Serializer for providing summary statistics about stocks
+    """
+    total_items = serializers.IntegerField()
+    total_types = serializers.IntegerField()
+    total_quantity = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_value = serializers.DecimalField(max_digits=20, decimal_places=2)
+    average_price = serializers.DecimalField(max_digits=15, decimal_places=2)
+    low_stock_count = serializers.IntegerField()
+
+    # Optional detailed breakdowns
+    by_category = serializers.DictField(required=False)
+    by_warehouse = serializers.DictField(required=False)
+    by_supplier = serializers.DictField(required=False)

@@ -7,3 +7,4 @@ from .ARAP_views import ARAPViewSet, ARAPPaymentViewSet
 from .customer_views import CustomerViewSet
 from .bank_views import BankViewSet
 from .point_views import PointTransactionViewSet, RedeemPointsView, CustomerPointsViewSet
+from .stock_change_views import StockChangeHistoryAPIView

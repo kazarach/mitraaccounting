@@ -297,9 +297,9 @@ class TransItemDetail(models.Model):
     stock_name = models.CharField(max_length=255)
     quantity = models.DecimalField(max_digits=15, decimal_places=2)
 
+    stock_quantity = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     stock_price_buy = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     stock_price_order = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    stock_change = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     
     sell_price = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
     disc = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, default=0)
@@ -315,8 +315,8 @@ class TransItemDetail(models.Model):
         if self.transaction.th_type in [TransactionType.SALE, TransactionType.RETURN_SALE, TransactionType.ORDERIN]:
             is_return = self.transaction.th_type == TransactionType.RETURN_SALE
             sign = -1 if is_return else 1
-
-            self.stock_change = self.quantity * sign * -1
+            self.quantity = self.quantity * sign
+            self.stock_quantity = self.stock.quantity + self.quantity
 
             price_category = self.transaction.customer.price_category if self.transaction.customer else None
             if price_category:
@@ -339,7 +339,7 @@ class TransItemDetail(models.Model):
             price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
             
-            netto = self.quantity * price_after_disc2 * sign
+            netto = self.quantity * price_after_disc2
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
@@ -361,15 +361,15 @@ class TransItemDetail(models.Model):
             # Code block for buying (only for PURCHASE transactions)
             is_return = self.transaction.th_type == TransactionType.RETURN_PURCHASE
             sign = -1 if is_return else 1
-
-            self.stock_change = self.quantity * sign
+            self.quantity = self.quantity * sign
+            self.stock_quantity = self.stock.quantity + self.quantity
 
             self.total = self.quantity * (self.stock_price_buy or 0)
             price_after_disc = (self.stock_price_buy or 0) - (self.disc or 0)
             price_after_disc1 = (price_after_disc or Decimal(0)) * (Decimal(1) - Decimal(self.disc_percent or 0) / Decimal(100))
             price_after_disc2 = price_after_disc1 * (Decimal(1) - Decimal(self.disc_percent2 or 0) / Decimal(100))
             
-            netto = self.quantity * price_after_disc2 * sign
+            netto = self.quantity * price_after_disc2
 
             if self.transaction.th_disc:
                 netto -= netto * (self.transaction.th_disc / 100)
@@ -379,26 +379,26 @@ class TransItemDetail(models.Model):
 
             self.netto = netto
 
-            if self.quantity > 0:
-                final_price_buy = self.netto / self.quantity
-            else:
-                final_price_buy = 0
-            
-            # For purchasing, set the stock's hpp based on the purchase price
-            self.stock.hpp = final_price_buy
-            self.stock.save()
+            if self.transaction.th_type == TransactionType.PURCHASE:
+                if self.quantity > 0:
+                    final_price_buy = self.netto / self.quantity
+                else:
+                    final_price_buy = 0
+
+                self.stock.hpp = final_price_buy
+                self.stock.save()
+
 
         elif self.transaction.th_type == TransactionType.ADJUSTMENT:
-            changed = self.quantity - self.stock.quantity
             adjustment_price = self.stock.hpp
             self.stock_price_buy = adjustment_price
+            self.stock_quantity = self.stock.quantity + self.quantity
 
-            self.total = changed * adjustment_price
+            self.total = self.quantity * adjustment_price
             self.netto = self.total
-            self.stock_change = changed
-            
+
             if hasattr(self.stock, 'quantity'):
-                self.stock.quantity = self.quantity
+                self.stock.quantity = self.stock_quantity
                 self.stock.save()
 
         super().save(*args, **kwargs)

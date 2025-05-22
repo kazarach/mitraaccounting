@@ -9,3 +9,4 @@ from .supplier_serializer import SupplierSerializer, SupplierCreateUpdateSeriali
 from .ARAP_serializer import ARAPPaymentSerializer, ARAPSerializer, ARAPSummarySerializer, ARAPTransactionSerializer
 from .customer_serializer import CustomerCreateSerializer, CustomerSerializer
 from .point_serializer import PointTransactionSerializer, PointTransactionCreateSerializer, CustomerPointSummarySerializer, RedeemPointsSerializer
+from .stock_change_serializer import StockChangeSerializer, StockChangeDetailSerializer

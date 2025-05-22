@@ -57,7 +57,7 @@ class Command(BaseCommand):
                 # Now create transaction items for all transactions
                 self.stdout.write("Creating transaction items...")
                 for transaction in all_transactions:
-                    items_data = self.create_transaction_items_data(transaction)
+                    items_data = self.create_transaction_items_data(transaction, transaction.th_type)
                     # Bulk create the items for this transaction
                     items = [TransItemDetail(**item_data) for item_data in items_data]
                     TransItemDetail.objects.bulk_create(items)
@@ -238,7 +238,7 @@ class Command(BaseCommand):
 
         return transaction_data
 
-    def create_transaction_items_data(self, transaction, num_items=5):
+    def create_transaction_items_data(self, transaction, th_type=None, num_items=5):
         """
         Create transaction items data for a given transaction
         """
@@ -251,6 +251,11 @@ class Command(BaseCommand):
         for _ in range(actual_items):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
+            if th_type in ['RETURN_PURCHASE', 'SALE', 'USAGE', 'TRANSFER', 'EXPENSE']:
+                quantity *= -1
+            elif th_type == 'ADJUSTMENT':
+                if random.random() < 0.5:
+                    quantity *= -1
             sell_price = (stock.price_buy * Decimal(random.uniform(1.1, 1.5))).quantize(Decimal('0.01'))
             price_order = (stock.price_buy * Decimal(random.uniform(0.9, 1))).quantize(Decimal('0.01'))
             discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
