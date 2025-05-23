@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import {
-  Table, TableBody, TableCaption, TableCell, TableHead,
+  Table, TableBody, TableCaption, TableCell, TableFooter, TableHead,
   TableHeader, TableRow
 } from "@/components/ui/table";
 import {
@@ -32,30 +32,19 @@ import StockDD from './stock-dd';
 
 
 const Stocktype = () => {
-  const distributors = [
-    { value: "1", label: "Distributor A" },
-    { value: "2", label: "Distributor B" },
-    { value: "3", label: "Distributor C" },
-    { value: "4", label: "Distributor D" },
-    { value: "5", label: "Distributor E" },
-  ];
 
-  const [range, setRange] = useState("day");
-
-  const [value, setValue] = useState("");
-  const [open, setOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>(undefined);  // Ubah ke undefined
   const [searchQuery, setSearchQuery] = useState('');
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  const [selectedStockId, setSelectedStockId] = useState<number | null>(null);
   const { state } = useSidebar(); // "expanded" | "collapsed"
-
 
   const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
   const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
-  const url = startDate && endDate
-  ? `${API_URL}api/stock-changes/?start_date=${startDate}&end_date=${endDate}&stock=35`
+  const url = startDate && endDate && selectedStockId
+  ? `${API_URL}api/stock-changes/?start_date=${startDate}&end_date=${endDate}&stock=${selectedStockId}`
   : null;
 
   console.log("🌐 URL yang digunakan:", url);
@@ -73,8 +62,8 @@ const Stocktype = () => {
   return {
     date: format(new Date(item.transaction_time), "dd/MM/yyyy"),
     type: item.transaction_type,
-    inQuantity: quantity > 0 ? quantity : 0,
-    outQuantity: quantity < 0 ? Math.abs(quantity) : 0,
+    inQuantity: quantity > 0 ? quantity : "-",
+    outQuantity: quantity < 0 ? quantity : "-",
     changeto: Number(item.stock_changed_to),
     buy: Number(item.buy_price),
     customer: item.customer,
@@ -108,7 +97,7 @@ const Stocktype = () => {
           
               return (
                 <div className="text-left">
-                  {Number(masuk).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                  {masuk === "-" ? "-" : Number(masuk).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
                 </div>
               );
             },
@@ -120,7 +109,7 @@ const Stocktype = () => {
           
               return (
                 <div className="text-left">
-                  -{Number(keluar).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+                  {keluar === "-" ? "-" : Number(keluar).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
                 </div>
               );
             },
@@ -149,15 +138,37 @@ const Stocktype = () => {
               );
             },
       },
-      { header: "Pelanggan", accessorKey: "customer"},
-      { header: "Pemasok", accessorKey: "supplier"},
+      {
+        header: "Pelanggan",
+        accessorKey: "customer",
+        cell: ({ row }) => {
+          const { outQuantity, customer } = row.original;
+          return (
+            <div className="text-left">
+              {outQuantity !== "-" ? customer : "-"}
+            </div>
+          );
+        },
+      },
+      {
+        header: "Pemasok",
+        accessorKey: "supplier",
+        cell: ({ row }) => {
+          const { inQuantity, supplier } = row.original;
+          return (
+            <div className="text-left">
+              {inQuantity > 0 ? supplier : "-"}
+            </div>
+          );
+        },
+      },
     ], []);
 
     const table = useReactTable({
       data: filteredData,
       columns,
       defaultColumn: {
-        size:180,
+        size:160,
         enableResizing: true,
       },
       getCoreRowModel: getCoreRowModel(),
@@ -169,11 +180,11 @@ const Stocktype = () => {
     const exportToExcel = () => {
   const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "FastMoving");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Stokperjenis");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
   const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(dataBlob, "FastMoving.xlsx");
+  saveAs(dataBlob, "Stol Per Jenis.xlsx");
 };
 
   return (
@@ -188,7 +199,7 @@ const Stocktype = () => {
                       <Button
                         id="date-range"
                         variant={"outline"}
-                        className="w-[220px] h-[30px] justify-start text-left font-normal"
+                        className="w-auto h-[30px] justify-start text-left font-normal"
                         disabled={false}  // Disable jika range dipilih
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -215,31 +226,14 @@ const Stocktype = () => {
                         onSelect={setDate}
                         numberOfMonths={2}
                       />
-                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
+                      <Button className="m-4 ml-100 bg-red-500 hover:bg-red-600" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
                 </div>
 
                 <div className="flex flex-col space-y-2">
-                  <Label htmlFor="waktu">Waktu</Label>
-                  <Select
-                    value={range}
-                    onValueChange={(val) => setRange(val)}
-                    disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
-                  >
-                    <SelectTrigger className="w-[120px] h-[30px] cursor-pointer">
-                      <SelectValue placeholder="Pilih Waktu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="day">Hari Ini</SelectItem>
-                      <SelectItem value="week">Mingguan</SelectItem>
-                      <SelectItem value="month">Bulanan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col space-y-2">
                     <Label>Stok</Label>
-                    <StockDD/>
+                    <StockDD onChange={(id) => setSelectedStockId(id)}/>
                 </div>
 
 
@@ -263,8 +257,15 @@ const Stocktype = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-290px)] overflow-x-auto overflow-y-auto max-w-screen">
-              <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
+            <ScrollArea
+              className={cn(
+                state === "collapsed"
+                  ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                  : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
+                "overflow-x-auto overflow-y-auto max-w-screen"
+              )}
+            >
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
@@ -304,59 +305,77 @@ const Stocktype = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="text-center top-[-200px] absolute left-1/2 -translate-x-1/2">
-                        <Loading />
-                      </TableCell>
-                    </TableRow>
-                  ) : error ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="text-center text-red-500">
-                        Gagal mengambil data
-                      </TableCell>
-                    </TableRow>
-                  ) : table.getRowModel().rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="text-center text-gray-400 absolute left-1/2 -translate-x-1/2 ">
-                        Pilih Tanggal atau Rentang Waktu
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    table.getRowModel().rows.map((row, rowIndex) => (
-                      <TableRow
-                        key={row.id}
-                        className="hover:bg-gray-100 "
-                        style={{ position: 'relative', height: '35px' }}
-                      >
-                        {row.getVisibleCells().map(cell => (
+                  {table.getRowModel().rows.length ? (
+                      table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} className="relative h-[40px] ">
+                          {row.getVisibleCells().map((cell) => (
                           <TableCell
-                            key={cell.id}
-                            style={{
-                              position: 'absolute',
+                              key={cell.id}
+                              style={{
+                              position: "absolute",
                               left: cell.column.getStart(),
                               width: cell.column.getSize(),
-                              height: '100%',
-                            }}
-                            className={cn(
-                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
-                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
-                            )}
-                          >
-                            <div className="w-full overflow-hidden whitespace-nowrap text-ellipsis"
-                              style={{
-                                lineHeight: '20px',
-                                minHeight: '20px',
+                              height: "100%",
                               }}
-                              title={String(cell.getValue() ?? '')}>
+                              className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden"
+                          >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </div>
                           </TableCell>
-                        ))}
+                          ))}
                       </TableRow>
-                    ))
+                      ))
+                  ) : (
+                      <TableRow>
+                      <TableCell colSpan={columns.length} className="text-center  text-gray-400 bg-gray-200 ">
+                          Pilih Tanggal dan Stok terlebih dahulu!
+                      </TableCell>
+                      </TableRow>
                   )}
-                </TableBody>
+                  </TableBody>
+
+                <TableFooter className="sticky bg-gray-100 bottom-0 z-10 border-2">
+                  <TableRow className="relative h-[40px]">
+                      {table.getHeaderGroups()[0].headers.map((header, index) => {
+                      const column = header.column;
+                      let content: React.ReactNode = "";
+
+                      // Tetapkan isi berdasarkan index kolom
+                      switch (index) {
+                          case 1:
+                          content = "Total Barang:";
+                          break;
+                          case 2:
+                          case 2:
+                          content = filteredData.reduce((acc: number, item: any) => {
+                            return acc + (typeof item.inQuantity === 'number' ? item.inQuantity : 0);
+                          }, 0).toLocaleString("id-ID", { maximumFractionDigits: 2 });
+                          break;
+                          case 3:
+                          content = filteredData.reduce((acc: number, item: any) => {
+                            return acc + (typeof item.outQuantity === 'number' ? item.outQuantity : 0);
+                          }, 0).toLocaleString("id-ID", { maximumFractionDigits: 2 });
+                          break;
+                          default:
+                          content = "";
+                      }
+
+                      return (
+                          <TableCell
+                          key={column.id}
+                          style={{
+                              position: "absolute",
+                              left: column.getStart(),
+                              width: column.getSize(),
+                              height: "100%",
+                          }}
+                          className="text-left font-bold border-b border-r last:border-r-0 whitespace-nowrap p-2 bg-gray-100"
+                          >
+                          {content}
+                          </TableCell>
+                      );
+                      })}
+                  </TableRow>
+              </TableFooter>
               </Table>
               </div>
               <ScrollBar orientation="horizontal" />
@@ -364,9 +383,11 @@ const Stocktype = () => {
             </ScrollArea>
 
             <div className='flex gap-2 justify-between'>
-              <h1 className='font-semibold'>
-                Total Transaksi: {totalBarang}
-              </h1>
+              <div className='flex flex-col font-semibold max-w-[400px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
+                  <h1>
+                      Total Transaksi: <span className='text-blue-500'>{json?.total_transactions}</span>
+                  </h1>
+              </div>
               <Button onClick={exportToExcel} className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
             </div>
           </div>

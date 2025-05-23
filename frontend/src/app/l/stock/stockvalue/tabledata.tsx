@@ -37,6 +37,7 @@ const StockValue1 = () => {
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([]);
   const [selectedSuppliersex, setSelectedSuppliersex] = useState<number[]>([]);
+  const { state } = useSidebar(); // "expanded" | "collapsed"
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const supplierParam = selectedSuppliers.length > 0 ? `&supplier=${selectedSuppliers.join(",")}` : "";
@@ -201,7 +202,14 @@ const StockValue1 = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-320px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea
+              className={cn(
+                state === "collapsed"
+                  ? "h-[calc(100vh-310px)]"  // contoh tinggi jika sidebar tertutup
+                  : "h-[calc(100vh-310px)]", // tinggi default saat sidebar terbuka
+                "overflow-x-auto overflow-y-auto max-w-screen"
+              )}
+            >
               <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >

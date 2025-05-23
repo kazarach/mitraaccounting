@@ -28,14 +28,6 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
 const OpnameReport = () => {
-  const distributors = [
-    { value: "1", label: "Distributor A" },
-    { value: "2", label: "Distributor B" },
-    { value: "3", label: "Distributor C" },
-    { value: "4", label: "Distributor D" },
-    { value: "5", label: "Distributor E" },
-  ];
-
   const [range, setRange] = useState("day");
 
   const [value, setValue] = useState("");
@@ -147,7 +139,7 @@ const OpnameReport = () => {
                       <Button
                         id="date-range"
                         variant={"outline"}
-                        className="w-[220px] justify-start text-left font-normal cursor-pointer"
+                        className="w-auto h-[30px] justify-start text-left font-normal cursor-pointer"
                         disabled={false}  // Disable jika range dipilih
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -186,7 +178,7 @@ const OpnameReport = () => {
                     onValueChange={(val) => setRange(val)}
                     disabled={!!(startDate && endDate)}  // Menonaktifkan jika tanggal dipilih
                   >
-                    <SelectTrigger className="w-[120px] cursor-pointer">
+                    <SelectTrigger className="w-auto h-[30px] cursor-pointer">
                       <SelectValue placeholder="Pilih Waktu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -218,7 +210,14 @@ const OpnameReport = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-300px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea
+              className={cn(
+                state === "collapsed"
+                  ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                  : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
+                "overflow-x-auto overflow-y-auto max-w-screen"
+              )}
+            >
               <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
@@ -319,9 +318,11 @@ const OpnameReport = () => {
             </ScrollArea>
 
             <div className='flex gap-2 justify-between'>
+              <div className='flex flex-col font-semibold max-w-[400px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
               <h1 className='font-semibold'>
-                Total Transaksi: {totalBarang}
+                Total Transaksi: <span className='text-blue-500'>{totalBarang}</span>
               </h1>
+              </div>
               <Button onClick={exportToExcel} className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
             </div>
     </div>

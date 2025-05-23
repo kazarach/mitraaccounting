@@ -9,15 +9,20 @@ import useSWR from 'swr';
 import SyncLoader from 'react-spinners/SyncLoader';
 
 type Stock = {
-    id: number
-    username: string
+  id: number;
+  name: string;
+};
+
+interface StockDDProps {
+  onChange: (stockId: number | null) => void;
 }
 
-const StockDD = () => {
+const StockDD = ({ onChange }: StockDDProps) => {
     const [open, setOpen] = React.useState(false)
     const [value, setValue] = React.useState<number | null>(null)
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
     const { data = [], error, isLoading } = useSWR<Stock[]>(
-        "http://100.82.207.117:8000/api/customers",
+        `${API_URL}api/stock/`,
         fetcher
     )
 
@@ -31,36 +36,36 @@ const StockDD = () => {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-[200px] justify-between font-normal"
+                        className="w-auto h-[30px] justify-between font-normal"
                     >
-                        {value !== null
-                            ? data.find((d) => d.id === value)?.username
-                            : 'Pilih Operator'}
+                        {value !== null ? data.find((d) => d.id === value)?.name : 'Pilih Stok'}
                         <ChevronsUpDown className="opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0 border rounded-md">
+                <PopoverContent className="w-[200px] p-0 border rounded-md z-20">
                     <Command>
-                        <CommandInput placeholder="Pilih Operator" />
+                        <CommandInput placeholder="Pilih Stok" />
                         <CommandList>
-                            <CommandEmpty>Distributor Tidak Ditemukan.</CommandEmpty>
+                            <CommandEmpty>Stok Tidak Ditemukan.</CommandEmpty>
                             <CommandGroup>
                                 {data.map((d) => (
                                     <CommandItem
                                         key={d.id}
-                                        value={d.username}
+                                        value={d.name}
                                         data-value={d.id}
-                                        onSelect={(currentLabel: string) => {
-                                            const selectedDistributor = data.find((dist) => dist.username === currentLabel);
-                                            if (selectedDistributor) {
-                                                setValue(selectedDistributor.id);
+                                        onSelect={(label) => {
+                                            const selected = data.find((item) => item.name === label);
+                                            if (selected) {
+                                                setValue(selected.id);
+                                                onChange(selected.id);
                                             } else {
                                                 setValue(null);
+                                                onChange(null);
                                             }
                                             setOpen(false);
                                         }}
                                     >
-                                        {d.username}
+                                        {d.name}
                                         <Check
                                             className={cn(
                                                 "ml-auto",

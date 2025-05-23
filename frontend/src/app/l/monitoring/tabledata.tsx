@@ -162,7 +162,14 @@ const MonitoringReport = () => {
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100vh-290px)] overflow-x-auto overflow-y-auto max-w-screen">
+            <ScrollArea
+              className={cn(
+                state === "collapsed"
+                  ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                  : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
+                "overflow-x-auto overflow-y-auto max-w-screen"
+              )}
+            >
               <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
@@ -262,9 +269,11 @@ const MonitoringReport = () => {
             </ScrollArea>
             
           <div className='flex gap-2 justify-between '>
+            <div className='flex flex-col font-semibold max-w-[150px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
             <h1 className='font-semibold'>
-            Total Barang : {totalBarang}
+            Total Barang : <span className='text-blue-500'>{totalBarang}</span>
             </h1>
+            </div>
             <Button className='bg-blue-500 hover:bg-blue-600' onClick={exportToExcel}>Cetak</Button>
           </div>
           </div>

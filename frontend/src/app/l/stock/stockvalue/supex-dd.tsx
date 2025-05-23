@@ -23,9 +23,10 @@ export function SupexDropdown({ onChange }: SupexDropdownProps) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    "http://100.82.207.117:8000/api/suppliers/",
+    `${API_URL}api/suppliers/`,
     fetcher
   )
 
