@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, fetcherpost } from '@/lib/utils';
+import { cn, fetcherPost } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
@@ -50,25 +50,12 @@ import useSWRMutation from 'swr/mutation';
 
 
 const formSchema = z.object({
-    th_date: z.string({
-        required_error: "Pilih Tanggal!"
-    }).datetime({ message: "Pilih Tanggal!" }),
-    supplier: z.number({
-        required_error: "Pilih Supplier!"
-    }),
-    th_disc: z.number({
-        required_error: "Masukkan Diskon Nota"
-    }),
-    // items: z.array(z.object({
-    //     stock: z.number(),
-    //     quantity: z.number(),
-    //     stock_price_buy: z.number(),
-    //     unit: z.number(),
-    //     disc: z.number(),
-    //     total: z.string(),
-    //     netto: z.number(),
-    // }))
-})
+    th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
+    supplier: z.number({ required_error: "Pilih Supplier!" }),
+    th_payment_type: z.string({ required_error: "Pilih Tipe Bayar" }).optional(),
+    th_dp: z.number({ required_error: "Masukkan Pembayaran" }).optional(),
+    bank: z.number().optional()
+});
 
 
 type PayloadType = {
@@ -101,34 +88,38 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     const [open, setOpen] = React.useState(false)
     const [value, setValue] = React.useState("")
     const [distributor, setDistributor] = useState<number | null>(null);
-    const data = useSelector((state: RootState) => state.table["order"] || []);
+    const data = useSelector((state: RootState) => state.table[tableName] || []);
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | null>(null);
-
+    const [supplier_name, setSupplierName] = useState<string>("");
+    const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
+        const [isGantiHargaModalOpen, setIsGantiHargaModalOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             th_date: new Date().toISOString(),
             supplier: undefined,
-            th_disc: 0,
+            th_dp: undefined,
+            th_payment_type: "CASH",
+            bank: undefined,
+
         },
     })
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
         `${API_URL}/api/transactions/calculate_preview/`,
-        fetcherpost
+        fetcherPost
     );
     const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
-            any,
-            any,
-            string,
-            PayloadType
-        >(
-            `${API_URL}api/transactions/`,
-            fetcherpost
-        );
-
+        any,
+        any,
+        string,
+        any
+    >(
+        `${API_URL}api/transactions/`,
+        fetcherPost
+    );
 
 
     function onSubmit(values: z.infer<typeof formSchema>) {
@@ -136,15 +127,16 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
         }
-
         if (submitAction === "simpan") {
-            const payload: PayloadType = {
+            const payload: any = {
                 th_type: "PURCHASE",
                 supplier: values.supplier,
                 cashier: 3,
                 th_date: values.th_date,
                 th_note: "Test",
                 th_payment_type: "BANK",
+                th_dp: values.th_dp || 0,
+                bank: undefined,
                 items: data.map((item) => ({
                     stock: item.stock,
                     stock_code: item.stock_code || "",
@@ -164,16 +156,21 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                     toast.error(err.message);
                 });
             setSubmitAction("bayar");
+
         }
 
         if (submitAction === "bayar") {
-            const payload: PayloadType = {
-                th_type: "ORDERIN",
+            const values2 = form.getValues();
+            const payload2: any = {
+                th_type: "ORDEROUT",
                 supplier: values.supplier,
                 cashier: 3,
                 th_date: values.th_date,
-                th_note: "Test",
-                th_payment_type: "BANK",
+                th_order: true,
+                th_status: true,
+                th_payment_type: values2.th_payment_type || "",
+                th_dp: values2.th_dp || 0,
+                bank: values2.bank,
                 items: data.map((item) => ({
                     stock: item.stock,
                     stock_code: item.stock_code || "",
@@ -184,20 +181,25 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                     disc_percent: item.disc_percent || 0,
                     disc_percent2: item.disc_percent2 || 0,
                 })),
-            };
 
-            console.log(JSON.stringify(payload, null, 1));
-            post(payload)
+            }
+
+
+            console.log(JSON.stringify(payload2, null, 1));
+
+            post(payload2)
                 .then((res) => {
                     console.log(res)
+                    dispatch(clearTable({ tableName }));
                     toast.success("Pembayaran berhasil");
                 })
                 .catch((err) => {
                     toast.error(err.message);
                 });
-        }
-    }
 
+
+        };
+    }
 
     const columns: ColumnDef<any>[] = [
         {
@@ -274,7 +276,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         if (data.length === 0) {
             dispatch(
                 setTableData({
-                    tableName: "order",
+                    tableName: tableName,
                     data: [],
                 })
             );
@@ -282,7 +284,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     }, [dispatch]);
 
     const handleDelete = (id: number) => {
-        dispatch(deleteRow({ tableName: "order", id }));
+        dispatch(deleteRow({ tableName: tableName, id }));
         toast.error("Produk berhasil dihapus!");
     };
 
@@ -306,40 +308,40 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
             return item;
         });
 
-        dispatch(setTableData({ tableName: "order", data: updatedData }));
+        dispatch(setTableData({ tableName: tableName, data: updatedData }));
 
         const total = updatedData.reduce((acc, item) => acc + (item.subtotal || 0), 0);
-        dispatch(setTableData({ tableName: "order", data: updatedData }));
+        dispatch(setTableData({ tableName: tableName, data: updatedData }));
     };
 
     const handleClear = () => {
-        dispatch(clearTable({ tableName: "order" }));
+        dispatch(clearTable({ tableName: tableName }));
         toast.error("Table berhasil dihapus!");
     };
 
 
     const totalSummary = useMemo(() => {
-            const subtotal = data.reduce((acc, item) => {
-                const price = item.stock_price_buy || 0;
-                const qty = item.quantity || 0;
-                const disc = item.disc || 0;
-                const disc1 = item.disc_percent || 0;
-                const disc2 = item.disc_percent2 || 0;
-    
-                const afterDisc1 = price - disc;
-                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
-                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
-                const subtotalItem = qty * afterDisc3;
-    
-                return acc + subtotalItem;
-            }, 0);
-    
-      
-    
-            return {
-                subtotal
-            };
-        }, [data]);
+        const subtotal = data.reduce((acc, item) => {
+            const price = item.stock_price_buy || 0;
+            const qty = item.quantity || 0;
+            const disc = item.disc || 0;
+            const disc1 = item.disc_percent || 0;
+            const disc2 = item.disc_percent2 || 0;
+
+            const afterDisc1 = price - disc;
+            const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+            const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+            const subtotalItem = qty * afterDisc3;
+
+            return acc + subtotalItem;
+        }, 0);
+
+
+
+        return {
+            subtotal
+        };
+    }, [data]);
 
 
     return (
@@ -400,9 +402,10 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
 
                                                 <DistributorDD
                                                     value={distributor}
-                                                    onChange={(val: number | null) => {
+                                                    onChange={(val: number | null, label: string | null) => {
                                                         setDistributor(val)
                                                         field.onChange(val)
+                                                        setSupplierName(label || "");
                                                     }}
                                                 />
                                             </FormControl>
@@ -419,7 +422,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-[100vw] max-h-[90vh]">
-                                    <TambahProdukModal tableName='order' />
+                                    <TambahProdukModal tableName={tableName} />
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -429,58 +432,58 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
 
                     <div className="rounded-md border overflow-auto">
                         <Table>
-                                                    <TableHeader>
-                                                        {table.getHeaderGroups().map((headerGroup) => (
-                                                            <TableRow key={headerGroup.id}>
-                                                                {headerGroup.headers.map((header) => (
-                                                                    <TableHead key={header.id} className="text-left">
-                                                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                                                    </TableHead>
-                                                                ))}
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {table.getRowModel().rows.length ? (
-                                                            table.getRowModel().rows.map((row) => (
-                                                                <TableRow key={row.id}>
-                                                                    {row.getVisibleCells().map((cell) => (
-                                                                        <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
-                                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                                        </TableCell>
-                                                                    ))}
-                                                                </TableRow>
-                                                            ))
-                                                        ) : (
-                                                            <TableRow>
-                                                                <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
-                                                                    Belum menambahkan produk
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        )}
-                                                    </TableBody>
-                                                    <TableFooter>
-                                                        <TableRow className="bg-white">
-                                                            <TableCell colSpan={1} className="text-right font-bold border">
-                                                                Total Barang:
-                                                            </TableCell>
-                                                            <TableCell className="text-left font-bold border">
-                                                                {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                                            </TableCell>
-                                                            <TableCell colSpan={3} className="text-right font-bold border">
-                                                                Total:
-                                                            </TableCell>
-                                                            <TableCell className="text-left font-bold border">
-                                                                <span>{totalSummary.subtotal.toLocaleString("id-ID", {
-                                                                    maximumFractionDigits: 2,
-                                                                })}</span>
-                                                            </TableCell>
-                                                            <TableCell className="text-left font-bold border">
-                        
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    </TableFooter>
-                                                </Table>
+                            <TableHeader>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => (
+                                            <TableHead key={header.id} className="text-left">
+                                                {flexRender(header.column.columnDef.header, header.getContext())}
+                                            </TableHead>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </TableHeader>
+                            <TableBody>
+                                {table.getRowModel().rows.length ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow key={row.id}>
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
+                                            Belum menambahkan produk
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="bg-white">
+                                    <TableCell colSpan={1} className="text-right font-bold border">
+                                        Total Barang:
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                    </TableCell>
+                                    <TableCell colSpan={3} className="text-right font-bold border">
+                                        Total:
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+                                        <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                            maximumFractionDigits: 2,
+                                        })}</span>
+                                    </TableCell>
+                                    <TableCell className="text-left font-bold border">
+
+                                    </TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
                         <Dialog>
@@ -493,15 +496,24 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                             ) : (
                                 <Button
                                     className='font-medium bg-blue-500 hover:bg-blue-600'
+                                    onClick={() => toast.success("mantap")}
                                 >
                                     Simpan
                                 </Button>
                             )}
-
                             <DialogContent className="w-1/4 max-h-11/12">
-                                <BayarTPModal review={review} form={form} date={date} setDate={setDate} />
+                                <BayarTPModal
+                                    review={review}
+                                    form={form}
+                                    date={date}
+                                    setDate={setDate}
+                                    supplier_name={supplier_name}
+                                    onClose={() => setIsBayarModalOpen(false)}
+                                    onOpenNext={() => setIsGantiHargaModalOpen(true)}
+                                />
                             </DialogContent>
                         </Dialog>
+
                     </div>
                 </form>
             </Form >

@@ -11,7 +11,7 @@ import SyncLoader from 'react-spinners/SyncLoader';
 
 type DistributorDDProps = {
     value: number | null;
-    onChange: (val: number | null) => void;
+    onChange: (id: number | null, name: string | null) => void;
 };
 
 type Supplier = {
@@ -31,7 +31,8 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
     // Set the default distributor to the first one if value is null
     React.useEffect(() => {
         if (value === null && data.length > 0) {
-            onChange(data[0].id);
+            const defaultSupplier = data[0];
+            onChange(defaultSupplier.id, defaultSupplier.name);
         }
     }, [data, value, onChange]);
 
@@ -68,9 +69,10 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                                     value={d.name}
                                     data-value={d.id}
                                     onSelect={() => {
-                                        onChange(d.id);
+                                        onChange(d.id, d.name);
                                         setOpen(false);
                                     }}
+
                                 >
                                     <span className="truncate max-w-[200px] inline-block align-middle">
                                         {d.name}

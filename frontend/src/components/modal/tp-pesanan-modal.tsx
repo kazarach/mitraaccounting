@@ -39,6 +39,7 @@ import Loading from '../loading';
 import { DateRange } from 'react-day-picker';
 import { DistributorDropdown } from '../dropdown-checkbox/distributor-dropdown';
 import { OperatorDropdown } from '../dropdown-checkbox/operator-dropdown';
+import { Description } from '@radix-ui/react-dialog';
 
 const TpModal = () => {
   const dispatch = useDispatch();
@@ -47,6 +48,7 @@ const TpModal = () => {
 
   const [distributor, setDistributor] = useState<number[]>([]);
   const [operator, setOperator] = useState<number[]>([]);
+
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
@@ -59,15 +61,18 @@ const TpModal = () => {
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_type=ORDERIN${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=ORDEROUT&th_order=true${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
   const handleAddProduct = (row: any) => {
-    const supplier = row.original.supplier; 
-    const th_type = row.original.th_type;   
-    const transaction_id = row.original.id; 
-
+    const supplier = row.original.supplier;
+    const th_type = row.original.th_type;
+    const transaction_id = row.original.id;
+    const th_date = row.original.th_date;
+    const th_dp = row.original.th_dp;
+    dispatch(clearTable({ tableName: "transaksi" }));
+    
     if (row.original.items && row.original.items.length > 0) {
       row.original.items.forEach((item: any) => {
         const newItem = {
@@ -84,11 +89,14 @@ const TpModal = () => {
           netto: parseFloat(item.netto) || 0,
           total: parseFloat(item.total) || 0,
           stock: item.stock,
-          th_type,      
-          supplier,      
-          transaction_id, 
+          th_type,
+          supplier,
+          transaction_id,
+          th_date,
+          th_dp,
         };
         
+        console.log(newItem)
         dispatch(addRow({ tableName: "transaksi", row: newItem }));
       });
 
@@ -153,6 +161,7 @@ const TpModal = () => {
     <div>
       <DialogHeader>
         <DialogTitle>Tambah Pesanan</DialogTitle>
+        <Description></Description>
       </DialogHeader>
       <div >
         <div className='flex justify-between'>

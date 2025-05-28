@@ -33,6 +33,7 @@ import { CategoryDropdown } from "../dropdown-checkbox/category-dropdown";
 import { id } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Description } from "@radix-ui/react-dialog";
 
 interface TambahProdukModalProps {
   tableName: string;
@@ -197,6 +198,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
     <div>
       <DialogHeader>
         <DialogTitle>Tambah Produk</DialogTitle>
+        <Description></Description>
       </DialogHeader>
 
 

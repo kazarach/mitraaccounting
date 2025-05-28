@@ -21,14 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, fetcher, fetcherpost } from '@/lib/utils';
+import { cn, fetcher, fetcherPatch, fetcherPost } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import TpModal from '@/components/modal/tp-pesanan-modal';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -47,6 +46,9 @@ import { useForm, UseFormReturn } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import useSWRMutation from 'swr/mutation';
+import GantiHargaModal from './gantiHargaModal';
+import TambahProdukModalTP from './tambahprodukModal';
+import PersediaanModal, { Stock } from './persediaanModal';
 
 
 
@@ -54,7 +56,7 @@ import useSWRMutation from 'swr/mutation';
 const formSchema = z.object({
     th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
     supplier: z.number({ required_error: "Pilih Supplier!" }),
-    th_disc: z.number({ required_error: "Masukkan Diskon Nota" }),
+    th_disc: z.number({ required_error: "Masukkan Diskon Nota" }).optional(),
     th_payment_type: z.string({ required_error: "Pilih Tipe Bayar" }).optional(),
     th_dp: z.number({ required_error: "Masukkan Pembayaran" }).optional(),
     bank: z.number().optional()
@@ -80,7 +82,7 @@ type PayloadType = {
         quantity: number;
         disc: number;
     }[];
-    _method?: 'POST' | 'PUT'; 
+    _method?: 'POST' | 'PUT';
 };
 
 
@@ -108,14 +110,41 @@ interface Props {
 const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
     const [date, setDate] = React.useState<Date>()
+    const [supplier, setSupplier] = useState<number | null>(null);
     const [value, setValue] = React.useState("")
     const [isPpnIncluded, setIsPpnIncluded] = useState(false);
-    const [distributor, setDistributor] = useState<number | null>(null);
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | "harga" | null>(null);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+    const [supplier_name, setSupplierName] = useState<string>("");
+    const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
+    const [isGantiHargaModalOpen, setIsGantiHargaModalOpen] = useState(false);
+    const [isTambahProdukModalOpen, setIsTambahProdukModalOpe] = useState(false);
+    const [isPersediaanOpen, setIsPersediaanOpen] = useState(false);
+    const [reviewData, setReviewData] = useState<any>(null);
+    const [pricesData, setPricesData] = useState<any>(null);
+    const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
 
+    const openPersediaanModalWithStock = (stock: Stock) => {
+        setSelectedStock(stock);
+        setIsPersediaanOpen(true);
+    };
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
+
+    useEffect(() => {
+        if (data.length > 0) {
+            const firstRow = data[0];
+
+            if (firstRow.th_date && firstRow.supplier) {
+                const parsedDate = new Date(firstRow.th_date);
+                if (!isNaN(parsedDate.getTime())) {
+                    setDate(parsedDate);
+                }
+
+                setSupplier(firstRow.supplier);
+            }
+        }
+    }, [data]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -124,7 +153,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             supplier: undefined,
             th_disc: 0,
             th_dp: undefined,
-            th_payment_type: "",       // nilai awal wajib
+            th_payment_type: "CASH",       // nilai awal wajib
             bank: undefined,
         },
     })
@@ -132,25 +161,154 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
         `${API_URL}/api/transactions/calculate_preview/`,
-        fetcherpost
+        fetcherPost
     );
+
     const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
         any,
         any,
         string,
-        PayloadType
+        any
     >(
         `${API_URL}api/transactions/`,
-        fetcherpost
+        fetcherPost
     );
+
+    const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<
+        any,
+        any,
+        string,
+        any
+    >(
+        `${API_URL}api/transactions`,
+        fetcherPatch
+    );
+
+    const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
+        "http://100.82.207.117:8000/api/stock/by_ids/",
+        fetcherPost
+    );
+
+    useEffect(() => {
+        if (review) {
+            const th_dp = data?.[0]?.th_dp || 0;
+            const updatedReview = {
+                ...review,
+                th_dp,
+            };
+            setReviewData(updatedReview);
+        }
+    }, [review, data]);
+
+    useEffect(() => {
+        if (priceData && data) {
+            const updatedPriceData = priceData.map((priceItem: any) => {
+                const matchedItem = data.find(item => item.stock === priceItem.id);
+                return {
+                    ...priceItem,
+                    stock_price_buy: matchedItem ? matchedItem.stock_price_buy : null,
+                };
+            });
+            setPricesData(updatedPriceData);
+        }
+
+
+    }, [priceData, data]);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
         }
+        if (submitAction === "harga") {
+
+        };
+
+        if (submitAction === "bayar") {
+            const values2 = form.getValues();
+            const id = data?.[0]?.transaction_id;
+            // console.log(id + " id")
+
+            const th_dp = data?.[0]?.th_dp;
+            const payload2: any = {
+                th_type: "PURCHASE",
+                th_ppn: isPpnIncluded ? 0 : 11,
+                supplier: values.supplier,
+                cashier: 3,
+                th_disc: values.th_disc,
+                th_date: values.th_date,
+                th_note: "",
+                th_payment_type: values2.th_payment_type || "",
+                th_dp: (values2.th_dp + th_dp) || 0,
+                th_order: false,
+                th_order_reference: id || undefined,
+                th_status: true,
+                bank: values2.bank,
+                items: data.map((item) => ({
+                    stock: item.stock,
+                    stock_code: item.stock_code || "",
+                    stock_name: item.stock_name,
+                    stock_price_buy: item.stock_price_buy,
+                    quantity: item.quantity,
+                    disc: item.disc || 0,
+                    disc_percent: item.disc_percent || 0,
+                    disc_percent2: item.disc_percent2 || 0,
+                })),
+
+            }
+
+
+            console.log(JSON.stringify(payload2, null, 1));
+
+            post(payload2)
+                .then((res) => {
+                    console.log("pembayaran")
+                    console.log(res)
+                    toast.success("Pembayaran berhasil");
+                })
+                .catch((err) => {
+                    toast.error(err.message);
+                });
+
+
+            const payload3: any = {
+                item_ids: review.items.map((item: any) => item.stock_id),
+            }
+            console.log(JSON.stringify(payload3, null, 1));
+            checkPriceTrigger(payload3)
+                .then((res) => {
+                    console.log(res)
+                })
+                .catch((err) => {
+                    toast.error(err.message);
+                });
+
+            if (id) {
+                const payload: any = {
+                    th_order: false,
+                    th_status: true,
+                };
+
+                // console.log(JSON.stringify(payload2, null, 1));
+
+                patch({ id, data: payload })
+                    .then((res) => {
+                        console.log("ganti order")
+                        console.log(res)
+
+                    })
+                    .catch((err) => {
+                        toast.error(err.message);
+                    });
+            }
+            setSubmitAction("harga");
+        };
+
+
+
         if (submitAction === "simpan") {
-            const payload: PayloadType = {
+            const th_dp = data?.[0]?.th_dp;
+            const payload: any = {
                 th_type: "PURCHASE",
                 th_ppn: isPpnIncluded ? 0 : 11,
                 supplier: values.supplier,
@@ -159,7 +317,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 th_date: values.th_date,
                 th_note: "Test",
                 th_payment_type: "BANK",
-                th_dp: values.th_dp || 0,
+                th_dp: th_dp || 0,
                 bank: undefined,
                 items: data.map((item) => ({
                     stock: item.stock,
@@ -172,94 +330,19 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     disc_percent2: item.disc_percent2 || 0,
                 })),
             };
+            // console.log(JSON.stringify(payload, null, 1));
+
             trigger(payload)
                 .then((res) => {
+                    console.log("calculate")
                     console.log(res)
                 })
                 .catch((err) => {
                     toast.error(err.message);
                 });
             setSubmitAction("bayar");
-            
+
         }
-
-        if (submitAction === "bayar") {
-            const values2 = form.getValues();
-            if (data[0].transactions === "ORDERIN") {
-                const payload: PayloadType = {
-                    th_type: "PURCHASE",
-                    th_ppn: isPpnIncluded ? 0 : 11,
-                    supplier: values.supplier,
-                    cashier: 3,
-                    th_disc: values.th_disc,
-                    th_date: values.th_date,
-                    th_note: "Test",
-                    th_payment_type: values2.th_payment_type || "",
-                    th_dp: (values?.th_dp || 0) + (values2.th_dp || 0),
-                    bank: values2.bank,
-                    items: data.map((item) => ({
-                        stock: item.stock,
-                        stock_code: item.stock_code || "",
-                        stock_name: item.stock_name,
-                        stock_price_buy: item.stock_price_buy,
-                        quantity: item.quantity,
-                        disc: item.disc || 0,
-                        disc_percent: item.disc_percent || 0,
-                        disc_percent2: item.disc_percent2 || 0,
-                    })),
-
-                }
-
-
-                console.log(JSON.stringify(payload, null, 1));
-                post({ ...payload, _method: 'PUT' })
-                    .then((res) => {
-                        console.log(res)
-                        toast.success("Pembayaran berhasil");
-                    })
-                    .catch((err) => {
-                        toast.error(err.message);
-                    });
-            }
-            else{
-                const payload: PayloadType = {
-                    th_type: "PURCHASE",
-                    th_ppn: isPpnIncluded ? 0 : 11,
-                    supplier: values.supplier,
-                    cashier: 3,
-                    th_disc: values.th_disc,
-                    th_date: values.th_date,
-                    th_note: "Test",
-                    th_payment_type: values2.th_payment_type || "",
-                    th_dp: values2.th_dp || 0,
-                    bank: values2.bank,
-                    items: data.map((item) => ({
-                        stock: item.stock,
-                        stock_code: item.stock_code || "",
-                        stock_name: item.stock_name,
-                        stock_price_buy: item.stock_price_buy,
-                        quantity: item.quantity,
-                        disc: item.disc || 0,
-                        disc_percent: item.disc_percent || 0,
-                        disc_percent2: item.disc_percent2 || 0,
-                    })),
-
-                }
-
-
-                console.log(JSON.stringify(payload, null, 1));
-                
-                post(payload)
-                    .then((res) => {
-                        console.log(res)
-                        toast.success("Pembayaran berhasil");
-                    })
-                    .catch((err) => {
-                        toast.error(err.message);
-                    });
-            }
-            
-        };
     }
 
 
@@ -595,10 +678,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                             <FormControl>
 
                                                 <DistributorDD
-                                                    value={distributor}
-                                                    onChange={(val: number | null) => {
-                                                        setDistributor(val)
+                                                    value={supplier}
+                                                    onChange={(val: number | null, label: string | null) => {
+                                                        setSupplier(val)
                                                         field.onChange(val)
+                                                        setSupplierName(label || "");
                                                     }}
 
                                                 />
@@ -660,7 +744,23 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-12/12 max-h-[90vh]">
-                                    <TambahProdukModal tableName='transaksi' />
+                                    <TambahProdukModalTP
+                                        tableName='transaksi'
+                                        onClose={() => setIsTambahProdukModalOpe(false)}
+                                        onOpenNext={() => setIsPersediaanOpen(true)}
+                                        openPersediaanModalWithStock={openPersediaanModalWithStock}  // <-- kirim fungsi ini
+                                    />
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={isPersediaanOpen} onOpenChange={setIsPersediaanOpen}>
+                                <DialogContent className="w-2/3 h-auto max-h-[90vh]">
+                                    <PersediaanModal
+                                        stockData={pricesData}
+                                        selectedStock={selectedStock}
+                                        setSelectedStock={setSelectedStock}
+                                    />
+
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -734,10 +834,17 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
 
-                        <Dialog>
+                        <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>
                             {data.length > 0 ? (
                                 <DialogTrigger asChild>
-                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
+                                    <Button
+                                        className="font-medium bg-blue-500 hover:bg-blue-600"
+                                        type="submit"
+                                        onClick={() => {
+                                            setSubmitAction("simpan");
+                                            setIsBayarModalOpen(true);
+                                        }}
+                                    >
                                         Simpan
                                     </Button>
                                 </DialogTrigger>
@@ -750,8 +857,22 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             )}
 
                             <DialogContent className="w-1/4 max-h-11/12">
-                                <BayarTPModal review={review} form={form} date={date} setDate={setDate} />
+                                <BayarTPModal
+                                    review={reviewData}
+                                    form={form}
+                                    date={date}
+                                    setDate={setDate}
+                                    supplier_name={supplier_name}
+                                    onClose={() => setIsBayarModalOpen(false)}
+                                    onOpenNext={() => setIsGantiHargaModalOpen(true)}
+                                    onSubmit={form.handleSubmit(onSubmit)}
+                                />
+                            </DialogContent>
+                        </Dialog>
 
+                        <Dialog open={isGantiHargaModalOpen} onOpenChange={setIsGantiHargaModalOpen}>
+                            <DialogContent className="w-12/12 h-11/12 max-h-[90vh]">
+                                <GantiHargaModal priceData={pricesData} />
                             </DialogContent>
                         </Dialog>
 
