@@ -55,9 +55,10 @@ export function LoginForm({
         resolver: yupResolver(schema),
     });
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+
     const { trigger, isMutating } = useSWRMutation(
-        "http://100.82.207.117:8000/api/token/",
-        // "http://127.0.0.1:8000/api/token/",
+        `${API_URL}api/token/`,
         loginRequest
     );
 
