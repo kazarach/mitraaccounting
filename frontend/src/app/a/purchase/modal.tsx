@@ -31,7 +31,7 @@ export function PurchaseDetailModal({
     const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   
     const columns: ColumnDef<any>[] = [
-      { header: "No.", accessorFn: (_, i) => i + 1 },
+      { header: "No.", accessorFn: (_, i) => i + 1, size:100 },
       { header: "Nama Produk", accessorKey: "stock_name" },
       { header: "Jumlah", accessorKey: "quantity" },
       {

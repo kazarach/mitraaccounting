@@ -14,7 +14,7 @@ import { useReactTable, getCoreRowModel, flexRender, ColumnDef, ColumnResizeDire
 import { format } from "date-fns"
 import React from "react"
 
-export function PurchaseReturnDetailModal({
+export function SellingOrderDetailModal({
     open,
     onClose,
     transaction,
@@ -71,7 +71,7 @@ export function PurchaseReturnDetailModal({
         <div className="space-y-1 text-sm text-muted-foreground mb-4">
           <div><span className="font-semibold text-black">Tanggal:</span>{" "}
           {transaction?.th_date ? format(new Date(transaction.th_date), "dd/MM/yyyy") : "-"}</div>
-          <div><span className="font-semibold text-black">Distributor:</span> {transaction?.supplier_name || "-"}</div>
+          <div><span className="font-semibold text-black">Pelanggan:</span> {transaction?.customer_name || "-"}</div>
         </div>
 
         <ScrollArea className= "h-[calc(100vh-290px)] overflow-x-auto overflow-y-auto max-w-screen">
@@ -170,7 +170,7 @@ export function PurchaseReturnDetailModal({
               </Table>
         </div>
         <ScrollBar orientation="horizontal" />
-              <ScrollBar orientation="vertical" className='z-40' />
+        <ScrollBar orientation="vertical" className='z-40' />
         </ScrollArea>
 
         <div className="flex justify-end gap-2 mt-4">
