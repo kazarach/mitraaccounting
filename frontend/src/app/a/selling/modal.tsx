@@ -14,6 +14,9 @@ import { useReactTable, getCoreRowModel, flexRender, ColumnDef, ColumnResizeDire
 import { format } from "date-fns"
 import React from "react"
 
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 export function SellingDetailModal({
     open,
     onClose,
@@ -35,8 +38,8 @@ export function SellingDetailModal({
       { header: "Nama Produk", accessorKey: "stock_name" },
       { header: "Jumlah", accessorKey: "quantity" },
       {
-        header: "Harga Beli",
-        accessorKey: "stock_price_buy",
+        header: "Harga Jual",
+        accessorKey: "sell_price",
         cell: ({ getValue }) => {
           const raw = getValue();
           const value = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : 0;
@@ -45,7 +48,7 @@ export function SellingDetailModal({
       },      
       { header: "Satuan", accessorKey: "unit" },
       {
-        header: "Total Harga Beli",
+        header: "Total Harga Jual",
         accessorKey: "total",
         cell: ({ getValue }) => {
           const raw = getValue();
@@ -63,6 +66,33 @@ export function SellingDetailModal({
         enableColumnResizing: true,
         columnResizeMode: 'onChange'
     });
+
+    const exportToExcel = () => {
+          if (!data || data.length === 0) return;
+    
+          // Buat format data yang sesuai untuk Excel
+          const exportData = data.map((item: any, index: number) => ({
+            "No.": index + 1,
+            "Tanggal": transaction?.th_date
+            ? format(new Date(transaction.th_date), "dd/MM/yyyy")
+            : "-",
+            "Nama Produk": item.stock_name,
+            "Jumlah": item.quantity,
+            "Harga Jual": item.sell_price,
+            "Satuan": item.unit,
+            "Total Harga Jual": item.total
+          }));
+    
+          const worksheet = XLSX.utils.json_to_sheet(exportData);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Detail Pembelian");
+    
+          const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+          const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    
+          const filename = `Arsip_Penjualan_${transaction?.customer_name || "data"}.xlsx`;
+          saveAs(dataBlob, filename);
+        };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -174,8 +204,7 @@ export function SellingDetailModal({
         </ScrollArea>
 
         <div className="flex justify-end gap-2 mt-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Return</button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Cetak</button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={exportToExcel}>Cetak</button>
         </div>
       </DialogContent>
     </Dialog>

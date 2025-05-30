@@ -11,7 +11,7 @@ const SellingArchive1 = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Arsip Pembelian</CardTitle>
+          <CardTitle>Arsip Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
           <SellingArchive />

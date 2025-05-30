@@ -11,7 +11,7 @@ const PurchaseReturn1 = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Arsip Pembelian</CardTitle>
+          <CardTitle>Arsip Retur Pembelian</CardTitle>
         </CardHeader>
         <CardContent>
           <PurchaseReturn />

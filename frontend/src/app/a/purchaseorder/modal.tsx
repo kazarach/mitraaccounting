@@ -17,7 +17,7 @@ import React from "react"
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-export function PurchaseDetailModal({
+export function PurchaseOrderDetailModal({
     open,
     onClose,
     transaction,
@@ -90,14 +90,14 @@ export function PurchaseDetailModal({
       const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
       const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
 
-      const filename = `Arsip_Pembelian_${transaction?.supplier_name || "data"}.xlsx`;
+      const filename = `Arsip_Pesanan_Pembelian_${transaction?.supplier_name || "data"}.xlsx`;
       saveAs(dataBlob, filename);
     };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-full ">
-        <DialogTitle>Detail Arsip Pembelian</DialogTitle>
+        <DialogTitle>Detail Arsip Pesanan Pembelian</DialogTitle>
         <div className="space-y-1 text-sm text-muted-foreground mb-4">
           <div><span className="font-semibold text-black">Tanggal:</span>{" "}
           {transaction?.th_date ? format(new Date(transaction.th_date), "dd/MM/yyyy") : "-"}</div>

@@ -1,47 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import useSWR from "swr"
 import { fetcher } from "@/lib/utils"
-import { SyncLoader } from "react-spinners"
+import useSWR from "swr"
 
-type Bank = {
-  id: number
-  code: string
-  name: string
-  type: string | null
-  cb: string | null
-  active: boolean
-  acc: {
-    id: number
-    name: string
-  }
-}
-
-export function BankDDSO({
-  onChange
-}: {
-  onChange: (ids: number[]) => void
-}) {
+export function OperatorDropdownAPO({ onChange }: { onChange: (ids: number[]) => void }) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL!
-  const { data: items = [], error, isLoading } = useSWR<Bank[]>(
-    `${API_URL}/api/banks/`,
-    fetcher
-  )
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  const { data, error, isLoading } = useSWR(`${API_URL}api/users/cashier_and_above/`, fetcher);
 
   useEffect(() => {
-    onChange(selected)
-  }, [selected, onChange])
+    onChange(selected);
+  }, [selected, onChange]);
+  
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
 
   const toggleItem = (id: number) => {
     setSelected(prev =>
@@ -49,60 +30,66 @@ export function BankDDSO({
     )
   }
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredItems = Array.isArray(data)
+  ? data.filter((item: { username: string }) =>
+      item.username.toLowerCase().includes(search.toLowerCase())
+    )
+  : []
 
-  const allFilteredSelected = filteredItems.every((item) =>
+  const allFilteredSelected = filteredItems.every((item: { id: number}) =>
     selected.includes(item.id)
   )
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
       setSelected(prev =>
-        prev.filter(id => !filteredItems.find(item => item.id === id))
+        prev.filter(id => !filteredItems.find((item: { id: number }) => item.id === id))
       )
     } else {
       setSelected(prev => [
         ...prev,
-        ...filteredItems.filter(item => !prev.includes(item.id)).map(item => item.id)
+        ...filteredItems
+          .filter((item: { id: number }) => !prev.includes(item.id))
+          .map((item: { id: any }) => item.id),
       ])
     }
   }
-
   const clearAll = () => {
     setSelected([])
   }
 
-  if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>
-  if (error) return <p>Terjadi kesalahan saat memuat data bank.</p>
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-[180px] h-[30px] justify-between font-normal">
-          {selected.length > 0 ? `${selected.length} dipilih` : "Semua"}
+        <Button variant="outline" className="w-[150px] h-[30px] justify-between font-normal">
+          {selected.length > 0 ? `${selected.length} selected` : "Semua"}
           <ChevronsUpDown />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 z-50 border rounded-md">
+      <PopoverContent className="w-56 p-2">
         <Input
-          placeholder="Cari bank..."
+          placeholder="Cari Operator..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mb-2"
         />
         <div className="flex justify-between items-center px-2 mb-1 text-sm">
-          <button onClick={toggleSelectAll} className="text-primary hover:underline">
+          <button
+            onClick={toggleSelectAll}
+            className="text-primary hover:underline"
+          >
             {allFilteredSelected ? "Unselect All" : "Select All"}
           </button>
-          <button onClick={clearAll} className="text-destructive hover:underline">
+          <button
+            onClick={clearAll}
+            className="text-destructive hover:underline"
+          >
             Clear All
           </button>
         </div>
         <ScrollArea className="h-40">
           {filteredItems.length > 0 ? (
-            filteredItems.map(item => (
+            filteredItems.map((item: { id: number; username: string; role: { name: string } }) => (
               <label
                 key={item.id}
                 className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
@@ -111,7 +98,7 @@ export function BankDDSO({
                   checked={selected.includes(item.id)}
                   onCheckedChange={() => toggleItem(item.id)}
                 />
-                <span>{item.name}</span>
+                <span>{item.username} ({item.role.name})</span>
               </label>
             ))
           ) : (

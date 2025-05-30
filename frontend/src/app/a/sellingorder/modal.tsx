@@ -14,6 +14,9 @@ import { useReactTable, getCoreRowModel, flexRender, ColumnDef, ColumnResizeDire
 import { format } from "date-fns"
 import React from "react"
 
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 export function SellingOrderDetailModal({
     open,
     onClose,
@@ -31,12 +34,12 @@ export function SellingOrderDetailModal({
     const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   
     const columns: ColumnDef<any>[] = [
-      { header: "No.", accessorFn: (_, i) => i + 1 , size:100},
-      { header: "Nama Produk", accessorKey: "stock_name" },
+      { header: "No.", accessorFn: (_, i) => i + 1 , size:50},
+      { header: "Nama Produk", accessorKey: "stock_name", size:250 },
       { header: "Jumlah", accessorKey: "quantity" },
       {
-        header: "Harga Beli",
-        accessorKey: "stock_price_buy",
+        header: "Harga Jual",
+        accessorKey: "sell_price",
         cell: ({ getValue }) => {
           const raw = getValue();
           const value = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : 0;
@@ -45,7 +48,7 @@ export function SellingOrderDetailModal({
       },      
       { header: "Satuan", accessorKey: "unit" },
       {
-        header: "Total Harga Beli",
+        header: "Total Harga Jual",
         accessorKey: "total",
         cell: ({ getValue }) => {
           const raw = getValue();
@@ -64,17 +67,44 @@ export function SellingOrderDetailModal({
         columnResizeMode: 'onChange'
     });
 
+    const exportToExcel = () => {
+          if (!data || data.length === 0) return;
+    
+          // Buat format data yang sesuai untuk Excel
+          const exportData = data.map((item: any, index: number) => ({
+            "No.": index + 1,
+            "Tanggal": transaction?.th_date
+            ? format(new Date(transaction.th_date), "dd/MM/yyyy")
+            : "-",
+            "Nama Produk": item.stock_name,
+            "Jumlah": item.quantity,
+            "Harga Jual": item.sell_price,
+            "Satuan": item.unit,
+            "Total Harga Jual": item.total
+          }));
+    
+          const worksheet = XLSX.utils.json_to_sheet(exportData);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Detail Pembelian");
+    
+          const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+          const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    
+          const filename = `Arsip_Pesanan_Penjualan_${transaction?.customer_name || "data"}.xlsx`;
+          saveAs(dataBlob, filename);
+        };    
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-full">
-        <DialogTitle>Detail Arsip Pembelian</DialogTitle>
+        <DialogTitle>Detail Arsip Pesanan Penjualan</DialogTitle>
         <div className="space-y-1 text-sm text-muted-foreground mb-4">
           <div><span className="font-semibold text-black">Tanggal:</span>{" "}
           {transaction?.th_date ? format(new Date(transaction.th_date), "dd/MM/yyyy") : "-"}</div>
           <div><span className="font-semibold text-black">Pelanggan:</span> {transaction?.customer_name || "-"}</div>
         </div>
 
-        <ScrollArea className= "h-[calc(100vh-290px)] overflow-x-auto overflow-y-auto max-w-screen">
+        <ScrollArea className= "h-[calc(100vh-310px)] overflow-x-auto overflow-y-auto max-w-screen">
             <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
           <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
@@ -174,8 +204,7 @@ export function SellingOrderDetailModal({
         </ScrollArea>
 
         <div className="flex justify-end gap-2 mt-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Return</button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Cetak</button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600" onClick={exportToExcel}>Cetak</button>
         </div>
       </DialogContent>
     </Dialog>

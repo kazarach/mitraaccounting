@@ -24,7 +24,7 @@ type Bank = {
   }
 }
 
-export function BankDDSO({
+export function BankDDAS({
   onChange
 }: {
   onChange: (ids: number[]) => void

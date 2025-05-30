@@ -9,33 +9,37 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher } from '@/lib/utils';
-import { Eye, Search, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Eye, Search, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useSidebar } from '@/components/ui/sidebar';
-import { ColumnResizeDirection, ColumnDef, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
+import { distributors } from '@/data/product';
+import { ColumnResizeDirection, ColumnDef, useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { DateRange } from 'react-day-picker';
 import useSWR from 'swr';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
-import { CustomerDropdownASA } from './customer-dd';
-import { SellingOrderDetailModal } from './modal';
-import { OperatorDropdownASA } from './operator-dd';
-import {BankDDSO} from './bank-dd';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BankDDPO } from './bank-dd';
+import { DistributorDropdownAPO } from './distributor-dd';
+import { OperatorDropdownAPO } from './operator-dd';
+import { PurchaseOrderDetailModal } from './modal';
 
-const SellingOrderArchive = () => {
+const PurchaseOrderArchive = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
   const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [selectedDistributors, setSelectedDistributors] = useState<number[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<number[]>([]);
+  const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
@@ -46,17 +50,17 @@ const SellingOrderArchive = () => {
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=ORDERIN&th_status=true&th_order=false`;
+    let params = `th_type=ORDEROUT&th_status=true&th_order=false`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
       params += `&start_date=${start}&end_date=${end}`;
     }
     if (selectedDistributors.length > 0) {
-      params += `&cashier=${selectedDistributors.join(",")}`;
+      params += `&supplier=${selectedDistributors.join(",")}`;
     }
-    if (selectedCustomer.length > 0) {
-      params += `&customer=${selectedCustomer.join(",")}`;
+    if (selectedOperators.length > 0) {
+      params += `&cashier=${selectedOperators.join(",")}`;
     }
     if (selectedBankIds.length > 0) {
       params += `&bank=${selectedBankIds.join(",")}`;
@@ -65,7 +69,7 @@ const SellingOrderArchive = () => {
       params += `&th_payment_type=${paymentType}`;
     }
     return params;
-  }, [date, selectedDistributors, selectedCustomer, selectedBankIds, paymentType]);
+  }, [date, selectedDistributors, selectedOperators, selectedBankIds, paymentType]);
 
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
 
@@ -77,7 +81,6 @@ const SellingOrderArchive = () => {
       tanggal: format(new Date(transaction.th_date), "dd/MM/yyyy"),
       noFaktur: transaction.th_code,
       distributor: transaction.supplier_name,
-      pelanggan: transaction.customer_name,
       operator: transaction.cashier_username,
       tipe: transaction.th_payment_type,
       kas: transaction.bank_name ?? "-",
@@ -103,9 +106,9 @@ const SellingOrderArchive = () => {
   const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal", size: 100},
     { header: "No. Faktur", accessorKey: "noFaktur"},
-    { header: "Pelanggan", accessorKey: "pelanggan", size: 190},
-    { header: "Sales", accessorKey: "operator" },
-    { header: "Tipe Bayar", accessorKey: "tipe" },
+    { header: "Distributor", accessorKey: "distributor" },
+    { header: "Operator", accessorKey: "operator" },
+    { header: "Tipe Bayar", accessorKey: "tipe"},
     { header: "Nama Bank", accessorKey: "kas" },
     { header: "Diretur", accessorKey: "retur" },
     { header: "Total Transaksi",
@@ -142,22 +145,24 @@ const SellingOrderArchive = () => {
     },
   ], []);
   
-  const table = useReactTable({
-    data: filteredData,
-    columns,
-    defaultColumn: {
-      size: 170,        // ⬅️ Default semua kolom 200px
-      minSize: 10,    // minimum size column saat resize
-    maxSize: 1000,
-    },
-    getCoreRowModel: getCoreRowModel(),
-    columnResizeDirection,
-    enableColumnResizing: true,
-    columnResizeMode: 'onChange'
-  });
+    const table = useReactTable({
+      data: filteredData,
+      columns,
+      defaultColumn: {
+        size: 150,        // ⬅️ Default semua kolom 200px
+        minSize: 10,    // minimum size column saat resize
+      maxSize: 1000,
+      },
+      getCoreRowModel: getCoreRowModel(),
+      columnResizeDirection,
+      enableColumnResizing: true,
+      columnResizeMode: 'onChange'
+    });
 
-  const dispatch = useDispatch();
-  const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
+    const handleOpenDetail = (transaksi: any) => {
+      setSelectedTransaction(transaksi);
+      setIsDialogOpen(true);
+    };    
 
   return (
           <div className="flex flex-col space-y-4">
@@ -215,18 +220,18 @@ const SellingOrderArchive = () => {
                   </div>
               </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Sales</Label>
-                  <OperatorDropdownASA onChange={(ids) => setSelectedDistributors(ids)}/>
+                  <Label htmlFor="distributor">Operator</Label>
+                  <OperatorDropdownAPO onChange={(ids) => setSelectedOperators(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Pelanggan</Label>
-                  <CustomerDropdownASA onChange={(ids) => setSelectedCustomer(ids)}/>
+                  <Label htmlFor="distributor">Distributor</Label>
+                  <DistributorDropdownAPO onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>
-              <div className="flex flex-col space-y-2">
+                <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Bank</Label>
-                  <BankDDSO onChange={setSelectedBankIds} />
-                </div>               
-              <div className="flex flex-col space-y-2">
+                  <BankDDPO onChange={setSelectedBankIds} />
+                </div>
+                <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Tipe Bayar</Label>
                   <Select onValueChange={(value) => setPaymentType(value)} value={paymentType ?? undefined}>
                   <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100 rounded-md text-sm border-1 ">
@@ -240,9 +245,8 @@ const SellingOrderArchive = () => {
                   </SelectContent>
                   </Select>
                 </div>
-                
-              </div>
-              
+                                
+              </div>              
               <div className='flex items-end gap-2'>
                 <div className={cn(
                           "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
@@ -258,19 +262,18 @@ const SellingOrderArchive = () => {
                     style={{ border: 'none', outline: 'none', flex: '1' }}
                   />
                   </div>
-                </div> 
-              
+                </div>              
             </div>
 
             <ScrollArea
-              className={cn(
-                state === "collapsed"
-                  ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
-                  : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
-                "overflow-x-auto overflow-y-auto max-w-screen"
-              )}
-            >
-            <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                className={cn(
+                  state === "collapsed"
+                    ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                    : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
+                  "overflow-x-auto overflow-y-auto max-w-screen"
+                )}
+              >
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
@@ -300,7 +303,7 @@ const SellingOrderArchive = () => {
                             <div
                               onMouseDown={header.getResizeHandler()}
                               onTouchStart={header.getResizeHandler()}
-                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none hover:bg-blue-300 touch-none"
+                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-300 select-none touch-none"
                             />
                           )}
                         </TableHead>
@@ -384,17 +387,15 @@ const SellingOrderArchive = () => {
               </div>
             </div>
 
-
-          {isDialogOpen && selectedTransaction && (
-            <SellingOrderDetailModal
-              open={isDialogOpen}
-              onClose={setIsDialogOpen}
-              transaction={selectedTransaction}
-            />
-          )}
-
+            {isDialogOpen && selectedTransaction && (
+              <PurchaseOrderDetailModal
+                open={isDialogOpen}
+                onClose={setIsDialogOpen}
+                transaction={selectedTransaction}
+              />
+            )}
           </div>
   );
 };
 
-export default SellingOrderArchive; 
+export default PurchaseOrderArchive; 

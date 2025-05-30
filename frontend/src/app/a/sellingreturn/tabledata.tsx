@@ -24,13 +24,13 @@ import { DateRange } from 'react-day-picker';
 import useSWR from 'swr';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
-import { CustomerDropdownASA } from './customer-dd';
-import { SellingOrderDetailModal } from './modal';
-import { OperatorDropdownASA } from './operator-dd';
-import {BankDDSO} from './bank-dd';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BankDDASR } from './bank-dd';
+import { CustomerDropdownASR } from './customer-dd';
+import { OperatorDropdownASR } from './operator-dd';
+import { SellingReturnDetailModal } from './modal';
 
-const SellingOrderArchive = () => {
+const SellingReturnArchive = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
   const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -46,7 +46,7 @@ const SellingOrderArchive = () => {
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=ORDERIN&th_status=true&th_order=false`;
+    let params = `th_type=RETURN_SALE&th_status=true&th_order=false`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -121,7 +121,7 @@ const SellingOrderArchive = () => {
           },
     },
     {
-      header: "Action",
+      header: "Aksi",
       size: 60,
       id: "action", // kolom tanpa accessorKey harus pakai id
       cell: ({ row }) => (
@@ -216,15 +216,15 @@ const SellingOrderArchive = () => {
               </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Sales</Label>
-                  <OperatorDropdownASA onChange={(ids) => setSelectedDistributors(ids)}/>
+                  <OperatorDropdownASR onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Pelanggan</Label>
-                  <CustomerDropdownASA onChange={(ids) => setSelectedCustomer(ids)}/>
+                  <CustomerDropdownASR onChange={(ids) => setSelectedCustomer(ids)}/>
                 </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Bank</Label>
-                  <BankDDSO onChange={setSelectedBankIds} />
+                  <BankDDASR onChange={setSelectedBankIds} />
                 </div>               
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Tipe Bayar</Label>
@@ -386,7 +386,7 @@ const SellingOrderArchive = () => {
 
 
           {isDialogOpen && selectedTransaction && (
-            <SellingOrderDetailModal
+            <SellingReturnDetailModal
               open={isDialogOpen}
               onClose={setIsDialogOpen}
               transaction={selectedTransaction}
@@ -397,4 +397,4 @@ const SellingOrderArchive = () => {
   );
 };
 
-export default SellingOrderArchive; 
+export default SellingReturnArchive; 

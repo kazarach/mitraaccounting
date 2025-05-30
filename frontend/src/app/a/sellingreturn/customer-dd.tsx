@@ -15,14 +15,14 @@ type Supplier = {
   name: string
 }
 
-export function DistributorDropdownAS({ onChange }: { onChange: (ids: number[]) => void }) {
+export function CustomerDropdownASR({ onChange }: { onChange: (ids: number[]) => void }) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    `${API_URL}api/suppliers/`,
+    `${API_URL}api/customers/`,
     fetcher
   )
 

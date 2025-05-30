@@ -28,12 +28,11 @@ import { DateRange } from 'react-day-picker';
 import useSWR from 'swr';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
-import CustomerDDAPR from './customer-dd';
 import { OperatorDropdownAPR } from './operator-dd';
 import { PurchaseReturnDetailModal } from './modalreturn';
-// import { OperatorDropdownAP } from './operator-dropdown';
-// import { DistributorDropdownAP } from './distributor-dropdown';
-// import { PurchaseDetailModal } from './modal';
+import { DistributorDropdownAPR } from './distributor-dd';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BankDDAPR } from './bank-dd';
 
 const PurchaseReturn = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -44,12 +43,14 @@ const PurchaseReturn = () => {
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+  const [paymentType, setPaymentType] = useState<string | null>(null);
+  const [selectedBankIds, setSelectedBankIds] = useState<number[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=RETURN_PURCHASE`;
+    let params = `th_type=RETURN_PURCHASE&th_order=false&th_status=true`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -61,8 +62,14 @@ const PurchaseReturn = () => {
     if (selectedOperators.length > 0) {
       params += `&cashier=${selectedOperators.join(",")}`;
     }
+    if (selectedBankIds.length > 0) {
+      params += `&bank=${selectedBankIds.join(",")}`;
+    }
+    if (paymentType) {
+      params += `&th_payment_type=${paymentType}`;
+    }
     return params;
-  }, [date, selectedDistributors, selectedOperators]);
+  }, [date, selectedDistributors, selectedOperators, selectedBankIds, paymentType]);
 
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
 
@@ -73,11 +80,11 @@ const PurchaseReturn = () => {
       id: `${transaction.id}`,
       tanggal: format(new Date(transaction.th_date), "dd/MM/yyyy"),
       noFaktur: transaction.th_code,
-      customer: transaction.customer_name,
+      distributor: transaction.supplier_name,
       operator: transaction.cashier_username,
       tipe: transaction.th_payment_type,
       kas: transaction.bank_name,
-      retur: transaction.th_retur,
+      retur: transaction.th_return ? "Iya" : "Tidak",
       total: transaction.th_total, // total per transaksi, bukan per item
     }));
   }, [json]);
@@ -94,10 +101,12 @@ const PurchaseReturn = () => {
         );
       }, [flatData, searchQuery]);
 
+      const totalTransaksi = useMemo(() => filteredData.length, [filteredData]);
+
   const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal", size: 100},
     { header: "No. Faktur", accessorKey: "noFaktur"},
-    { header: "Customer", accessorKey: "customer" },
+    { header: "Distributor", accessorKey: "distributor" },
     { header: "Operator", accessorKey: "operator" },
     { header: "Tipe Bayar", accessorKey: "tipe"},
     { header: "Kas/Bank", accessorKey: "kas" },
@@ -222,116 +231,30 @@ const PurchaseReturn = () => {
                   </div>
               </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Operator</Label>
-                  <OperatorDropdownAPR onChange={(ids) => setSelectedOperators(ids)}/>
-                </div>
+                <Label htmlFor="distributor">Operator</Label>
+                <OperatorDropdownAPR onChange={(ids) => setSelectedOperators(ids)}/>
+              </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Customer</Label>
-                  {/* <CustomerDDAPR onChange={(ids) => setSelectedDistributors(ids)}/> */}
-                </div>
+                <Label htmlFor="distributor">Distributor</Label>
+                <DistributorDropdownAPR onChange={(ids) => setSelectedDistributors(ids)}/>
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="distributor">Bank</Label>
+                <BankDDAPR onChange={setSelectedBankIds} />
+              </div>
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Tipe Bayar</Label>
-                  <Popover open={open4} onOpenChange={setOpen4}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value4)?.label
-                          : "Pilih Tipe Bayar"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue4(selectedDistributor.value);
-                                  } else {
-                                    setValue4("");
-                                  }
-                                  setOpen4(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Bank</Label>
-                  <Popover open={open5} onOpenChange={setOpen5}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value5)?.label
-                          : "Pilih Bank"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue5(selectedDistributor.value);
-                                  } else {
-                                    setValue5("");
-                                  }
-                                  setOpen5(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select onValueChange={(value) => setPaymentType(value)} value={paymentType ?? undefined}>
+                  <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100 rounded-md text-sm border-1 ">
+                      <SelectValue placeholder="Semua" className='text-sm' />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="CREDIT">Kartu Kredit</SelectItem>
+                      <SelectItem value="BANK">Transfer Bank</SelectItem>
+                      <SelectItem value="CASH">Tunai</SelectItem>
+                      <Button className=" m-1 mt-3 w-auto h-[30px] bg-red-500 hover:bg-red-600" onClick={() => setPaymentType(null)}>Hapus</Button>
+                  </SelectContent>
+                  </Select>
                 </div>
                                 
               </div>              
@@ -350,8 +273,8 @@ const PurchaseReturn = () => {
             <ScrollArea
                 className={cn(
                   state === "collapsed"
-                    ? "h-[calc(100vh-230px)]"  // contoh tinggi jika sidebar tertutup
-                    : "h-[calc(100vh-230px)]", // tinggi default saat sidebar terbuka
+                    ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                    : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
                   "overflow-x-auto overflow-y-auto max-w-screen"
                 )}
               >
@@ -461,6 +384,14 @@ const PurchaseReturn = () => {
               <ScrollBar orientation="horizontal" />
               <ScrollBar orientation="vertical" className='z-40' />
             </ScrollArea>
+
+            <div className='flex gap-2 justify-between '>
+              <div className='flex flex-col font-semibold max-w-[150px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
+                <h1 className='font-semibold'>
+                Total Transaksi : <span className='text-blue-500'>{totalTransaksi}</span> 
+                </h1>
+              </div>
+            </div>
 
             {isDialogOpen && selectedTransaction && (
               <PurchaseReturnDetailModal

@@ -31,6 +31,8 @@ import Loading from '@/components/loading';
 import { OperatorDropdownAP } from './operator-dropdown';
 import { DistributorDropdownAP } from './distributor-dropdown';
 import { PurchaseDetailModal } from './modal';
+import { BankDDP } from './bank-dd';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PurchaseArchive = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -41,12 +43,14 @@ const PurchaseArchive = () => {
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+  const [selectedBankIds, setSelectedBankIds] = useState<number[]>([]);
+  const [paymentType, setPaymentType] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=PURCHASE`;
+    let params = `th_type=PURCHASE&th_status=true&th_order=false`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -58,8 +62,14 @@ const PurchaseArchive = () => {
     if (selectedOperators.length > 0) {
       params += `&cashier=${selectedOperators.join(",")}`;
     }
+    if (selectedBankIds.length > 0) {
+      params += `&bank=${selectedBankIds.join(",")}`;
+    }
+    if (paymentType) {
+      params += `&th_payment_type=${paymentType}`;
+    }
     return params;
-  }, [date, selectedDistributors, selectedOperators]);
+  }, [date, selectedDistributors, selectedOperators, selectedBankIds, paymentType]);
 
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
 
@@ -73,8 +83,8 @@ const PurchaseArchive = () => {
       distributor: transaction.supplier_name,
       operator: transaction.cashier_username,
       tipe: transaction.th_payment_type,
-      kas: transaction.bank_name,
-      retur: transaction.th_retur,
+      kas: transaction.bank_name ?? "-",
+      retur: transaction.th_return ? "Iya" : "Tidak",
       total: transaction.th_total, // total per transaksi, bukan per item
     }));
   }, [json]);
@@ -91,13 +101,15 @@ const PurchaseArchive = () => {
         );
       }, [flatData, searchQuery]);
 
+      const totalTransaksi = useMemo(() => filteredData.length, [filteredData]);
+
   const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Tanggal", accessorKey: "tanggal", size: 100},
     { header: "No. Faktur", accessorKey: "noFaktur"},
     { header: "Distributor", accessorKey: "distributor" },
     { header: "Operator", accessorKey: "operator" },
     { header: "Tipe Bayar", accessorKey: "tipe"},
-    { header: "Kas/Bank", accessorKey: "kas" },
+    { header: "Nama Bank", accessorKey: "kas" },
     { header: "Diretur", accessorKey: "retur" },
     { header: "Total Transaksi",
           accessorKey: 'total',
@@ -151,17 +163,6 @@ const PurchaseArchive = () => {
       setSelectedTransaction(transaksi);
       setIsDialogOpen(true);
     };    
-    
-      const [open, setOpen] = React.useState(false)
-      const [value, setValue] = React.useState("")
-      const [open2, setOpen2] = React.useState(false)
-      const [value2, setValue2] = React.useState("")
-      const [open3, setOpen3] = React.useState(false)
-      const [value3, setValue3] = React.useState("")
-      const [open4, setOpen4] = React.useState(false)
-      const [value4, setValue4] = React.useState("")
-      const [open5, setOpen5] = React.useState(false)
-      const [value5, setValue5] = React.useState("")
 
   return (
           <div className="flex flex-col space-y-4">
@@ -226,161 +227,23 @@ const PurchaseArchive = () => {
                   <Label htmlFor="distributor">Distributor</Label>
                   <DistributorDropdownAP onChange={(ids) => setSelectedDistributors(ids)}/>
                 </div>
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Status</Label>
-                  <Popover open={open3} onOpenChange={setOpen3}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value3)?.label
-                          : "Pilih Status"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue3(selectedDistributor.value);
-                                  } else {
-                                    setValue3("");
-                                  }
-                                  setOpen3(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="distributor">Tipe Bayar</Label>
-                  <Popover open={open4} onOpenChange={setOpen4}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value4)?.label
-                          : "Pilih Tipe Bayar"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue4(selectedDistributor.value);
-                                  } else {
-                                    setValue4("");
-                                  }
-                                  setOpen4(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              <div className="flex flex-col space-y-2">
+                <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Bank</Label>
-                  <Popover open={open5} onOpenChange={setOpen5}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-[150px] h-[30px] justify-between font-normal"
-                      >
-                        {value
-                          ? distributors.find((d) => d.value === value5)?.label
-                          : "Pilih Bank"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search Distributor" />
-                        <CommandList>
-                          <CommandEmpty>No Distributor found.</CommandEmpty>
-                          <CommandGroup>
-                            {distributors.map((d) => (
-                              <CommandItem
-                                key={d.value}
-                                value={d.label} 
-                                data-value={d.value} 
-                                onSelect={(currentLabel: string) => {
-                                  const selectedDistributor = distributors.find((dist) => dist.label === currentLabel);
-                                  if (selectedDistributor) {
-                                    setValue5(selectedDistributor.value);
-                                  } else {
-                                    setValue5("");
-                                  }
-                                  setOpen5(false);
-                                }}
-                              >
-                                {d.label}
-                                <Check
-                                  className={cn(
-                                    "ml-auto",
-                                    value === d.value ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <BankDDP onChange={setSelectedBankIds} />
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Tipe Bayar</Label>
+                  <Select onValueChange={(value) => setPaymentType(value)} value={paymentType ?? undefined}>
+                  <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100 rounded-md text-sm border-1 ">
+                      <SelectValue placeholder="Semua" className='text-sm' />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="CREDIT">Kartu Kredit</SelectItem>
+                      <SelectItem value="BANK">Transfer Bank</SelectItem>
+                      <SelectItem value="CASH">Tunai</SelectItem>
+                      <Button className=" m-1 mt-3 w-auto h-[30px] bg-red-500 hover:bg-red-600" onClick={() => setPaymentType(null)}>Hapus</Button>
+                  </SelectContent>
+                  </Select>
                 </div>
                                 
               </div>              
@@ -391,7 +254,13 @@ const PurchaseArchive = () => {
                           "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                         )}>
                     <Search size={20} style={{ marginRight: '10px' }} />
-                    <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                    <input
+                    type="text"
+                    placeholder="Cari"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ border: 'none', outline: 'none', flex: '1' }}
+                  />
                   </div>
                 </div>              
             </div>
@@ -399,8 +268,8 @@ const PurchaseArchive = () => {
             <ScrollArea
                 className={cn(
                   state === "collapsed"
-                    ? "h-[calc(100vh-230px)]"  // contoh tinggi jika sidebar tertutup
-                    : "h-[calc(100vh-300px)]", // tinggi default saat sidebar terbuka
+                    ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
+                    : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
                   "overflow-x-auto overflow-y-auto max-w-screen"
                 )}
               >
@@ -510,6 +379,13 @@ const PurchaseArchive = () => {
               <ScrollBar orientation="horizontal" />
               <ScrollBar orientation="vertical" className='z-40' />
             </ScrollArea>
+            <div className='flex gap-2 justify-between '>
+              <div className='flex flex-col font-semibold max-w-[150px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
+                <h1 className='font-semibold'>
+                Total Transaksi : <span className='text-blue-500'>{totalTransaksi}</span> 
+                </h1>
+              </div>
+            </div>
 
             {isDialogOpen && selectedTransaction && (
               <PurchaseDetailModal

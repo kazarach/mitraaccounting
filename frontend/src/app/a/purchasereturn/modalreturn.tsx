@@ -14,6 +14,9 @@ import { useReactTable, getCoreRowModel, flexRender, ColumnDef, ColumnResizeDire
 import { format } from "date-fns"
 import React from "react"
 
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 export function PurchaseReturnDetailModal({
     open,
     onClose,
@@ -64,10 +67,37 @@ export function PurchaseReturnDetailModal({
         columnResizeMode: 'onChange'
     });
 
+    const exportToExcel = () => {
+          if (!data || data.length === 0) return;
+    
+          // Buat format data yang sesuai untuk Excel
+          const exportData = data.map((item: any, index: number) => ({
+            "No.": index + 1,
+            "Tanggal": transaction?.th_date
+            ? format(new Date(transaction.th_date), "dd/MM/yyyy")
+            : "-",
+            "Nama Produk": item.stock_name,
+            "Jumlah": item.quantity,
+            "Harga Beli": item.stock_price_buy,
+            "Satuan": item.unit,
+            "Total Harga Beli": item.total
+          }));
+    
+          const worksheet = XLSX.utils.json_to_sheet(exportData);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Detail Pembelian");
+    
+          const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+          const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    
+          const filename = `Arsip_Retur_Pembelian_${transaction?.supplier_name || "data"}.xlsx`;
+          saveAs(dataBlob, filename);
+        };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-full">
-        <DialogTitle>Detail Arsip Pembelian</DialogTitle>
+        <DialogTitle>Detail Arsip Retur Pembelian</DialogTitle>
         <div className="space-y-1 text-sm text-muted-foreground mb-4">
           <div><span className="font-semibold text-black">Tanggal:</span>{" "}
           {transaction?.th_date ? format(new Date(transaction.th_date), "dd/MM/yyyy") : "-"}</div>
@@ -174,8 +204,7 @@ export function PurchaseReturnDetailModal({
         </ScrollArea>
 
         <div className="flex justify-end gap-2 mt-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Return</button>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Cetak</button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600" onClick={exportToExcel}>Cetak</button>
         </div>
       </DialogContent>
     </Dialog>

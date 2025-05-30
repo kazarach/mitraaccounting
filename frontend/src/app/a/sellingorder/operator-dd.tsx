@@ -54,6 +54,10 @@ export function OperatorDropdownASA({ onChange }: { onChange: (ids: number[]) =>
     }
   }
 
+  const clearAll = () => {
+    setSelected([])
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -70,11 +74,11 @@ export function OperatorDropdownASA({ onChange }: { onChange: (ids: number[]) =>
           className="mb-2"
         />
         <div className="flex justify-between items-center px-2 mb-1 text-sm">
-          <button
-            onClick={toggleSelectAll}
-            className="text-primary hover:underline"
-          >
+          <button onClick={toggleSelectAll} className="text-primary hover:underline">
             {allFilteredSelected ? "Unselect All" : "Select All"}
+          </button>
+          <button onClick={clearAll} className="text-destructive hover:underline">
+            Clear All
           </button>
         </div>
         <ScrollArea className="h-40">
