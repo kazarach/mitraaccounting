@@ -14,7 +14,8 @@ export function CashierDropdown() {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const { data, error, isLoading } = useSWR("http://100.82.207.117:8000/api/users/by_role/?role_ids=5", fetcher);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!
+  const { data, error, isLoading } = useSWR(`${API_URL}api/users/by_role/?role_ids=5`, fetcher);
 
   // Menangani status loading dan error
   if (isLoading) return <p>Loading...</p>;

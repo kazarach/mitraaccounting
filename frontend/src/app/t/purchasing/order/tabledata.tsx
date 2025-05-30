@@ -510,6 +510,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                                     supplier_name={supplier_name}
                                     onClose={() => setIsBayarModalOpen(false)}
                                     onOpenNext={() => setIsGantiHargaModalOpen(true)}
+                                    onSubmit={form.handleSubmit(onSubmit)}
                                 />
                             </DialogContent>
                         </Dialog>

@@ -17,11 +17,11 @@ import useSWRMutation from 'swr/mutation';
 
 interface GantiHargaModalProps {
     priceData: any;
-
+    onClose: () => void;
 
 }
 
-const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData }) => {
+const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData,onClose }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [data, setData] = useState<any[]>(priceData || []);
 
@@ -100,6 +100,7 @@ const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData }) => {
             .then((res) => {
                 console.log(res)
                 toast.success("Ganti Harga Berhasil");
+                if (onClose) onClose(); 
             })
             .catch((err) => {
                 toast.error(err.message);
@@ -260,21 +261,22 @@ const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData }) => {
                 </ScrollArea>
             </div>
             <div className='flex justify-between gap-2 mt-4 '>
-                <Button
+                {/* <Button
                     className='font-medium bg-blue-500 hover:bg-blue-600'
                 >
                     Recalculate
-                </Button>
+                </Button> */}
                 <div className='gap-2 flex'>
                     <Button
                         className='font-medium bg-blue-500 hover:bg-blue-600'
                         onClick={proccessClick}
                     >
-                        Proses
+                        Simpan
                     </Button>
 
                     <Button
                         className='font-medium bg-red-500 hover:bg-red-600'
+                        onClick={onClose }
                     >
                         Batal
                     </Button>

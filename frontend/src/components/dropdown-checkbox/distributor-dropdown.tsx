@@ -23,9 +23,9 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    "http://100.82.207.117:8000/api/suppliers/",
+    `${API_URL}api/suppliers/`,
     fetcher
   )
 
@@ -82,53 +82,53 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-52 justify-between font-normal">
+        <Button variant="outline" className="w-[150px] h-[30px] justify-between font-normal">
           {selected.length > 0 ? `${selected.length} selected` : "Pilih Distributor"}
           <ChevronsUpDown />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2">
-      {isLoading ? (
-        <p className="px-2 py-4 text-sm">Memuat data distributor...</p>
-      ) : error ? (
-        <p className="px-2 py-4 text-sm text-red-500">Gagal memuat data distributor.</p>
-      ) : (
-        <>
-          <Input
-            placeholder="Cari distributor..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="mb-2"
-          />
-          <div className="flex justify-between items-center px-2 mb-1 text-sm">
-            <button onClick={toggleSelectAll} className="text-primary hover:underline">
-              {allFilteredSelected ? "Unselect All" : "Select All"}
-            </button>
-            <button onClick={clearAll} className="text-destructive hover:underline">
-              Clear All
-            </button>
-          </div>
-          <ScrollArea className="h-64">
-            {filteredItems.length > 0 ? (
-              filteredItems.map(item => (
-                <label
-                  key={item.id}
-                  className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selected.includes(item.id)}
-                    onCheckedChange={() => toggleItem(item.id)}
-                  />
-                  <span>{item.name}</span>
-                </label>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground px-2 py-1">Tidak ditemukan</div>
-            )}
-          </ScrollArea>
-        </>
-      )}
-    </PopoverContent>
+        {isLoading ? (
+          <p className="px-2 py-4 text-sm">Memuat data distributor...</p>
+        ) : error ? (
+          <p className="px-2 py-4 text-sm text-red-500">Gagal memuat data distributor.</p>
+        ) : (
+          <>
+            <Input
+              placeholder="Cari distributor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mb-2"
+            />
+            <div className="flex justify-between items-center px-2 mb-1 text-sm">
+              <button onClick={toggleSelectAll} className="text-primary hover:underline">
+                {allFilteredSelected ? "Unselect All" : "Select All"}
+              </button>
+              <button onClick={clearAll} className="text-destructive hover:underline">
+                Clear All
+              </button>
+            </div>
+            <ScrollArea className="h-64">
+              {filteredItems.length > 0 ? (
+                filteredItems.map(item => (
+                  <label
+                    key={item.id}
+                    className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selected.includes(item.id)}
+                      onCheckedChange={() => toggleItem(item.id)}
+                    />
+                    <span>{item.name}</span>
+                  </label>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground px-2 py-1">Tidak ditemukan</div>
+              )}
+            </ScrollArea>
+          </>
+        )}
+      </PopoverContent>
     </Popover>
   )
 }

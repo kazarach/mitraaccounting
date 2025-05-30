@@ -49,6 +49,7 @@ import useSWRMutation from 'swr/mutation';
 import GantiHargaModal from './gantiHargaModal';
 import TambahProdukModalTP from './tambahprodukModal';
 import PersediaanModal, { Stock } from './persediaanModal';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 
@@ -215,14 +216,14 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
     }, [priceData, data]);
 
+    const th_disc = form.getValues("th_disc") || 0;
+
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
         }
-        if (submitAction === "harga") {
-
-        };
+        
 
         if (submitAction === "bayar") {
             const values2 = form.getValues();
@@ -265,6 +266,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     console.log("pembayaran")
                     console.log(res)
                     toast.success("Pembayaran berhasil");
+                    dispatch(clearTable({ tableName }));
                 })
                 .catch((err) => {
                     toast.error(err.message);
@@ -351,20 +353,24 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Produk",
             accessorKey: "stock_name",
+            size: 240,
         },
         {
             header: "Satuan",
             accessorKey: "unit",
+            size: 80,
         },
         {
             header: "Jns Packing",
             accessorKey: "conversion_unit",
             cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
+            size: 110
         },
         {
             header: "Pesanan",
             accessorKey: "jumlah_pesanan",
             cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
+            size: 80
         },
         {
             header: "Barang",
@@ -378,10 +384,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={jumlahBarang}
 
                         onChange={(e) => handleChange(e, row.original.id, 'quantity')}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
                     />
                 );
             },
+            size: 80
         },
 
         {
@@ -396,10 +403,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={stock_price_buy}
 
                         onChange={(e) => handleChange(e, row.original.id, 'stock_price_buy')}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+                        className="pl-1 text-left w-full bg-gray-100 rounded-sm"
                     />
                 );
             },
+            size: 80
         },
         {
             header: "Diskon (Rp)",
@@ -413,10 +421,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={disc}
 
                         onChange={(e) => handleChange(e, row.original.id, "disc")}
-                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                        className="pl-1 text-left w-full bg-gray-100 rounded-sm"
                     />
                 );
             },
+            size: 90
         },
         {
             header: "Diskon (%)",
@@ -430,10 +439,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={disc_percent}
 
                         onChange={(e) => handleChange(e, row.original.id, "disc_percent")}
-                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                        className="pl-1 text-left w-full bg-gray-100 rounded-sm"
                     />
                 );
             },
+            size: 90
         },
         {
             header: "Diskon 2 (%)",
@@ -447,10 +457,11 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         defaultValue={disc_percent2}
 
                         onChange={(e) => handleChange(e, row.original.id, "disc_percent2")}
-                        className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+                        className="pl-1 text-left w-full bg-gray-100 rounded-sm"
                     />
                 );
             },
+            size: 90
         },
 
         {
@@ -475,6 +486,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     </div>
                 );
             },
+            size: 100
         },
 
         {
@@ -500,6 +512,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     </div>
                 );
             },
+            size: 100
         },
         {
             header: "Action",
@@ -514,6 +527,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     </Button>
                 </div>
             ),
+            size: 50,
         },
     ];
 
@@ -759,6 +773,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         stockData={pricesData}
                                         selectedStock={selectedStock}
                                         setSelectedStock={setSelectedStock}
+                                         onClose={() => setIsPersediaanOpen(false)}
                                     />
 
                                 </DialogContent>
@@ -768,70 +783,150 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
-                    <div className="rounded-md border overflow-auto overflow-x-hidden">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id} className="text-left">
-                                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {table.getRowModel().rows.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow key={row.id}>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
+                    <ScrollArea className="h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+                        <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                            <Table>
+                                <TableHeader className="bg-gray-100 sticky top-0 z-10">
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id} className="relative h-[40px]">
+                                            {headerGroup.headers.map((header) => (
+                                                <TableHead
+                                                    key={header.id}
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: header.getStart(),
+                                                        width: header.getSize(),
+                                                    }}
+                                                    className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 overflow-hidden whitespace-nowrap"
+                                                >
+                                                    {flexRender(header.column.columnDef.header, header.getContext())}
+
+                                                    {header.column.getCanResize() && (
+                                                        <div
+                                                            onMouseDown={header.getResizeHandler()}
+                                                            onTouchStart={header.getResizeHandler()}
+                                                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none hover:bg-blue-300"
+                                                            style={{ transform: "translateX(50%)" }}
+                                                        />
+                                                    )}
+                                                </TableHead>
                                             ))}
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
-                                            Belum menambahkan produk
+                                    ))}
+                                </TableHeader>
+                                <TableBody>
+                                    {table.getRowModel().rows.length ? (
+                                        table.getRowModel().rows.map((row) => (
+                                            <TableRow key={row.id} className="relative h-[40px]">
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell
+                                                        key={cell.id}
+                                                        style={{
+                                                            position: "absolute",
+                                                            left: cell.column.getStart(),
+                                                            width: cell.column.getSize(),
+                                                            height: "100%",
+                                                        }}
+                                                        className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden"
+                                                    >
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
+                                                Belum menambahkan produk
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                                {/* <TableFooter>
+                                    <TableRow className="bg-white">
+                                        <TableCell colSpan={3} className="text-right font-bold border">
+                                            Total Barang:
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+                                            {data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0)}
+                                        </TableCell>
+
+                                        <TableCell className="text-left font-bold border">
+                                            {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                        </TableCell>
+                                        <TableCell colSpan={4} className="text-right font-bold border">
+                                            Total:
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+                                            <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                                maximumFractionDigits: 2,
+                                            })}</span>
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+                                            <span>{totalSummary.totalAfterPPN.toLocaleString("id-ID", {
+                                                maximumFractionDigits: 2,
+                                            })}</span>
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+
                                         </TableCell>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-white">
-                                    <TableCell colSpan={3} className="text-right font-bold border">
-                                        Total Barang:
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
-                                        {data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0)}
-                                    </TableCell>
+                                </TableFooter> */}
+                                <TableFooter className="sticky bg-gray-100 bottom-0 z-10 border-2">
+                                    <TableRow className="relative h-[40px]">
+                                        {table.getHeaderGroups()[0].headers.map((header, index) => {
+                                            const column = header.column;
+                                            let content: React.ReactNode = "";
+                                            switch (index) {
+                                                case 2:
+                                                    content = "Total Barang:";
+                                                    break;
+                                                case 3:
+                                                    content = data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0);
+                                                    break;
+                                                case 4:
+                                                    content = data.reduce((acc, item) => acc + (item.quantity || 0), 0);
+                                                    break;
+                                                case 7:
+                                                    content = "Total:";
+                                                    break;
+                                                case 8:
+                                                    content =
+                                                        totalSummary && totalSummary.subtotal != null
+                                                            ? totalSummary.subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })
+                                                            : "-";
+                                                    break;
+                                                case 9:
+                                                    content =
+                                                        totalSummary && totalSummary.totalAfterPPN != null
+                                                            ? totalSummary.totalAfterPPN.toLocaleString("id-ID", { maximumFractionDigits: 2 })
+                                                            : "-";
+                                                    break;
 
-                                    <TableCell className="text-left font-bold border">
-                                        {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                    </TableCell>
-                                    <TableCell colSpan={4} className="text-right font-bold border">
-                                        Total:
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
-                                        <span>{totalSummary.subtotal.toLocaleString("id-ID", {
-                                            maximumFractionDigits: 2,
-                                        })}</span>
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
-                                        <span>{totalSummary.totalAfterPPN.toLocaleString("id-ID", {
-                                            maximumFractionDigits: 2,
-                                        })}</span>
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
+                                            }
 
-                                    </TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </div>
+                                            return (
+                                                <TableCell
+                                                    key={column.id}
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: column.getStart(),
+                                                        width: column.getSize(),
+                                                        height: "100%",
+                                                    }}
+                                                    className="text-left font-bold border-b border-r last:border-r-0 whitespace-nowrap p-2 bg-gray-100"
+                                                >
+                                                    {content}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="vertical" className='z-40' />
+                    </ScrollArea>
                     <div className='flex justify-end gap-2 mt-4 '>
 
                         <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>
@@ -872,7 +967,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
                         <Dialog open={isGantiHargaModalOpen} onOpenChange={setIsGantiHargaModalOpen}>
                             <DialogContent className="w-12/12 h-11/12 max-h-[90vh]">
-                                <GantiHargaModal priceData={pricesData} />
+                                <GantiHargaModal priceData={pricesData} onClose={() => setIsGantiHargaModalOpen(false)}/>
                             </DialogContent>
                         </Dialog>
 

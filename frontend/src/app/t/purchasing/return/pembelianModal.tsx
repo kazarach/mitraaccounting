@@ -35,13 +35,16 @@ import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/ta
 import { ColumnDef, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from '@tanstack/react-table';
 
 import useSWR from 'swr';
-import Loading from '../loading';
-import { DateRange } from 'react-day-picker';
-import { DistributorDropdown } from '../dropdown-checkbox/distributor-dropdown';
-import { OperatorDropdown } from '../dropdown-checkbox/operator-dropdown';
-import { Description } from '@radix-ui/react-dialog';
 
-const TpModal = () => {
+import { DateRange } from 'react-day-picker';
+
+import { Description } from '@radix-ui/react-dialog';
+import { DistributorDropdown } from '@/components/dropdown-checkbox/distributor-dropdown';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import Loading from '@/components/loading';
+
+
+const PembelianModal = ({ tableName }: { tableName: string }) => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
@@ -61,7 +64,7 @@ const TpModal = () => {
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_type=ORDEROUT&th_order=true${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=PURCHASE${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 
@@ -71,7 +74,7 @@ const TpModal = () => {
     const transaction_id = row.original.id;
     const th_date = row.original.th_date;
     const th_dp = row.original.th_dp;
-    dispatch(clearTable({ tableName: "transaksi" }));
+    dispatch(clearTable({ tableName }));
     
     if (row.original.items && row.original.items.length > 0) {
       row.original.items.forEach((item: any) => {
@@ -97,7 +100,7 @@ const TpModal = () => {
         };
         
         console.log(newItem)
-        dispatch(addRow({ tableName: "transaksi", row: newItem }));
+        dispatch(addRow({ tableName, row: newItem }));
       });
 
       // Success message
@@ -207,7 +210,7 @@ const TpModal = () => {
                 </PopoverContent>
               </Popover>
               <div className="flex flex-col space-y-2">
-                <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
+                <DistributorDropdown onChange={(ids:any) => setDistributor(ids)} />
               </div>
               <div className="flex flex-col space-y-2">
                 <OperatorDropdown onChange={(id) => setOperator(id)} />
@@ -290,4 +293,4 @@ const TpModal = () => {
   )
 }
 
-export default TpModal
+export default PembelianModal

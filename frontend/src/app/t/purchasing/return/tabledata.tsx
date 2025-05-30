@@ -1,69 +1,21 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-
 import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableFooter,
-    TableHead,
-    TableHeader,
-    TableRow
+    Table, TableBody, TableCell, TableFooter, TableHead,
+    TableHeader, TableRow
 } from "@/components/ui/table";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar"
-import { format, setDate } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/modal/tp-pesanan-modal';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import DatePick from '@/components/dropdown-normal/datePick_dd';
 import TambahProdukModal from '@/components/modal/tambahProduk-modal';
-import { toast } from 'sonner';
+import PembelianModal from './pembelianModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
-import { distributors, products } from '@/data/product';
+import { deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
+import { toast } from 'sonner';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
-import * as yup from "yup";
-import { useForm, Controller } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import DatePick from '@/components/dropdown-normal/datePick_dd';
-
-
-export const schema = yup.object({
-  tanggal: yup.date().required("Tanggal wajib diisi"),
-//   produk: yup.array().of(
-//     yup.object({
-//       id: yup.number().required("ID produk wajib ada"),
-//       name: yup.string().required("Nama produk wajib diisi"),
-//       jumlah_pesanan: yup.number().required("Jumlah pesanan wajib diisi"),
-//       jumlah_barang: yup.number().required("Jumlah barang wajib diisi"),
-//       isi_packing: yup.number().required("Isi packing wajib diisi"),
-//       satuan: yup.string().required("Satuan wajib diisi"),
-//       harga_beli: yup.number().required("Harga beli wajib diisi"),
-//       diskon_persen: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       diskon_rp: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       diskon_nota: yup.number().min(0, "Diskon tidak boleh negatif").default(0),
-//       total: yup.number().required("Total wajib dihitung"),
-//       total2: yup.number().required("Total2 (inc. PPN) wajib dihitung"),
-//     })
-//   ).min(1, "Minimal 1 produk harus dimasukkan"),
-//   total: yup.number().required("Total keseluruhan wajib dihitung"),
-});
-
-
+import { Trash } from 'lucide-react';
 
 interface TransactionRow {
     id: number;
@@ -76,121 +28,56 @@ interface TransactionRow {
     subtotal: number;
 }
 
-interface inputForm {
-    tanggal: Date,
-    // produk: [
-    //     {
-    //         id: number,
-    //         name: string,
-    //         jumlah_pesanan: number,
-    //         jumlah_barang: number,
-    //         isi_packing: number,
-    //         satuan: string,
-    //         harga_beli: number,
-    //         diskon_persen: number,
-    //         diskon_rp: number,
-    //         diskon_nota: number,
-    //         total: number,
-    //         total2: number,
-    //     }
-    // ]
-    // total : number
-}
-
 interface Props {
     tableName: string;
 }
 
 const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
-    const [selectedDistributor, setSelectedDistributor] = useState("All");
-    const [date, setDate] = React.useState<Date>()
-    const [open, setOpen] = React.useState(false)
-    const [value, setValue] = React.useState("")
-
-    const data = useSelector((state: RootState) => state.table["return"] || []);
-
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        reset,
-      } = useForm<inputForm>({
-        resolver: yupResolver(schema),
-      });
+    const [date, setDate] = useState<Date>();
+    const data: TransactionRow[] = useSelector((state: RootState) => state.table[tableName] || []);
 
     const columns: ColumnDef<TransactionRow>[] = [
-        {
-            header: "Produk",
-            accessorKey: "name",
-        },
-        {
-            header: "Jumlah barang",
-            accessorKey: "jumlah_barang",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-        },
+        { header: "Produk", accessorKey: "stock_name" },
+        { header: "Jumlah barang", accessorKey: "quantity" },
         {
             header: "Jumlah Return",
-
             cell: ({ row }) => {
-                
-
                 return (
                     <input
                         type="number"
-                        
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
+
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-24"
                     />
                 );
             },
-        },
-        {
-            header: "Isi Packing",
-            accessorKey: "isi_packing",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
+            size: 80
         },
         {
             header: "Satuan",
-            accessorKey: "satuan",
+            accessorKey: "unit",
+            size: 80,
         },
         {
-            header: "Harga Beli",
-            cell: ({ row }) => {
-                const harga_beli = row.original.harga_beli || 0;
-
-                return (
-                    <input
-                        type="number"
-                        defaultValue={harga_beli}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
-                    />
-                );
-            },
+            header: "Jns Packing",
+            accessorKey: "conversion_unit",
+            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
+            size: 110
         },
+        { header: "Harga Beli", accessorKey: "stock_price_buy" },
         {
             header: "Total",
-            accessorFn: (row) => `Rp${row.subtotal.toLocaleString("id-ID")}`,
-        },
-        {
-            header: "Inc. PPN",
-            accessorFn: (row) => `Rp${(row.subtotal * 1.11).toLocaleString("id-ID")}`,
+            accessorFn: (row) => `Rp${(row.subtotal ?? 0).toLocaleString("id-ID")}`,
         },
         {
             header: "Action",
             cell: ({ row }) => (
-                <div className="text-center">
-                    <Button
-                        onClick={() => {
-                            handleDelete(row.original.id);
-                            toast.error("Produk berhasil dihapus!");
-                        }}
-                        className="bg-red-500 hover:bg-red-600 size-7"
-                    >
-                        <Trash />
-                    </Button>
-                </div>
+                <Button
+                    onClick={() => handleDelete(row.original.id)}
+                    className="bg-red-500 hover:bg-red-600 size-7"
+                >
+                    <Trash />
+                </Button>
             ),
         },
     ];
@@ -203,44 +90,35 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
 
     useEffect(() => {
         if (data.length === 0) {
-            dispatch(
-                setTableData({
-                    tableName: "transaksi",
-                    data: [],
-                })
-            );
+            dispatch(setTableData({
+                tableName,
+                data: [],
+            }));
         }
-    }, [dispatch]);
+    }, [dispatch, data.length, tableName]);
 
     const handleDelete = (id: number) => {
-        dispatch(deleteRow({ tableName: "return", id }));
+        dispatch(deleteRow({ tableName, id }));
         toast.error("Produk berhasil dihapus!");
     };
 
     const handleClear = () => {
-        dispatch(clearTable({ tableName: "return" }));
+        dispatch(clearTable({ tableName }));
         toast.error("Table berhasil dihapus!");
     };
 
     const handleInputClick = () => {
-        const inputData = {
-            tanggal: date ? format(date, "yyyy-MM-dd") : null,
-            // tabel: data,
-        };
-        console.log("Input Data:", inputData);
         toast.success("Produk berhasil diinput!");
-        dispatch(clearTable({ tableName: "return" }));
+        dispatch(clearTable({ tableName }));
     };
 
-
     return (
-        
         <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
                 <div className="flex flex-wrap items-end gap-4">
                     <div className="flex flex-col space-y-2">
                         <Label htmlFor="date">Tanggal</Label>
-                        <DatePick/>
+                        <DatePick />
                     </div>
                 </div>
                 <div className='flex items-end gap-2'>
@@ -249,7 +127,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                             <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pembelian</Button>
                         </DialogTrigger>
                         <DialogContent className="w-[80vw] max-h-[90vh]">
-                            <TpModal />
+                            <PembelianModal tableName={tableName} />
                         </DialogContent>
                     </Dialog>
                     <Dialog>
@@ -257,14 +135,12 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                             <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                         </DialogTrigger>
                         <DialogContent className="w-[80vw] max-h-[90vh]">
-                            <TambahProdukModal tableName='return' />
+                            <TambahProdukModal tableName={tableName} />
                         </DialogContent>
                     </Dialog>
                     <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
-
                 </div>
             </div>
-
             <div className="rounded-md border overflow-auto">
                 <Table>
                     <TableHeader>
@@ -299,7 +175,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-white">
-                            <TableCell colSpan={7} className="text-right font-bold">
+                            <TableCell colSpan={6} className="text-right font-bold">
                                 Total:
                             </TableCell>
                             <TableCell className="text-left font-bold">
@@ -313,8 +189,9 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                 <Button className='font-medium bg-blue-500 hover:bg-blue-600 ' onClick={handleInputClick}>Input</Button>
             </div>
         </div>
-
     );
 };
 
 export default ReturTransTable;
+
+

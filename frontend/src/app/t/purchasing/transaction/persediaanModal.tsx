@@ -35,13 +35,12 @@ export type Stock = {
 
 const PersediaanModal: React.FC<any> = ({ stockData,
     selectedStock = null,
-    setSelectedStock, }) => {
+    setSelectedStock,onClose }) => {
 
     const safeSetSelectedStock = setSelectedStock ?? (() => { });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
-    // const [selectedStock, setSelectedStock] = React.useState<Stock | null>(null);
-    const [selectedStock2, setSelectedStock2] = React.useState<Stock | null>(null);
+    const [selectedStock2, setSelectedStock2] = React.useState<any>(null);
     const [tambahQty1, setTambahQty1] = useState<number | "">("");
     const [tambahQty2, setTambahQty2] = useState<number | "">("");
 
@@ -53,17 +52,66 @@ const PersediaanModal: React.FC<any> = ({ stockData,
         }
     }, [tambahQty1]);
 
-    
-
     const { trigger, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
         any,
         any,
         string,
         any
     >(
-        `${API_URL}api/stock/update_prices/`,
+        `${API_URL}api/transactions/`,
         fetcherPost
     );
+
+
+    const simpanClick = async () => {
+        if (
+            !selectedStock || !selectedStock2 ||
+            tambahQty1 === "" || tambahQty2 === "" ||
+            tambahQty1 === 0 || tambahQty2 === 0
+        ) {
+            toast.error("Kedua produk & qty harus diisi (qty ≠ 0)!");
+            return;
+        }
+
+
+        const items = [
+            {
+                stock: selectedStock.id,
+                stock_code: selectedStock.code || "",
+                stock_name: selectedStock.name,
+                quantity: Number(tambahQty1),
+            },
+            {
+                stock: selectedStock2.id,
+                stock_code: selectedStock2.code || "",
+                stock_name: selectedStock2.name,
+                quantity: Number(tambahQty2),
+            }
+        ];
+
+        const payload = {
+            th_type: "ADJUSTMENT",
+            cashier: 2,
+            th_payment_type: "CASH",
+            items,
+        };
+
+
+        trigger(payload)
+            .then((res) => {
+                console.log(res)
+                toast.success("Ganti Persediaan Berhasil");
+                if (onClose) onClose(); 
+
+            })
+            .catch((err) => {
+                toast.error(err.message);
+                console.log(err)
+            });
+
+
+    };
+
 
 
 
@@ -283,18 +331,13 @@ const PersediaanModal: React.FC<any> = ({ stockData,
             <div className='flex justify-end gap-2 mt-4 '>
 
                 <div className='gap-2 flex'>
-                        <Button
-                            className='font-medium bg-blue-500 hover:bg-blue-600'
-                        >
-                            Proses
-                        </Button>
-
-                        <Button
-                            className='font-medium bg-red-500 hover:bg-red-600'
-                        >
-                            Batal
-                        </Button>
-                    </div>
+                    <Button
+                        onClick={simpanClick}
+                        className='font-medium bg-blue-500 hover:bg-blue-600'
+                    >
+                        Simpan
+                    </Button>
+                </div>
             </div>
         </div>
     )
