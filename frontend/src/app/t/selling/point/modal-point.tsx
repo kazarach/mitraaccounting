@@ -45,7 +45,7 @@ export function TukarPointModal({
           customer: customerId,
           points: addPoint.toString(),
           transaction_type: "EARNED",
-          expiry_date: expiryDate,
+          // expiry_date: expiryDate,
         }),
       });
 
