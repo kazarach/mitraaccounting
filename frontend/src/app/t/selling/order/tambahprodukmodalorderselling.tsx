@@ -209,8 +209,8 @@ const TambahProdukModalOrderSelling: React.FC<TambahProdukModalProps> = ({ table
 
       <div>
         <div className="flex justify-between">
-          <div className=" flex">
-            <div className="my-2 relative w-56">
+          <div className=" flex gap-2">
+            <div className="my-2 relative w-[150px]">
               <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
             </div>
             <div className="my-2 relative w-56">

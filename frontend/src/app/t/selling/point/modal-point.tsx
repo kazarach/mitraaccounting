@@ -66,7 +66,7 @@ export function TukarPointModal({
           customer: customerId,
           points: redeemPoint.toString(),
           transaction_type: "REDEEMED",
-          expiry_date: expiryDate,
+          // expiry_date: expiryDate,
         }),
       });
 
