@@ -168,18 +168,6 @@ class StockFilter(django_filters.FilterSet):
 
     
     def get_breakdown(self, queryset, breakdown_field, exclude_values=None):
-        """
-        Get breakdown of statistics by the specified field
-        
-        Args:
-            queryset: The filtered queryset to analyze
-            breakdown_field: The field to group by (e.g., 'category', 'supplier')
-            exclude_values: List of values to exclude from the breakdown
-            
-        Returns:
-            Dictionary with statistics broken down by the field values
-        """
-        # Calculate value expression
         value_expression = ExpressionWrapper(
             F('quantity') * F('hpp'),
             output_field=DecimalField(max_digits=20, decimal_places=2)
