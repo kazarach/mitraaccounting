@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import {
   Table, TableBody, TableCell, TableHead,
@@ -22,6 +22,7 @@ import Loading from '@/components/loading';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Input } from '@/components/ui/input';
 
 
 
@@ -32,6 +33,7 @@ const FastMoving = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const { state } = useSidebar(); // "expanded" | "collapsed"
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
   const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
@@ -77,9 +79,10 @@ const FastMoving = () => {
     const totalBarang = useMemo(() => filteredData.length, [filteredData]);
 
     const columns = useMemo<ColumnDef<any>[]>(() => [
-      { header: "Code", accessorKey: "code"},
-      { header: "Nama Produk", accessorKey: "name"},
-      { header: "Jumlah", accessorKey: "quantity"},
+      { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
+      { header: "Code", accessorKey: "code", size:150},
+      { header: "Nama Produk", accessorKey: "name", size:400},
+      { header: "Jumlah", accessorKey: "quantity", size:100},
       { header: "Pemasok", accessorKey: "supplier"},
     ], []);
 
@@ -95,6 +98,14 @@ const FastMoving = () => {
       enableColumnResizing: true,
       columnResizeMode: 'onChange'
     });
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100); // Delay kecil agar render selesai
+      
+        return () => clearTimeout(timeout);
+      }, []);
 
     const exportToExcel = () => {
   const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
@@ -172,19 +183,15 @@ const FastMoving = () => {
               </div>
 
               <div className='flex items-end gap-2'>
-                <div className={cn(
-                  "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                  "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input
-                    type="text"
-                    placeholder="Cari"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ border: 'none', outline: 'none', flex: '1' }}
-                  />
+                <div className='relative w-64'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
                 </div>
               </div>
             </div>
@@ -197,7 +204,7 @@ const FastMoving = () => {
                 "overflow-x-auto overflow-y-auto max-w-screen"
               )}
             >
-              <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
@@ -252,14 +259,17 @@ const FastMoving = () => {
                   ) : table.getRowModel().rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={columns.length} className="text-center text-gray-400 absolute left-1/2 -translate-x-1/2 ">
-                        Pilih Tanggal atau Rentang Waktu
+                        Pilih Tanggal atau Waktu terlebih dahulu!
                       </TableCell>
                     </TableRow>
                   ) : (
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
-                        className="hover:bg-gray-100 "
+                        className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (

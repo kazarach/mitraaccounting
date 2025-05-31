@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { fetcher } from "@/lib/utils"
 import useSWR from "swr"
 
-export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => void }) {
+export function OperatorDropdownLP({ onChange }: { onChange: (ids: number[]) => void }) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")

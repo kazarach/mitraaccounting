@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Table,
@@ -29,6 +29,7 @@ import { BankDDASR } from './bank-dd';
 import { CustomerDropdownASR } from './customer-dd';
 import { OperatorDropdownASR } from './operator-dd';
 import { SellingReturnDetailModal } from './modal';
+import { Input } from '@/components/ui/input';
 
 const SellingReturnArchive = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -41,6 +42,7 @@ const SellingReturnArchive = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
   const [selectedBankIds, setSelectedBankIds] = useState<number[]>([]);
   const [paymentType, setPaymentType] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
@@ -101,15 +103,17 @@ const SellingReturnArchive = () => {
       const totalTransaksi = useMemo(() => filteredData.length, [filteredData]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
     { header: "Tanggal", accessorKey: "tanggal", size: 100},
     { header: "No. Faktur", accessorKey: "noFaktur"},
-    { header: "Pelanggan", accessorKey: "pelanggan", size: 190},
+    { header: "Pelanggan", accessorKey: "pelanggan", size: 150},
     { header: "Sales", accessorKey: "operator" },
-    { header: "Tipe Bayar", accessorKey: "tipe" },
-    { header: "Nama Bank", accessorKey: "kas" },
-    { header: "Diretur", accessorKey: "retur" },
+    { header: "Tipe Bayar", accessorKey: "tipe", size: 100 },
+    { header: "Nama Bank", accessorKey: "kas", size: 100 },
+    { header: "Diretur", accessorKey: "retur", size: 100 },
     { header: "Total Transaksi",
           accessorKey: 'total',
+          size:100,
           cell: ({ row }) => {
             const tot = row.original.total;
         
@@ -156,8 +160,13 @@ const SellingReturnArchive = () => {
     columnResizeMode: 'onChange'
   });
 
-  const dispatch = useDispatch();
-  const data = useSelector((state: RootState) => state.table["s_pesanan"] || []);
+  useEffect(() => {
+        const timeout = setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100); // Delay kecil agar render selesai
+      
+        return () => clearTimeout(timeout);
+      }, []);
 
   return (
           <div className="flex flex-col space-y-4">
@@ -229,14 +238,17 @@ const SellingReturnArchive = () => {
               <div className="flex flex-col space-y-2">
                   <Label htmlFor="distributor">Tipe Bayar</Label>
                   <Select onValueChange={(value) => setPaymentType(value)} value={paymentType ?? undefined}>
-                  <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100 rounded-md text-sm border-1 ">
+                  <SelectTrigger className="relative w-[150px] h-[30px] rounded-md text-sm border-1 ">
                       <SelectValue placeholder="Semua" className='text-sm' />
                   </SelectTrigger>
                   <SelectContent>
+                    <div className='flex justify-between'>
+                      <button></button>
+                      <button className="mx-2 mb-1 text-sm text-red-500 hover:underline " onClick={() => setPaymentType(null)}>Hapus</button>
+                    </div>
                       <SelectItem value="CREDIT">Kartu Kredit</SelectItem>
                       <SelectItem value="BANK">Transfer Bank</SelectItem>
                       <SelectItem value="CASH">Tunai</SelectItem>
-                      <Button className=" m-1 mt-3 w-auto h-[30px] bg-red-500 hover:bg-red-600" onClick={() => setPaymentType(null)}>Hapus</Button>
                   </SelectContent>
                   </Select>
                 </div>
@@ -244,20 +256,16 @@ const SellingReturnArchive = () => {
               </div>
               
               <div className='flex items-end gap-2'>
-                <div className={cn(
-                          "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                        )}>
-                    <Search size={20} style={{ marginRight: '10px' }} />
-                    <input
-                    type="text"
-                    placeholder="Cari"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ border: 'none', outline: 'none', flex: '1' }}
-                  />
-                  </div>
+                <div className='relative w-60'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 h-[30px]"
+                    />
+                </div>
                 </div> 
               
             </div>
@@ -340,7 +348,10 @@ const SellingReturnArchive = () => {
                             setIsDialogOpen(true);
                           }
                         }}
-                        className="cursor-pointer hover:bg-gray-200"
+                        className={cn(
+                          "p-2 border-b border-r cursor-pointer last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                          rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                        )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (

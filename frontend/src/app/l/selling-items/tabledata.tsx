@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Table,
@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { Input } from '@/components/ui/input';
 
 const SellingItems = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -34,11 +35,13 @@ const SellingItems = () => {
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [Active, setActive] = React.useState<string | null>('true');
+  const [range, setRange] = useState("today");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const queryParams = useMemo(() => {
-    let params = `include_sales=true`;
+    let params = `include_sales=true&transaction_type=SALE`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");
@@ -87,11 +90,13 @@ const SellingItems = () => {
       }, [flatData, searchQuery]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
-    { header: "Kode", accessorKey: "kode"},
-    { header: "Nama Barang", accessorKey: "namaBarang" },
-    { header: "Unit", accessorKey: "unit" },
-    { header: "Harga Pokok",
+    { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
+    { header: "Kode", accessorKey: "kode", size:120},
+    { header: "Nama Barang", accessorKey: "namaBarang" ,size:200},
+    { header: "Unit", accessorKey: "unit" ,size:50},
+    { header: "Hrg Pokok",
           accessorKey: 'pokok',
+          size:80,
           cell: ({ row }) => {
             const hrgpokok = row.original.pokok;
         
@@ -102,8 +107,9 @@ const SellingItems = () => {
             );
           },
     },
-    { header: "Jumlah Penjualan",
+    { header: "Jml Jual",
           accessorKey: 'jmlJual',
+          size:80,
           cell: ({ row }) => {
             const jual = row.original.jmlJual;
         
@@ -114,8 +120,9 @@ const SellingItems = () => {
             );
           },
     },
-    { header: "Total Penjualan",
+    { header: "T. Jual",
           accessorKey: 'ttlJual',
+          size:80,
           cell: ({ row }) => {
             const totaljual = row.original.pokok * row.original.jmlJual;
         
@@ -126,8 +133,9 @@ const SellingItems = () => {
             );
           },
     },
-    { header: "Jumlah Pembelian",
+    { header: "Jml Beli",
           accessorKey: 'jmlBeli',
+          size:80,
           cell: ({ row }) => {
             const beli = row.original.jmlBeli;
         
@@ -138,8 +146,9 @@ const SellingItems = () => {
             );
           },
     },
-    { header: "Total Pembelian",
+    { header: "T. Beli",
           accessorKey: 'ttlBeli',
+          size:80,
           cell: ({ row }) => {
             const totalbeli = row.original.pokok * row.original.jmlBeli;
         
@@ -150,8 +159,9 @@ const SellingItems = () => {
             );
           },
     },
-    { header: "Jumlah Barang",
+    { header: "Jml Barang",
           accessorKey: 'jumlah',
+          size:80,
           cell: ({ row }) => {
             const jmlbrg = row.original.jumlah;
         
@@ -177,6 +187,14 @@ const SellingItems = () => {
         enableColumnResizing: true,
         columnResizeMode: 'onChange'
       });
+
+      useEffect(() => {
+          const timeout = setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 100); // Delay kecil agar render selesai
+        
+          return () => clearTimeout(timeout);
+        }, []);
 
       const exportToExcel = () => {
       const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
@@ -246,7 +264,7 @@ const SellingItems = () => {
               <div className='flex flex-col space-y-2'>
                 <Label>Status</Label>
                 <Select onValueChange={(value) => setActive(value)} value={Active ?? undefined}>
-                <SelectTrigger className="relative w-auto h-[30px] bg-gray-100 text-sm border-1 rounded-md">
+                <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100 text-sm border-1 rounded-md">
                     <SelectValue placeholder="Pilih Tipe Bayar" className='text-sm' />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,13 +283,15 @@ const SellingItems = () => {
               </div>                                 
               </div>
               <div className='flex items-end gap-2'>
-              <div className={cn(
-                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                      )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input type="text" placeholder="Cari" style={{ border: 'none', outline: 'none', flex: '1' }} />
+              <div className='relative w-64'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
                 </div>
               </div>
             </div>
@@ -346,6 +366,10 @@ const SellingItems = () => {
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
+                        className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (

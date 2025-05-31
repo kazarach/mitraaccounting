@@ -1,27 +1,37 @@
 "use client"
 
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronsUpDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { fetcher } from "@/lib/utils"
 import useSWR from "swr"
+import { fetcher } from "@/lib/utils"
 
-export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => void }) {
+type Supplier = {
+  id: number
+  name: string
+}
+
+export function CustomerDropdownLS({ onChange }: { onChange: (ids: number[]) => void }) {
   const [selected, setSelected] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const { data, error, isLoading } = useSWR("http://100.82.207.117:8000/api/users/cashier_and_above/", fetcher);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+  const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
+    `${API_URL}api/customers/`,
+    fetcher
+  )
 
   useEffect(() => {
-    onChange(selected);
-  }, [selected, onChange]);
-  
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
+      onChange(selected);
+    }, [selected, onChange]);
+
+  if (isLoading) return <p>Loading...</p>
+  if (error) return <p>Terjadi kesalahan saat memuat data.</p>
 
   const toggleItem = (id: number) => {
     setSelected(prev =>
@@ -29,27 +39,25 @@ export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => 
     )
   }
 
-  const filteredItems = Array.isArray(data)
-  ? data.filter((item: { username: string }) =>
-      item.username.toLowerCase().includes(search.toLowerCase())
-    )
-  : []
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(search.toLowerCase())
+  )
 
-  const allFilteredSelected = filteredItems.every((item: { id: number}) =>
+  const allFilteredSelected = filteredItems.every((item) =>
     selected.includes(item.id)
   )
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
       setSelected(prev =>
-        prev.filter(id => !filteredItems.find((item: { id: number }) => item.id === id))
+        prev.filter(id => !filteredItems.find(item => item.id === id))
       )
     } else {
       setSelected(prev => [
         ...prev,
         ...filteredItems
-          .filter((item: { id: number }) => !prev.includes(item.id))
-          .map((item: { id: any }) => item.id),
+          .filter(item => !prev.includes(item.id))
+          .map(item => item.id),
       ])
     }
   }
@@ -68,7 +76,7 @@ export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => 
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2">
         <Input
-          placeholder="Cari nama..."
+          placeholder="Cari distributor..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mb-2"
@@ -89,7 +97,7 @@ export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => 
         </div>
         <ScrollArea className="h-40">
           {filteredItems.length > 0 ? (
-            filteredItems.map((item: { id: number; username: string; role: { name: string } }) => (
+            filteredItems.map(item => (
               <label
                 key={item.id}
                 className="flex items-center space-x-2 py-1 px-2 hover:bg-muted rounded-md cursor-pointer"
@@ -98,7 +106,7 @@ export function OperatorDropdownLS({ onChange }: { onChange: (ids: number[]) => 
                   checked={selected.includes(item.id)}
                   onCheckedChange={() => toggleItem(item.id)}
                 />
-                <span>{item.username} ({item.role.name})</span>
+                <span>{item.name}</span>
               </label>
             ))
           ) : (

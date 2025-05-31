@@ -19,7 +19,7 @@ import { Eye, PencilLine, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSidebar } from '@/components/ui/sidebar';
 import { ColumnResizeDirection, ColumnDef, useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
 import { TukarPointModal } from './modal-point';
@@ -67,10 +67,11 @@ const RedeemPoint = () => {
       }, [flatData, searchQuery]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
+    { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
     { header: "Nama", accessorKey: "name", size:200},
     { header: "Alamat", accessorKey: "address", size:400 },
-    { header: "Kadaluarsa", accessorKey: "duedate", size:200},
-    { header: "Jumlah Poin", accessorKey: "point", size:200,
+    { header: "Kadaluarsa", accessorKey: "duedate", size:120},
+    { header: "Jumlah Poin", accessorKey: "point", size:120,
       cell: ({ getValue }) => {
         const raw = getValue();
         const num = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : NaN;
@@ -89,7 +90,7 @@ const RedeemPoint = () => {
       id: "action",
       cell: ({ row }) => {
       const transaksi = row.original;
-      console.log("Klik edit", transaksi);
+      // console.log("Klik edit", transaksi);
 
 
         return (
@@ -257,7 +258,10 @@ const RedeemPoint = () => {
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
-                        className="hover:bg-gray-100 "
+                        className={cn(
+                          "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
+                          rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                        )}
                         style={{ position: 'relative', height: '40px' }}
                       >
                         {row.getVisibleCells().map(cell => (
@@ -270,7 +274,7 @@ const RedeemPoint = () => {
                               height: '100%',
                             }}
                             className={cn(
-                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsi",
                               rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
                             )}
                           >
@@ -295,11 +299,16 @@ const RedeemPoint = () => {
             </ScrollArea>
 
             {isDialogOpen && selectedTransaction && (
-              <TukarPointModal
-                open={isDialogOpen}
-                onClose={setIsDialogOpen}
-                transaction={selectedTransaction}
-              />
+             <TukarPointModal
+          open={isDialogOpen}
+          onClose={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              mutate(`${API_URL}api/customers/`); // Memicu refetch data
+            }
+          }}
+          transaction={selectedTransaction}
+        />
             )}
             {isDetailOpen && selectedTransaction && (
               <DetailPointModal

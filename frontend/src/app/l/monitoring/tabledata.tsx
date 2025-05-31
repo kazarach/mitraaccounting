@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Table,
@@ -28,6 +28,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { Input } from '@/components/ui/input';
 
 const MonitoringReport = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -35,6 +36,7 @@ const MonitoringReport = () => {
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [orderType, setOrderType] = useState<string>("sell"); // Default value is 'sell'
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   console.log(API_URL)
@@ -86,12 +88,48 @@ const MonitoringReport = () => {
   const totalBarang = useMemo(() => filteredData.length, [filteredData]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
-      { header: "Kode", accessorKey: "kode"},
-      { header: "Nama Barang", accessorKey: "namaBarang", size: 400 },
-      { header: "Jumlah Barang", accessorKey: "jumlah" },
-      { header: "Satuan", accessorKey: "satuan"},
-      { header: "Dalam Pesanan", accessorKey: "pesanan", size: 200 },
-      { header: "Kurang Stok", accessorKey: "kurangStok" },
+      { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
+      { header: "Kode", accessorKey: "kode", size:120},
+      { header: "Nama Barang", accessorKey: "namaBarang", size: 300 },
+      { header: "Jml Barang",
+          accessorKey: 'jumlah',
+          size:100,
+          cell: ({ row }) => {
+            const jml = row.original.jumlah;
+        
+            return (
+              <div className="text-left">
+                {Number(jml).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+              </div>
+            );
+          },
+       },
+      { header: "Satuan", accessorKey: "satuan", size:100},
+      { header: "Dalam Pesanan",
+          accessorKey: 'pesanan',
+          size:100,
+          cell: ({ row }) => {
+            const psn = row.original.pesanan;
+        
+            return (
+              <div className="text-left">
+                {Number(psn).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+              </div>
+            );
+          },
+       },
+      { header: "Kurang Stok",
+          accessorKey: 'kurangStok',
+          cell: ({ row }) => {
+            const krg = row.original.kurangStok;
+        
+            return (
+              <div className="text-left">
+                {Number(krg).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+              </div>
+            );
+          },
+       },
     ], []);
 
     const table = useReactTable({
@@ -111,6 +149,14 @@ const MonitoringReport = () => {
     const handleSelectChange = (value: string) => {
       setOrderType(value); // Update order type when dropdown value changes
     };
+
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100); // Delay kecil agar render selesai
+    
+      return () => clearTimeout(timeout);
+    }, []);
 
     const exportToExcel = () => {
       const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
@@ -145,20 +191,16 @@ const MonitoringReport = () => {
                 </div>
               </div>
               <div className='flex items-end gap-2'>
-              <div className={cn(
-                      "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                      "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                      "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                    )}>
-                <Search size={20} style={{ marginRight: '10px' }} />
-                <input
-                  type="text"
-                  placeholder="Cari"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ border: 'none', outline: 'none', flex: '1' }}
-                />
-              </div>
+              <div className='relative w-64'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
+                </div>
               </div>
             </div>
 
@@ -232,6 +274,10 @@ const MonitoringReport = () => {
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
+                        className={cn(
+                          "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                          rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                        )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (

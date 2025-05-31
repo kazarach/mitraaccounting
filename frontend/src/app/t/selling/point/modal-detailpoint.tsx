@@ -46,6 +46,7 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
 );
 
   const columns: ColumnDef<any>[] = [
+    { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
     { accessorKey: "customer_name", header: "Nama Pelanggan" },
     {
       accessorKey: "points",
@@ -88,6 +89,7 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
         return format(parsedDate, "d/M/yyyy", { locale: id });
       },
     },
+    { accessorKey: "note", header: "Keterangan" },
     { accessorKey: "transaction_type", header: "Tipe Transaksi" },
   ];
 
@@ -112,8 +114,8 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className=" min-w-[30vw]"
-      onInteractOutside={(e) => e.preventDefault()}
-      onEscapeKeyDown={(e) => e.preventDefault()}
+      // onInteractOutside={(e) => e.preventDefault()}
+      // onEscapeKeyDown={(e) => e.preventDefault()}
       >
     <div>
       <div >
@@ -132,13 +134,15 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
                 <SelectItem value="null">Semua</SelectItem>
                 <SelectItem value="EARNED">Earned</SelectItem>
                 <SelectItem value="REDEEMED">Redeemed</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="ADJUSTED">Adjusted</SelectItem>
             </SelectContent>
             </Select>
           </div>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-250px)] overflow-x-auto overflow-y-auto w-[750px] max-w-screen">
-          <div className="w-max text-sm border-separate border-spacing-0">
+        <ScrollArea className="h-[calc(100vh-250px)] overflow-x-auto overflow-y-auto w-[1000px] max-w-screen">
+          <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
             <Table className=" bg-white ">
               <TableHeader className="bg-gray-100 sticky top-0 z-10 border">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -202,6 +206,7 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
             </Table>
         </div>
         <ScrollBar orientation="horizontal"/>
+        <ScrollBar orientation="vertical"/>
         </ScrollArea>
 
       </div>

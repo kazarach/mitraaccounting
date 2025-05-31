@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import {
   Table, TableBody, TableCell, TableHead,
@@ -29,6 +29,7 @@ import { saveAs } from 'file-saver';
 import { SupDropdown } from './sup-dd';
 import { SupexDropdown } from './supex-dd';
 import { CategoryDropdown } from '@/components/dropdown-checkbox/category-dropdown';
+import { Input } from '@/components/ui/input';
 
 const StockValue1 = () => {
 
@@ -38,6 +39,7 @@ const StockValue1 = () => {
   const [selectedSuppliers, setSelectedSuppliers] = useState<number[]>([]);
   const [selectedSuppliersex, setSelectedSuppliersex] = useState<number[]>([]);
   const { state } = useSidebar(); // "expanded" | "collapsed"
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const supplierParam = selectedSuppliers.length > 0 ? `&supplier=${selectedSuppliers.join(",")}` : "";
@@ -96,10 +98,12 @@ const StockValue1 = () => {
     };
 
     const columns = useMemo<ColumnDef<any>[]>(() => [
+      { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
       { header: "Nama Produk", accessorKey: "name", size:250},
-      { header: "Barang", accessorKey: "count"},
+      { header: "Barang", accessorKey: "count", size:100},
       { header: "Jumlah Produk",
             accessorKey: 'quantity',
+            size:150,
             cell: ({ row }) => {
               const jumlah = row.original.quantity;
           
@@ -112,6 +116,7 @@ const StockValue1 = () => {
       },
       { header: "Nilai",
             accessorKey: 'value',
+            size:150,
             cell: ({ row }) => {
               const nilai = row.original.value;
           
@@ -149,6 +154,14 @@ const StockValue1 = () => {
       columnResizeMode: 'onChange'
     });
 
+    useEffect(() => {
+            const timeout = setTimeout(() => {
+              searchInputRef.current?.focus();
+            }, 100); // Delay kecil agar render selesai
+          
+            return () => clearTimeout(timeout);
+          }, []);
+
     const exportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredData); // filteredData sudah hasil dari pencarian
     const workbook = XLSX.utils.book_new();
@@ -185,19 +198,15 @@ const StockValue1 = () => {
               </div>
 
               <div className='flex items-end gap-2'>
-                <div className={cn(
-                  "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                  "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input
-                    type="text"
-                    placeholder="Cari"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ border: 'none', outline: 'none', flex: '1' }}
-                  />
+                <div className='relative w-64'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
                 </div>
               </div>
             </div>
@@ -210,7 +219,7 @@ const StockValue1 = () => {
                 "overflow-x-auto overflow-y-auto max-w-screen"
               )}
             >
-              <div className="w-max text-sm border-separate border-spacing-0 min-w-[100px]">
+              <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                 <Table >
                 <TableHeader className="bg-gray-100 sticky top-0 z-10" >
                   {table.getHeaderGroups().map(headerGroup => (
@@ -272,7 +281,10 @@ const StockValue1 = () => {
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
-                        className="hover:bg-gray-100 "
+                        className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap relative text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (
@@ -312,23 +324,41 @@ const StockValue1 = () => {
             <div className='flex justify-between'>
                 <div className='flex flex-col font-semibold'>
                     <div className='grid grid-cols-3 gap-x-4 bg-gray-100 rounded-md p-2 shadow-md'>
-                    <h1>
-                        Total: <span className='text-blue-500'>{totalBarang}</span>
+                    <h1 className='flex'>Total
+                      <span className='ml-[56px]'>
+                        :
+                      </span>
+                         <span className='text-blue-500 ml-1'>{totalBarang}</span>
                     </h1>
-                    <h1>
-                        Total Barang: <span className='text-blue-500'>{json?.total_items.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    <h1 className='flex'>T. Barang
+                      <span className='ml-[8px]'>
+                        :
+                      </span>
+                      <span className='text-blue-500 ml-1'>{json?.total_items.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                     </h1>
-                    <h1>
-                        Total Tipe: <span className='text-blue-500'>{json?.total_types.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    <h1 className='flex'>T. Tipe
+                      <span className='ml-[81px]'>
+                        :
+                      </span>
+                      <span className='text-blue-500 ml-1'>{json?.total_types.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                     </h1>
-                    <h1>
-                        Total Quantity: <span className='text-blue-500'>{json?.total_quantity.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    <h1 className='flex'>T. Quantity
+                      <span className='ml-[12px]'>
+                        :
+                      </span>
+                      <span className='text-blue-500 ml-1'>{json?.total_quantity.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                     </h1>
-                    <h1>
-                        Total Value: <span className='text-blue-500'>{json?.total_value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    <h1 className='flex'>T. Nilai
+                      <span className='ml-[26px]'>
+                        :
+                      </span>
+                      <span className='text-blue-500 ml-1'>{json?.total_value.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                     </h1>
-                    <h1>
-                        Jumlah Stok Rendah: <span className='text-blue-500'>{json?.low_stock_count.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
+                    <h1 className='flex'>Jml Stok Rendah
+                      <span className='ml-[8px]'>
+                        :
+                      </span>
+                      <span className='text-blue-500 ml-1'>{json?.low_stock_count.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                     </h1>
                     </div>
                 </div>

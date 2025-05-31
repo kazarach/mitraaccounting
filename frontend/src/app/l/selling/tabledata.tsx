@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSidebar } from "@/components/ui/sidebar";
 
 import {
@@ -34,6 +34,11 @@ import { fetcher } from '@/lib/utils'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow, Table } from '@/components/ui/table';
 import Loading from '@/components/loading';
 
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { Input } from '@/components/ui/input';
+import { CustomerDropdownLS } from './customer-dd';
+
 const SellingReport = () => {
   const { state } = useSidebar();
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +46,9 @@ const SellingReport = () => {
   const [selectedOperators, setSelectedOperators] = useState<number[]>([]);
   const [columnResizeDirection, setColumnResizeDirection] = React.useState<ColumnResizeDirection>('ltr');
   const [range, setRange] = useState("today");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<number[]>([]);
+  const [statusType, setStatusType] = useState<string | null>(null);
 
   const startDate = date?.from ? format(date.from, "yyyy-MM-dd") : null;
   const endDate = date?.to ? format(date.to, "yyyy-MM-dd") : null;
@@ -58,8 +66,14 @@ const SellingReport = () => {
     if (selectedOperators.length > 0) {
       params += `&cashier=${selectedOperators.join(",")}`;
     }
+    if (selectedCustomer.length > 0) {
+      params += `&customer=${selectedCustomer.join(",")}`;
+    }
+    if (statusType) {
+      params += `&status=${statusType}`;
+    }
     return params;
-  }, [range, date, selectedOperators]);
+  }, [range, date, selectedOperators, selectedCustomer, statusType]);
 
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/report/?${queryParams}`, fetcher);
 
@@ -78,10 +92,10 @@ const SellingReport = () => {
         namaBarang: item.stock_name,
         jumlah: item.quantity,
         harga: item.sell_price,
-        totalHarga: item.total,
+        totalHarga: item.quantity * item.sell_price,
         diskon: item.disc,
         netto: item.netto,
-        status: transaction.th_status,
+        status: transaction.th_status ? "Berhasil" : "Gagal",
       }))
     );
   }, [json]);
@@ -98,16 +112,78 @@ const SellingReport = () => {
   }, [flatData, searchQuery]);
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
-    { header: "Tanggal", accessorKey: "tanggal"},
-    { header: "No. Faktur", accessorKey: "noFaktur"},
+    { header: "No.", accessorFn: (_, i) => i + 1, size:50 },
+    { header: "Tgl", accessorKey: "tanggal", size: 100},
+    { header: "No. Faktur", accessorKey: "noFaktur", size:150},
+    { header: "Kode", accessorKey: "kode", size:120},
+    { header: "Pelanggan", accessorKey: "pelanggan"},
     { header: "Sales", accessorKey: "operator" },
-    { header: "Kode", accessorKey: "kode"},
     { header: "Nama Barang", accessorKey: "namaBarang" },
-    { header: "Jumlah Barang", accessorKey: "jumlah" },
-    { header: "Harga Jual", accessorKey: "harga" },
-    { header: "Total Harga Barang", accessorKey: "totalHarga" },
-    { header: "Diskon", accessorKey: "diskon", size: 200 },
-    { header: "Netto", accessorKey: "netto" },
+    { header: "Jml Barang",
+      accessorKey: 'jumlah',
+      size:80,
+      cell: ({ row }) => {
+        const jml = row.original.jumlah;
+    
+        return (
+          <div className="text-left">
+            {Number(jml).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+          </div>
+        );
+      },
+    },
+    { header: "Hrg Jual",
+        accessorKey: 'harga',
+        size:80,
+        cell: ({ row }) => {
+          const hrg = row.original.harga;
+      
+          return (
+            <div className="text-left">
+              {Number(hrg).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+            </div>
+          );
+        },
+      },
+    { header: "T. Hrg Barang",
+        accessorKey: 'totalHarga',
+        size:100,
+        cell: ({ row }) => {
+          const ttl = row.original.totalHarga;
+      
+          return (
+            <div className="text-left">
+              {Number(ttl).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+            </div>
+          );
+        },
+      },
+    { header: "Diskon",
+        accessorKey: 'diskon',
+        size:80,
+        cell: ({ row }) => {
+          const dkn = row.original.diskon;
+      
+          return (
+            <div className="text-left">
+              {Number(dkn).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+            </div>
+          );
+        },
+      },
+    { header: "Netto",
+        accessorKey: 'netto',
+        size:80,
+        cell: ({ row }) => {
+          const net = row.original.netto;
+      
+          return (
+            <div className="text-left">
+              {Number(net).toLocaleString("id-ID", { maximumFractionDigits: 2 })}
+            </div>
+          );
+        },
+      },
     { header: "Status", accessorKey: "status" },
   ], []);
 
@@ -124,9 +200,24 @@ const SellingReport = () => {
     enableColumnResizing: true,
     columnResizeMode: 'onChange'
   });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100); // Delay kecil agar render selesai
   
-  // if (isLoading) return <p>Loading...</p>;
-  // if (error) return <p>Gagal mengambil data.</p>;
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Laporan Penjualan`);
+
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });      
+    saveAs(dataBlob, `Laporan Penjualan.xlsx`);
+  };
 
   return (
           <div className="flex flex-col space-y-4">
@@ -170,7 +261,7 @@ const SellingReport = () => {
                         onSelect={setDate}
                         numberOfMonths={2}
                       />
-                      <Button className="m-4 ml-100" onClick={() => setDate(undefined)}>Hapus</Button>
+                      <Button className="m-4 ml-100 bg-red-500 hover:bg-red-600" onClick={() => setDate(undefined)}>Hapus</Button>
                     </PopoverContent>
                   </Popover>
                   <Button
@@ -184,31 +275,6 @@ const SellingReport = () => {
                   </div>
               </div>
               <div className="flex flex-col space-y-2">
-                  <Label htmlFor="operator">Operator</Label>
-                  <OperatorDropdownLS onChange={(ids) => setSelectedOperators(ids)} />
-              </div>                                    
-              <div className="flex flex-col space-y-2">
-                  <Label htmlFor="member">Member</Label>
-                  <MemberDD />
-              </div>                                                                        
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="member">Sales</Label>
-                  <SalesDD/>
-                </div>                  
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="waktu">Status</Label>
-                  <Select>
-                    <SelectTrigger className="w-[150px] h-[30px]">
-                      <SelectValue placeholder="Semua" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="day">Hari Ini</SelectItem>
-                      <SelectItem value="week">Mingguan</SelectItem>
-                      <SelectItem value="month">Bulanan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col space-y-2">
                   <Label htmlFor="waktu">Waktu</Label>
                   <Select
                     value={range}
@@ -224,22 +290,39 @@ const SellingReport = () => {
                       <SelectItem value="month">Bulanan</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="distributor">Pelanggan</Label>
+                <CustomerDropdownLS onChange={(ids) => setSelectedCustomer(ids)}/>
+              </div>
+              <div className="flex flex-col space-y-2">
+                  <Label htmlFor="operator">Sales</Label>
+                  <OperatorDropdownLS onChange={(ids) => setSelectedOperators(ids)} />
+              </div>
+                <div className="flex flex-col space-y-2">
+                  <Label htmlFor="distributor">Status</Label>
+                  <Select onValueChange={(value) => setStatusType(value)} value={statusType ?? undefined}>
+                  <SelectTrigger className="relative w-[150px] h-[30px] rounded-md text-sm border-1 ">
+                      <SelectValue placeholder="Semua" className='text-sm' />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="true">Berhasil</SelectItem>
+                      <SelectItem value="false">Gagal</SelectItem>
+                      <Button className=" m-1 mt-3 w-auto h-[30px] bg-red-500 hover:bg-red-600" onClick={() => setStatusType(null)}>Hapus</Button>
+                  </SelectContent>
+                  </Select>
                 </div>                  
               </div>
               <div className='flex items-end gap-2'>
-              <div className={cn(
-                        "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                      )}>
-                  <Search size={20} style={{ marginRight: '10px' }} />
-                  <input
-                    type="text"
-                    placeholder="Cari"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ border: 'none', outline: 'none', flex: '1' }}
-                  />
+              <div className='relative w-64'>
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Input
+                      ref={searchInputRef}
+                      placeholder="Cari"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10"
+                    />
                 </div>
               </div>
             </div>
@@ -248,7 +331,7 @@ const SellingReport = () => {
               className={cn(
                 state === "collapsed"
                   ? "h-[calc(100vh-290px)]"  // contoh tinggi jika sidebar tertutup
-                  : "h-[calc(100vh-360px)]", // tinggi default saat sidebar terbuka
+                  : "h-[calc(100vh-290px)]", // tinggi default saat sidebar terbuka
                 "overflow-x-auto overflow-y-auto max-w-screen"
               )}
             >
@@ -307,13 +390,17 @@ const SellingReport = () => {
                   ) : table.getRowModel().rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={columns.length} className="text-center text-gray-400">
-                        Tidak ada produk ditemukan
+                        Pilih Tanggal atau Waktu terlebih dahulu!
                       </TableCell>
                     </TableRow>
                   ) : (
                     table.getRowModel().rows.map((row, rowIndex) => (
                       <TableRow
                         key={row.id}
+                        className={cn(
+                              "p-2 border-b border-r last:border-r-0 overflow-hidden whitespace-nowrap text-ellipsis",
+                              rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                            )}
                         style={{ position: 'relative', height: '35px' }}
                       >
                         {row.getVisibleCells().map(cell => (
@@ -355,7 +442,7 @@ const SellingReport = () => {
                 Total Transaksi : <span className='text-blue-500'>{json?.summary?.total_transactions ?? 0}</span>
               </h1>
             </div>
-            <Button className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>
+            <Button className='bg-blue-500 hover:bg-blue-600' onClick={exportToExcel}>Cetak</Button>
           </div>
 
           </div>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { format } from "date-fns"
 import { toast } from 'sonner';
+import { mutate } from 'swr';
 
 export function TukarPointModal({
     open,
@@ -26,12 +27,13 @@ export function TukarPointModal({
   }) {
     const [redeemPoint, setRedeemPoint] = React.useState<number>(0);
     const [addPoint, setAddPoint] = React.useState<number>(0);
+    const [note, setNote] = React.useState<string>("");
 
     const handleSubmit = async () => {
-  const token = localStorage.getItem("access");
-  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const customerId = transaction?.id;
-  const expiryDate = transaction?.duedate;
+    const token = localStorage.getItem("access");
+    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+    const customerId = transaction?.id;
+    const expiryDate = transaction?.duedate;
 
   try {
     if (addPoint > 0) {
@@ -45,6 +47,7 @@ export function TukarPointModal({
           customer: customerId,
           points: addPoint.toString(),
           transaction_type: "EARNED",
+          note
           // expiry_date: expiryDate,
         }),
       });
@@ -66,6 +69,7 @@ export function TukarPointModal({
           customer: customerId,
           points: redeemPoint.toString(),
           transaction_type: "REDEEMED",
+          note
           // expiry_date: expiryDate,
         }),
       });
@@ -78,6 +82,7 @@ export function TukarPointModal({
 
     toast.success("Poin berhasil dikirim.");
     onClose(false);
+    mutate(`${API_URL}api/customers/`);
   } catch (error) {
     console.error("❌ Gagal mengirim poin:", error);
     toast.error("Terjadi kesalahan saat mengirim poin.");
@@ -185,6 +190,17 @@ export function TukarPointModal({
                         <TableRow>
                             <TableCell className=''></TableCell>
 
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className=''>Note</TableCell>
+                            <TableCell className='text-left border-l p-0'>
+                              <Input
+                              value={note}  // Menghubungkan dengan state 'note'
+                              onChange={(e) => setNote(e.target.value)}  // Update state saat ada perubahan
+                              className="border-0 m-0 p-2 rounded-none text-leftt"
+                              placeholder="Masukkan note"
+                            />
+                            </TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className=''>Tipe Tukar Poin</TableCell>
