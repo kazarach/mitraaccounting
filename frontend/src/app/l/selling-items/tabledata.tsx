@@ -216,7 +216,7 @@ const SellingItems = () => {
                             format(date.from, "dd/L/y")
                           )
                         ) : (
-                          <span>Semua</span>
+                          <span>Pilih Tanggal</span>
                         )}
                       </Button>
                       
@@ -314,7 +314,7 @@ const SellingItems = () => {
                             <div
                               onMouseDown={header.getResizeHandler()}
                               onTouchStart={header.getResizeHandler()}
-                              className="absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none"
+                              className="absolute right-0 top-0 h-full w-1 hover:bg-blue-300 cursor-col-resize select-none touch-none"
                             />
                           )}
                         </TableHead>

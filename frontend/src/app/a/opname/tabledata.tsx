@@ -124,7 +124,7 @@ const OpnameReport = () => {
 
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const dataBlob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(dataBlob, "Opname Persediaan.xlsx");
+    saveAs(dataBlob, "Arsip Opname Persediaan.xlsx");
   };
 
   return (

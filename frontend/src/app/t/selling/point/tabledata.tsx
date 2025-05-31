@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Table,
@@ -25,6 +25,7 @@ import Loading from '@/components/loading';
 import { TukarPointModal } from './modal-point';
 import { Dialog } from '@/components/ui/dialog';
 import DetailPointModal from './modal-detailpoint';
+import { Input } from '@/components/ui/input';
 
 const RedeemPoint = () => {
   const { state } = useSidebar(); // "expanded" | "collapsed"
@@ -33,6 +34,8 @@ const RedeemPoint = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState("");
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data: json, error, isLoading } = useSWR(`${API_URL}api/customers/`, fetcher);
@@ -161,6 +164,14 @@ const RedeemPoint = () => {
       setIsDetailOpen(true);
     };
 
+    useEffect(() => {
+            const timeout = setTimeout(() => {
+              searchInputRef.current?.focus();
+            }, 100); // Delay kecil agar render selesai
+          
+            return () => clearTimeout(timeout);
+          }, []);
+
   return (
     <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
@@ -170,19 +181,15 @@ const RedeemPoint = () => {
               </h1>
               </div>              
               <div className='flex items-end gap-2'>
-                <div className={cn(
-                          "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                        )}>
-                    <Search size={20} style={{ marginRight: '10px' }} />
-                    <input
-                      type="text"
-                      placeholder="Cari"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{ border: 'none', outline: 'none', flex: '1' }}
-                    />
+                <div className='relative w-64'>
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <Input
+                        ref={searchInputRef}
+                        placeholder="Cari"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10"
+                      />
                   </div>
                 </div>              
             </div>

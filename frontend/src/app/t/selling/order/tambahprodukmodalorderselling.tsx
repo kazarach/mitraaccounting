@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { addRow } from "@/store/features/tableSlicer";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +46,7 @@ const TambahProdukModalOrderSelling: React.FC<TambahProdukModalProps> = ({ table
   const [distributor, setDistributor] = useState<number[]>([]);
   const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
   const priceCategory = priceCategoryId ?? 1;
+  const searchInputRef = useRef<HTMLInputElement>(null);
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
@@ -53,6 +54,15 @@ const TambahProdukModalOrderSelling: React.FC<TambahProdukModalProps> = ({ table
   `${API_URL}api/stock/?transaction_type=SALE${supplierParam}`,
   fetcher
 );
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    searchInputRef.current?.focus();
+  }, 100); // Delay kecil agar render selesai
+
+  return () => clearTimeout(timeout);
+}, []);
+
 
   const handleAddProduct = (product: any) => {
     const selectedPrice = product.prices?.find((p: any) => p.price_category === priceCategory);
@@ -92,6 +102,7 @@ const TambahProdukModalOrderSelling: React.FC<TambahProdukModalProps> = ({ table
           </div>
         ),
       },
+      { accessorKey: "barcode", header: "Barcode" },
       { accessorKey: "available_quantity", header: "Jumlah Stok" },
       {
         accessorKey: "price_buy",
@@ -213,23 +224,25 @@ const TambahProdukModalOrderSelling: React.FC<TambahProdukModalProps> = ({ table
             <div className="my-2 relative w-[150px]">
               <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
             </div>
-            <div className="my-2 relative w-56">
+            <div className="my-2 relative w-[150px]">
               <CategoryDropdown />
             </div>
           </div>
           <div className="my-2 relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
+              ref={searchInputRef}
               placeholder="Cari"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10"
             />
+
           </div>
         </div>
 
         <ScrollArea className="h-[calc(100vh-200px)] max-w-screen overflow-x-auto overflow-y-auto rounded-t-md">
-                <div className="w-max min-w-[1000px] text-sm border-separate border-spacing-0">
+                <div className="w-max min-w-[1200px] text-sm border-separate border-spacing-0">
             <Table className=" bg-white">
               <TableHeader className="bg-gray-100 sticky top-0 z-10 border">
                             {table.getHeaderGroups().map((headerGroup) => (

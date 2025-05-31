@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
   Table,
@@ -53,6 +53,7 @@ const TpModalReturnSelling: React.FC<TpModalReturnSellingProps> = ({ onCustomerS
 
   const [distributor, setDistributor] = useState<number[]>([]);
   const [operator, setOperator] = useState<number[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
@@ -170,6 +171,14 @@ const TpModalReturnSelling: React.FC<TpModalReturnSellingProps> = ({ onCustomerS
   },
 });
 
+useEffect(() => {
+        const timeout = setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100); // Delay kecil agar render selesai
+      
+        return () => clearTimeout(timeout);
+      }, []);
+
   return (
     <div>
       <DialogHeader>
@@ -229,12 +238,13 @@ const TpModalReturnSelling: React.FC<TpModalReturnSellingProps> = ({ onCustomerS
           <div className="my-2 relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
-              placeholder="Cari"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10"
-            />
-          </div>
+                ref={searchInputRef}
+                placeholder="Cari"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10"
+              />
+        </div>
         </div>
 
         <ScrollArea className="h-[calc(100vh-250px)] overflow-x-auto overflow-y-auto w-full max-w-screen">

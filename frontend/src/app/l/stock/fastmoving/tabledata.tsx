@@ -297,9 +297,9 @@ const FastMoving = () => {
             </ScrollArea>
 
             <div className='flex gap-2 justify-between'>
-              <div className='flex flex-col font-semibold max-w-[150px] w-[150px] bg-gray-100 p-2 rounded-md shadow-md'>
+              <div className='flex flex-col font-semibold max-w-[180px] w-[180px] bg-gray-100 p-2 rounded-md shadow-md'>
               <h1 className='font-semibold'>
-                Total Transaksi: <span className='text-blue-500'>{totalBarang}</span>
+                Total Jenis Barang: <span className='text-blue-500'>{totalBarang}</span>
               </h1>
               </div>
               <Button onClick={exportToExcel} className='bg-blue-500 hover:bg-blue-600'>Cetak</Button>

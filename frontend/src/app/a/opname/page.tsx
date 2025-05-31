@@ -11,7 +11,7 @@ const OpnameReport1 = () => {
     <div className="flex justify-left w-full pt-4">
       <Card className="w-full mx-4">
         <CardHeader>
-          <CardTitle>Laporan Opname Persediaan</CardTitle>
+          <CardTitle>Arsip Opname Persediaan</CardTitle>
         </CardHeader>
         <CardContent>
           <OpnameReport />

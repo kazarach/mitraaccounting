@@ -80,7 +80,7 @@ export function PurchaseReturnDetailModal({
             "Jumlah": item.quantity,
             "Harga Beli": item.stock_price_buy,
             "Satuan": item.unit,
-            "Total Harga Beli": item.total
+            "Total Harga Beli": item.netto
           }));
     
           const worksheet = XLSX.utils.json_to_sheet(exportData);

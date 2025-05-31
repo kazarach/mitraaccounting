@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { addRow } from "@/store/features/tableSlicer";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +46,7 @@ const TambahProdukReturnSelling: React.FC<TambahProdukModalProps> = ({ tableName
   const [distributor, setDistributor] = useState<number[]>([]);
   const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
   const priceCategory = priceCategoryId ?? 1;
+  const searchInputRef = useRef<HTMLInputElement>(null);
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
@@ -201,6 +202,14 @@ const TambahProdukReturnSelling: React.FC<TambahProdukModalProps> = ({ tableName
   },
   });
 
+  useEffect(() => {
+        const timeout = setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 100); // Delay kecil agar render selesai
+      
+        return () => clearTimeout(timeout);
+      }, []);
+
   return (
     <div>
       <DialogHeader>
@@ -210,17 +219,18 @@ const TambahProdukReturnSelling: React.FC<TambahProdukModalProps> = ({ tableName
 
       <div>
         <div className="flex justify-between">
-          <div className=" flex">
-            <div className="my-2 relative w-56">
+          <div className=" flex gap-2">
+            <div className="my-2 relative w-[150px]">
               <DistributorDropdown onChange={(ids) => setDistributor(ids)} />
             </div>
-            <div className="my-2 relative w-56">
+            <div className="my-2 relative w-[150px]">
               <CategoryDropdown />
             </div>
           </div>
           <div className="my-2 relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
+              ref={searchInputRef}
               placeholder="Cari"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
   Table,
@@ -54,6 +54,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
 
   const [distributor, setDistributor] = useState<number[]>([]);
   const [operator, setOperator] = useState<number[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const start = date?.from ? format(date.from, "yyyy-MM-dd") : undefined;
@@ -113,6 +114,14 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       toast.error("No items found in this invoice.");
     }
   };
+
+  useEffect(() => {
+      const timeout = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100); // Delay kecil agar render selesai
+    
+      return () => clearTimeout(timeout);
+    }, []);
   
 
   const columns: ColumnDef<any>[] = [
@@ -230,6 +239,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
           <div className="my-2 relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <Input
+              ref={searchInputRef}
               placeholder="Cari"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

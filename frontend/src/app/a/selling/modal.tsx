@@ -49,7 +49,7 @@ export function SellingDetailModal({
       { header: "Satuan", accessorKey: "unit" },
       {
         header: "Total Harga Jual",
-        accessorKey: "total",
+        accessorKey: "netto",
         cell: ({ getValue }) => {
           const raw = getValue();
           const value = typeof raw === "string" || typeof raw === "number" ? parseFloat(raw as string) : 0;
@@ -80,7 +80,7 @@ export function SellingDetailModal({
             "Jumlah": item.quantity,
             "Harga Jual": item.sell_price,
             "Satuan": item.unit,
-            "Total Harga Jual": item.total
+            "Total Harga Jual": item.netto
           }));
     
           const worksheet = XLSX.utils.json_to_sheet(exportData);
