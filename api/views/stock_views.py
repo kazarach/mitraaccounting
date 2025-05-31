@@ -576,7 +576,6 @@ class StockViewSet(viewsets.ModelViewSet):
             summary_data[f'by_{breakdown}'] = breakdown_data
 
         return Response(summary_data)
-
     
     @extend_schema(
         summary="Bulk update stock prices and margins",
