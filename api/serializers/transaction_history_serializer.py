@@ -22,6 +22,7 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
             'disc_percent2',
             'total',
             'netto',
+            'stock_note'
         ]
         read_only_fields = ['total', 'netto']
     
