@@ -27,6 +27,7 @@ router.register(r'transactions', TransactionHistoryViewSet, basename='transactio
 router.register(r'trans-items', TransItemDetailViewSet, basename='transitem')
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
 router.register(r'araps', ARAPViewSet, basename='hutang_piutang')
+# router.register(r'araps-transactions', ARAPTransactionViewSet, basename='transaksi_hutang_piutang')
 router.register(r'arap-payments', ARAPPaymentViewSet, basename='bayar_hutang_piutang')
 router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'banks', BankViewSet, basename='bank')

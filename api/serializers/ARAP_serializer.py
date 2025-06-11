@@ -19,6 +19,7 @@ class ARAPTransactionSerializer(serializers.ModelSerializer):
             'due_date',
             'is_settled',
             'remaining_amount',
+            'created_at',
         ]
 
 

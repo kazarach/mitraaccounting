@@ -2,7 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Sum, Count, Case, When, DecimalField, F, Value
+from django.db.models import Q, Sum, Count, Case, When, DecimalField, F, Value, Min, Max
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 from ..models import ARAP, ARAPTransaction, TransactionHistory, TransactionType
 from ..serializers import ARAPSerializer, ARAPTransactionSerializer, ARAPPaymentSerializer, TransactionHistorySerializer, ARAPSummarySerializer
@@ -63,7 +63,7 @@ class ARAPViewSet(viewsets.ModelViewSet):
         Extends the base queryset with additional filtering options from query parameters.
         """
         queryset = ARAP.objects.all().prefetch_related('transactions')
-        
+
         # Filter by entity type
         is_receivable = self.request.query_params.get('is_receivable')
         if is_receivable is not None:
