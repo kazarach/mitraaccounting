@@ -308,6 +308,8 @@ class TransItemDetail(models.Model):
     total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     netto = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
+    stock_note = models.TextField(blank=True, null=True)
+
     def __str__(self):
         return f"{self.transaction.th_code} - {self.stock.stock_name}"
     
