@@ -55,7 +55,7 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id }) => {
   
   const { data: bank } = useSWR(`${API_URL}api/banks/`, fetcher);
   const { trigger, data: review } = useSWRMutation<any, any, string, any>(
-    `${API_URL}/api/arap_payments`,
+    `${API_URL}api/arap_payments`,
     fetcherPost
   );
   
