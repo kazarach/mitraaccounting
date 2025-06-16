@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, fetcherPost } from '@/lib/utils';
+import { cn, fetcher, fetcherPost } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
@@ -47,6 +47,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/
 import { id } from 'date-fns/locale';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import useSWRMutation from 'swr/mutation';
+import useSWR from 'swr';
 
 
 const formSchema = z.object({
@@ -92,7 +93,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | null>(null);
     const [supplier_name, setSupplierName] = useState<string>("");
     const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
-        const [isGantiHargaModalOpen, setIsGantiHargaModalOpen] = useState(false);
+    const [isGantiHargaModalOpen, setIsGantiHargaModalOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -121,6 +122,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         fetcherPost
     );
 
+    const { data : me, error:errorme, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
@@ -131,7 +133,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
             const payload: any = {
                 th_type: "PURCHASE",
                 supplier: values.supplier,
-                cashier: 3,
+                cashier: me.id,
                 th_date: values.th_date,
                 th_note: "Test",
                 th_payment_type: "BANK",
@@ -486,7 +488,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                         </Table>
                     </div>
                     <div className='flex justify-end gap-2 mt-4 '>
-                        <Dialog>
+                        <Dialog open={open} onOpenChange={setOpen}>
                             {data.length > 0 ? (
                                 <DialogTrigger asChild>
                                     <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
@@ -503,14 +505,9 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                             )}
                             <DialogContent className="w-1/4 max-h-11/12">
                                 <BayarTPModal
-                                    review={review}
-                                    form={form}
-                                    date={date}
-                                    setDate={setDate}
+                                    review={review}                             
                                     supplier_name={supplier_name}
-                                    onClose={() => setIsBayarModalOpen(false)}
-                                    onOpenNext={() => setIsGantiHargaModalOpen(true)}
-                                    onSubmit={form.handleSubmit(onSubmit)}
+                                    onClose={() => setOpen(false)}
                                 />
                             </DialogContent>
                         </Dialog>

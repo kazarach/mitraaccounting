@@ -51,7 +51,7 @@ export function StatusHutangDropdown() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-52 justify-between font-normal">
+        <Button variant="outline" className="w-[150px] h-[30px]  justify-between font-normal">
           {selected.length > 0 ? `${selected.length} selected` : "Pilih Tipe"}
           <ChevronsUpDown />
         </Button>

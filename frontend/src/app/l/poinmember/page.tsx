@@ -34,7 +34,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { poinMemberPelanggan } from '@/data/product';
-import HPModal from '@/components/modal/hutang-detailHutang-modal';
+import HPModal from '@/app/l/piutang/hutang-detailHutang-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DetailPoin from '@/components/modal/detailpoin-modal';
 import { DateRange } from 'react-day-picker';

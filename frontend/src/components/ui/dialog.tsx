@@ -61,6 +61,7 @@ function DialogContent({
           "data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
           className
         )}
+        
         {...props}
       >
         {children}

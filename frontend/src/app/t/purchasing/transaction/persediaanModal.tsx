@@ -45,12 +45,13 @@ const PersediaanModal: React.FC<any> = ({ stockData,
     const [tambahQty2, setTambahQty2] = useState<number | "">("");
 
     useEffect(() => {
+         if (!selectedStock2) return;
         if (tambahQty1 === "" || tambahQty1 === 0) {
             setTambahQty2("");
         } else {
             setTambahQty2(-tambahQty1);
         }
-    }, [tambahQty1]);
+    }, [tambahQty1, selectedStock2]);
 
     const { trigger, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
         any,

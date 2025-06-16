@@ -42,9 +42,11 @@ interface TambahProdukModalProps {
     onClose: () => void;
     onOpenNext: () => void;
     openPersediaanModalWithStock: (stock: Stock) => void;
+    openPersediaanModal: () => void;
 }
 
-const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onClose, onOpenNext, openPersediaanModalWithStock }) => {
+
+const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onClose, onOpenNext, openPersediaanModalWithStock, openPersediaanModal }) => {
     const dispatch = useDispatch();
     const [search, setSearch] = useState("");
     const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
@@ -88,34 +90,34 @@ const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onCl
                 ),
             },
 
-            { accessorKey: "available_quantity", header: "Jumlah Stok" },
+            { accessorKey: "available_quantity", header: "Jum.Stok" },
             {
                 accessorKey: "price_buy",
-                header: "Harga Beli",
+                header: "H.B",
                 cell: (info: any) => `Rp${info.getValue().toLocaleString("id-ID")}`,
             },
-            { accessorKey: "sales_quantity_week", header: "Terjual (7H)" },
-            { accessorKey: "sales_quantity_month", header: "Terjual (30H)" },
-            { accessorKey: "purchase_quantity_week", header: "Terbeli (7H)" },
-            { accessorKey: "purchase_quantity_month", header: "Terbeli (30H)" },
+            { accessorKey: "sales_quantity_week", header: "J(7)" },
+            { accessorKey: "sales_quantity_month", header: "J(28)" },
+            { accessorKey: "purchase_quantity_week", header: "B(7)" },
+            { accessorKey: "purchase_quantity_month", header: "J(28)" },
             {
-                header: "Harga Jual 1",
+                header: "H.J1",
                 accessorFn: (row: { prices: { price_sell: any }[] }) =>
                     row.prices?.[0]?.price_sell ? `Rp${Number(row.prices[0].price_sell).toLocaleString("id-ID")}` : "-",
             },
             {
-                header: "Harga Jual 2",
+                header: "H.J2",
                 accessorFn: (row: { prices: { price_sell: any }[] }) =>
                     row.prices?.[1]?.price_sell ? `Rp${Number(row.prices[1].price_sell).toLocaleString("id-ID")}` : "-",
             },
             {
-                header: "Harga Jual 3",
+                header: "H.J3",
                 accessorFn: (row: { prices: { price_sell: any }[] }) =>
                     row.prices?.[2]?.price_sell ? `Rp${Number(row.prices[2].price_sell).toLocaleString("id-ID")}` : "-",
             },
             {
                 accessorKey: "last_buy",
-                header: "Last Buy",
+                header: "T.Beli",
                 cell: ({ getValue }) => {
                     const rawValue = getValue();
                     if (!rawValue || typeof rawValue !== 'string') return "-";
@@ -126,7 +128,7 @@ const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onCl
             },
             {
                 accessorKey: "last_sell",
-                header: "Last Sell",
+                header: "T.Jual",
                 cell: ({ getValue }) => {
                     const rawValue = getValue();
                     if (!rawValue || typeof rawValue !== 'string') return "-";
@@ -138,7 +140,7 @@ const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onCl
 
             {
                 accessorKey: "Action",
-                header: "Action",
+                header: "Aksi",
                 cell: ({ row }: { row: Row<any> }) => {
                     const product = row.original;
                     const [quantity, setQuantity] = useState(product.jumlah_barang || "");
@@ -224,10 +226,14 @@ const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onCl
                     </div>
                     <div className="flex items-center gap-2">
                         <div>
-                            <Button className="bg-green-500 hover:bg-green-600 ">
+                            <Button
+                                className="bg-green-500 hover:bg-green-600 "
+                                onClick={() => openPersediaanModal()}
+                            >
                                 <ArchiveRestore />
                                 Persediaan
                             </Button>
+
                         </div>
                         <div className="my-2 relative w-64">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />

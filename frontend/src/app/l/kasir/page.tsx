@@ -16,7 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
-import HPModal from '@/components/modal/hutang-detailHutang-modal';
+import HPModal from '@/app/l/piutang/hutang-detailHutang-modal';
 import { kasirData } from '@/data/product';
 import { Label } from '@radix-ui/react-label';
 

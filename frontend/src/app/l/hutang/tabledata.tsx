@@ -34,11 +34,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { distributors, HutangData } from '@/data/product';
-import HPModal from '@/components/modal/hutang-detailHutang-modal';
+import HPModal from '@/app/l/piutang/hutang-detailHutang-modal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRange } from 'react-day-picker';
 import { StatusHutangDropdown } from '@/components/dropdown-checkbox/statusHutang-dropdown';
-import DetailHutangModal from '@/components/modal/hutang-detailHutang-modal';
+import DetailHutangModal from '@/app/l/piutang/hutang-detailHutang-modal';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 interface HutangRow {

@@ -123,7 +123,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="BANK">Transfer Bank</SelectItem>
-                                                            <SelectItem value="CASH">Tunai</SelectItem>
+                                                            <SelectItem value="CASH">Cash</SelectItem>
                                                             <SelectItem value="CREDIT">Kartu Kredit</SelectItem>
                                                         </SelectContent>
                                                     </Select>

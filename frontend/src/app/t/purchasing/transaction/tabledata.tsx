@@ -113,7 +113,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [date, setDate] = React.useState<Date>()
     const [supplier, setSupplier] = useState<number | null>(null);
     const [value, setValue] = React.useState("")
-    const [isPpnIncluded, setIsPpnIncluded] = useState(false);
+    const [isPpnIncluded, setIsPpnIncluded] = useState(true);
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | "harga" | null>(null);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     const [supplier_name, setSupplierName] = useState<string>("");
@@ -129,6 +129,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         setSelectedStock(stock);
         setIsPersediaanOpen(true);
     };
+
+    const openPersediaanModal = () => {
+        setSelectedStock(null);
+        setIsPersediaanOpen(true);
+    };
+
 
     const data = useSelector((state: RootState) => state.table[tableName] || []);
 
@@ -223,7 +229,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             toast.error("Silakan tambahkan produk terlebih dahulu.");
             return;
         }
-        
+
 
         if (submitAction === "bayar") {
             const values2 = form.getValues();
@@ -759,11 +765,13 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 </DialogTrigger>
                                 <DialogContent className="w-12/12 max-h-[90vh]">
                                     <TambahProdukModalTP
-                                        tableName='transaksi'
+                                        tableName="transaksi"
                                         onClose={() => setIsTambahProdukModalOpe(false)}
                                         onOpenNext={() => setIsPersediaanOpen(true)}
-                                        openPersediaanModalWithStock={openPersediaanModalWithStock}  // <-- kirim fungsi ini
+                                        openPersediaanModalWithStock={openPersediaanModalWithStock}
+                                        openPersediaanModal={openPersediaanModal}      
                                     />
+
                                 </DialogContent>
                             </Dialog>
 
@@ -773,9 +781,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         stockData={pricesData}
                                         selectedStock={selectedStock}
                                         setSelectedStock={setSelectedStock}
-                                         onClose={() => setIsPersediaanOpen(false)}
+                                        onClose={() => setIsPersediaanOpen(false)}
                                     />
-
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
@@ -951,7 +958,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 </Button>
                             )}
 
-                            <DialogContent className="w-1/4 max-h-11/12">
+                            <DialogContent className="w-1/4 max-h-11/12" onInteractOutside={e => e.preventDefault()}>
                                 <BayarTPModal
                                     review={reviewData}
                                     form={form}
@@ -966,8 +973,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </Dialog>
 
                         <Dialog open={isGantiHargaModalOpen} onOpenChange={setIsGantiHargaModalOpen}>
-                            <DialogContent className="w-12/12 h-11/12 max-h-[90vh]">
-                                <GantiHargaModal priceData={pricesData} onClose={() => setIsGantiHargaModalOpen(false)}/>
+                            <DialogContent className="w-12/12 h-11/12 max-h-[90vh]" onInteractOutside={e => e.preventDefault()}>
+                                <GantiHargaModal priceData={pricesData} onClose={() => setIsGantiHargaModalOpen(false)} />
                             </DialogContent>
                         </Dialog>
 
