@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -308,6 +308,8 @@ class ARAPPaymentViewSet(viewsets.GenericViewSet):
     """
     queryset = ARAPTransaction.objects.all()
     serializer_class = ARAPPaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
     
     def create(self, request):
         """

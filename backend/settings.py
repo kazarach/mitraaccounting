@@ -162,7 +162,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:3000",
 #     "http://127.0.0.1:3000",
-#     "https://yourdomain.com",
+#     "http://100.82.207.117:8000",
+#     "https://100.82.207.117:8000",
 # ]
 
 # Optional additional CORS settings you might need
