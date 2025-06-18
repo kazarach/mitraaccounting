@@ -4,4 +4,6 @@ class YourAppConfig(AppConfig):
     name = 'api'
 
     def ready(self):
-        import api.signals.hutangpiutang
+        print("=== APP READY METHOD CALLED ===")
+        # import api.signals.hutangpiutang
+        # import api.signals.payment

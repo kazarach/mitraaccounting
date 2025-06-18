@@ -28,7 +28,7 @@ class Command(BaseCommand):
             'seed_stock_price_history',
 
             'seed_transaction_history',
-            'seed_payment_record',
+            # 'seed_payment_record',
             'seed_event_discount',
             'seed_point'
         ]

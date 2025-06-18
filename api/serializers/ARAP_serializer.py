@@ -142,6 +142,25 @@ class ARAPPaymentSerializer(serializers.ModelSerializer):
             arap.save()
             
         return payment_transaction
+    
+class ARAPPaymentInputSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=18, decimal_places=2)
+    payment_method = serializers.ChoiceField(
+        choices=["CASH", "BANK_TRANSFER"], 
+        default="CASH"
+    )
+    bank = serializers.IntegerField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    allocation_strategy = serializers.ChoiceField(
+        choices=["FIFO", "DUE_DATE"], 
+        default="FIFO"
+    )
+    arap_transaction_id = serializers.IntegerField(
+        required=False, 
+        help_text="Optional. If provided, payment will be applied directly to this transaction."
+    )
+    class Meta:
+        ref_name = "ARAPPaymentInput"
 
 
 class ARAPSummarySerializer(serializers.Serializer):

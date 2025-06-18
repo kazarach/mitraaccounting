@@ -90,16 +90,125 @@ class TransactionHistory(models.Model):
         # Calculate points: every 100000 = 2 points
         points = (total_amount // 100000) * 2
         return points
+    
+    def should_create_payment_record(self):
+        """
+        Determine if this transaction should automatically create a payment record.
+        """
+        # Create payment records for transactions that involve money exchange
+        payment_creating_types = [
+            TransactionType.SALE,
+            TransactionType.PURCHASE, 
+            TransactionType.RETURN_SALE,
+            TransactionType.RETURN_PURCHASE,
+            TransactionType.EXPENSE
+        ]
+        
+        # Don't create for credit transactions (they'll be paid later)
+        if self.th_payment_type == PaymentType.CREDIT:
+            return False
+            
+        return self.th_type in payment_creating_types and self.th_total and self.th_total > 0
+    
+    def create_automatic_payment_record(self, is_new=True):
+        """
+        Automatically create a payment record for this transaction.
+        """
+        if not self.should_create_payment_record():
+            return None
+            
+        from .payment_record import Payment  # Import here to avoid circular imports
+        
+        # Determine payment type based on transaction type
+        payment_type_mapping = {
+            TransactionType.SALE: 'INITIAL',
+            TransactionType.PURCHASE: 'INITIAL', 
+            TransactionType.RETURN_SALE: 'RETURN',      # We pay money back to customer
+            TransactionType.RETURN_PURCHASE: 'RETURN',  # We receive money back from supplier
+            TransactionType.PAYMENT: 'ADDITIONAL',
+            TransactionType.EXPENSE: 'INITIAL',
+        }
+        
+        # Determine payment method based on th_payment_type
+        payment_method_mapping = {
+            PaymentType.BANK: 'BANK_TRANSFER',
+            PaymentType.CASH: 'CASH',
+            PaymentType.CREDIT: 'CREDIT'
+        }
+        
+        # Calculate payment amount (could be partial for down payments)
+        payment_amount = self.th_dp
+
+        if self.th_type in [TransactionType.RETURN_SALE, TransactionType.RETURN_PURCHASE]:
+            # For returns, the amount should be negative to indicate direction
+            # RETURN_SALE: negative (we pay out money)
+            # RETURN_PURCHASE: positive (we receive money)
+            if self.th_type == TransactionType.RETURN_SALE:
+                payment_amount = -abs(payment_amount)  # Ensure negative (money going out)
+            else:  # RETURN_PURCHASE
+                payment_amount = abs(payment_amount)   # Ensure positive (money coming in)
+        
+        arap_transaction = getattr(self, 'arap_transaction', None)
+
+        # Check if payment record already exists
+        existing_payment = None
+        if arap_transaction:
+            existing_payment = Payment.objects.filter(
+                transaction=arap_transaction,
+                payment_type=payment_type_mapping.get(self.th_type, 'INITIAL'),
+                amount=payment_amount
+            ).first()
+
+        if existing_payment:
+            return existing_payment
+        
+        customer_name = self.customer.name if self.customer else "Unknown Customer"
+        supplier_name = self.supplier.name if self.supplier else "Unknown Supplier"
+        notes_mapping = {
+            TransactionType.SALE: f"Pembayaran oleh {customer_name}",
+            TransactionType.PURCHASE: f"Pembayaran kepada {supplier_name}",
+            TransactionType.RETURN_SALE: f"Return kepada {customer_name}",
+            TransactionType.RETURN_PURCHASE: f"Return oleh {supplier_name}",
+            TransactionType.PAYMENT: f"Pembayaran tambahan oleh" + (f" - {customer_name}" if self.customer else f" - {supplier_name}" if self.supplier else ""),
+            TransactionType.EXPENSE: f"Pengeluaran untuk {self.th_code}",
+        }
+        
+        # Set payment status based on transaction type
+        payment_status = 'COMPLETED'
+        if self.th_payment_type == PaymentType.CREDIT:
+            payment_status = 'PENDING'
+
+        # Create the payment record
+        payment = Payment.objects.create(
+            transaction=arap_transaction,
+            arap=arap_transaction.arap if arap_transaction else None,
+            supplier=self.supplier,
+            customer=self.customer,
+            payment_type=payment_type_mapping.get(self.th_type, 'INITIAL'),
+            amount=payment_amount,
+            payment_method=payment_method_mapping.get(self.th_payment_type),
+            bank=self.bank,
+            recorded_by=self.cashier,
+            payment_date=self.th_date,
+            notes=notes_mapping.get(self.th_type, f"Auto-generated payment record for {self.th_code}"),
+            status=payment_status
+        )
+        
+        return payment
 
     def save(self, *args, **kwargs):
         # Store original point value to detect changes
+        print(f"=== CUSTOM SAVE CALLED for {self.th_code} ===")
+        print(self.th_total)
         is_new = not self.pk
         original_point = None
-        
+        # original_total = None
+
         if not is_new:
             try:
                 original = TransactionHistory.objects.get(pk=self.pk)
                 original_point = original.th_point
+                # original_total = original.th_total
             except TransactionHistory.DoesNotExist:
                 pass
         
@@ -168,6 +277,9 @@ class TransactionHistory(models.Model):
                 attempt += 1
                 self.th_code = f"{base_code}{attempt:04d}"
 
+
+        # calculated_total = sum(item.netto for item in self.items.all())
+        # th_total = calculated_total
         # First save to ensure we have a primary key
         super().save(*args, **kwargs)
         
@@ -186,7 +298,7 @@ class TransactionHistory(models.Model):
                 self.th_total = calculated_total
                 # Use update_fields to avoid triggering a full save again
                 TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
-                
+            print(calculated_total)
             # Create point transaction record if this is a sale and customer exists
             # and we have points to add (either new transaction or updated points)
             if self.th_type == TransactionType.SALE and self.customer and self.th_point:
@@ -231,6 +343,29 @@ class TransactionHistory(models.Model):
                         note=f"Points adjusted due to sales return {self.th_code}"
                     )
 
+            # should_create_payment = (
+            #         is_new or 
+            #         (original_total != self.th_total and abs((original_total or 0) - (self.th_total or 0)) > 0.01)
+            #     )
+                
+            # if should_create_payment:
+            #         payment_record = self.create_automatic_payment_record(is_new=is_new)
+            #         if payment_record:
+            #             print(f"Auto-created payment record {payment_record.id} for transaction {self.th_code}")
+
+    def get_payment_balance(self):
+        """
+        Calculate the remaining balance for this transaction.
+        """
+        total_payments = sum(payment.amount for payment in self.payments.all())
+        return (self.th_total or 0) - total_payments
+
+    def is_fully_paid(self):
+        """
+        Check if this transaction is fully paid.
+        """
+        return self.get_payment_balance() <= 0.01
+    
     def redeem_points(self, points_to_redeem, user=None):
         """
         Redeem customer points for this transaction

@@ -16,6 +16,7 @@ from api.views import CustomerViewSet
 from api.views import BankViewSet
 from api.views import PointTransactionViewSet, CustomerPointsViewSet
 from api.views import StockChangeHistoryAPIView
+from api.views import PaymentViewSet
 
 # Create a router and register viewsets
 router = DefaultRouter()
@@ -33,6 +34,8 @@ router.register(r'customers', CustomerViewSet, basename='customer')
 router.register(r'banks', BankViewSet, basename='bank')
 router.register(r'point-transactions', PointTransactionViewSet, basename='point_transaction')
 router.register(r'customer-points', CustomerPointsViewSet, basename='point_customer')
+router.register(r'payments', PaymentViewSet, basename='payment')
+
 
 urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

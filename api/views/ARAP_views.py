@@ -3,9 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Count, Case, When, DecimalField, F, Value, Min, Max
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse, OpenApiRequest, OpenApiExample
+from decimal import Decimal
+from django.utils import timezone
 from ..models import ARAP, ARAPTransaction, TransactionHistory, TransactionType
-from ..serializers import ARAPSerializer, ARAPTransactionSerializer, ARAPPaymentSerializer, TransactionHistorySerializer, ARAPSummarySerializer
+from ..serializers import ARAPSerializer, ARAPTransactionSerializer, ARAPPaymentSerializer, TransactionHistorySerializer, ARAPSummarySerializer, ARAPPaymentInputSerializer
 
 
 @extend_schema_view(
@@ -57,7 +59,8 @@ class ARAPViewSet(viewsets.ModelViewSet):
     filterset_fields = ['is_receivable', 'supplier', 'customer']
     search_fields = ['supplier__name', 'customer__name']
     ordering_fields = ['total_amount', 'total_paid']
-    
+    permission_classes = [permissions.IsAuthenticated]
+
     def get_queryset(self):
         """
         Extends the base queryset with additional filtering options from query parameters.
@@ -233,6 +236,219 @@ class ARAPViewSet(viewsets.ModelViewSet):
         
         return Response(summary)
 
+    @extend_schema(
+        summary="Add Payment to ARAP",
+        description="Add a direct payment to an ARAP record without creating new transaction history.",
+        request=OpenApiRequest(
+            ARAPPaymentInputSerializer,
+            examples=[
+                OpenApiExample(
+                    'Valid Payment Example',
+                    value={
+                        "amount": "550000.00",
+                        "payment_method": "CASH",
+                        "bank": None,
+                        "notes": "Pembayaran tunai langsung ke kasir",
+                        "allocation_strategy": "FIFO",
+                        "arap_transaction_id": 123
+                    },
+                    request_only=True,
+                )
+            ]
+        ),
+        responses={
+            201: OpenApiResponse(
+                response=ARAPPaymentInputSerializer,  # as previously discussed
+                description="Payment successfully created and allocated."
+            ),
+            400: OpenApiResponse(
+                description="Validation error or business logic failure."
+            )
+        },
+        tags=["ARAP Payments"]
+    )
+    @action(detail=True, methods=['post'])
+    def add_payment(self, request, pk=None):
+        """
+        Add a payment directly to this ARAP record.
+        """
+        try:
+            arap = self.get_object()
+            amount = Decimal(str(request.data.get('amount', 0)))
+            payment_method = request.data.get('payment_method', 'CASH')
+            bank = request.data.get('bank')
+            notes = request.data.get('notes', '')
+            allocation_strategy = request.data.get('allocation_strategy', 'FIFO')
+            arap_transaction_id = request.data.get('arap_transaction_id')  # <-- New
+
+            if amount <= 0:
+                return Response(
+                    {'error': 'Payment amount must be positive'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            result = self._allocate_payment(arap, amount, allocation_strategy, arap_transaction_id)
+
+            if 'error' in result:
+                return Response({'error': result['error']}, status=status.HTTP_400_BAD_REQUEST)
+
+            from ..models.payment_record import Payment
+            payment = Payment.objects.create(
+                arap=arap,
+                payment_type='ADDITIONAL',
+                amount=result['allocated_amount'],
+                payment_method=payment_method,
+                bank=bank,
+                recorded_by=request.user,
+                payment_date=timezone.now().date(),
+                notes=notes or f"Pembayaran untuk {arap}",
+                status='COMPLETED'
+            )
+
+            arap.total_paid += result['allocated_amount']
+            arap.save()
+
+            return Response({
+                'payment_id': payment.id,
+                'allocated_amount': str(result['allocated_amount']),
+                'remaining_payment': str(result['remaining_payment']),
+                'updated_transactions': len(result['updated_transactions']),
+                'arap_remaining': str(arap.remaining_amount())
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @extend_schema(
+        summary="Get payment schedule",
+        description="Get payment schedule for this ARAP record showing all unpaid transactions.",
+        responses={200: ARAPTransactionSerializer(many=True)},
+        tags=["ARAP"]
+    )
+    @action(detail=True, methods=['get'])
+    def payment_schedule(self, request, pk=None):
+        """
+        Get payment schedule for this ARAP record.
+        """
+        arap = self.get_object()
+        unpaid_transactions = arap.transactions.filter(
+            paid__lt=F('amount')
+        ).order_by('due_date')
+        
+        serializer = ARAPTransactionSerializer(unpaid_transactions, many=True)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        summary="Get overdue information",
+        description="Get overdue amount and transactions for this ARAP record.",
+        responses={200: OpenApiResponse(description="Overdue information")},
+        tags=["ARAP"]
+    )
+    @action(detail=True, methods=['get'])
+    def overdue_info(self, request, pk=None):
+        """
+        Get overdue information for this ARAP record.
+        """
+        arap = self.get_object()
+        today = timezone.now().date()
+        
+        overdue_transactions = arap.transactions.filter(
+            due_date__lt=today,
+            paid__lt=F('amount')
+        ).order_by('due_date')
+        
+        total_overdue = Decimal('0.00')
+        overdue_details = []
+        
+        for transaction in overdue_transactions:
+            remaining = transaction.amount - transaction.paid
+            total_overdue += remaining
+            days_overdue = (today - transaction.due_date).days
+            
+            overdue_details.append({
+                'transaction_id': transaction.id,
+                'amount': str(transaction.amount),
+                'paid': str(transaction.paid),
+                'remaining': str(remaining),
+                'due_date': transaction.due_date,
+                'days_overdue': days_overdue
+            })
+        
+        return Response({
+            'total_overdue': str(total_overdue),
+            'overdue_count': len(overdue_details),
+            'overdue_transactions': overdue_details
+        })
+    
+    def _allocate_payment(self, arap, amount, allocation_strategy='FIFO', arap_transaction_id=None):
+        """
+        Helper method to allocate payment across multiple transactions or a specific transaction.
+        """
+        from django.core.exceptions import ObjectDoesNotExist
+        from decimal import Decimal
+        from django.db.models import F
+
+        remaining_payment = Decimal(str(amount))
+        updated_transactions = []
+
+        if arap_transaction_id:
+            try:
+                transaction = arap.transactions.get(id=arap_transaction_id)
+            except ObjectDoesNotExist:
+                return {
+                    'error': f'Transaction with ID {arap_transaction_id} not found in this ARAP',
+                    'allocated_amount': Decimal('0.00'),
+                    'remaining_payment': remaining_payment,
+                    'updated_transactions': []
+                }
+
+            transaction_remaining = transaction.amount - transaction.paid
+            payment_for_this = min(remaining_payment, transaction_remaining)
+
+            transaction.paid += payment_for_this
+            transaction.is_closed = transaction.remaining_amount() <= 99
+            transaction.save()
+
+            remaining_payment -= payment_for_this
+            updated_transactions.append({
+                'transaction': transaction,
+                'payment_amount': payment_for_this
+            })
+
+        else:
+            # Get unpaid transactions based on strategy
+            if allocation_strategy == 'FIFO':
+                unpaid_transactions = arap.transactions.filter(paid__lt=F('amount')).order_by('created_at')
+            elif allocation_strategy == 'DUE_DATE':
+                unpaid_transactions = arap.transactions.filter(paid__lt=F('amount')).order_by('due_date')
+            else:
+                unpaid_transactions = arap.transactions.filter(paid__lt=F('amount')).order_by('id')
+
+            for transaction in unpaid_transactions:
+                if remaining_payment <= 0:
+                    break
+
+                transaction_remaining = transaction.amount - transaction.paid
+                payment_for_this = min(remaining_payment, transaction_remaining)
+
+                transaction.paid += payment_for_this
+                transaction.is_closed = transaction.remaining_amount() <= 1
+                transaction.save()
+
+                remaining_payment -= payment_for_this
+                updated_transactions.append({
+                    'transaction': transaction,
+                    'payment_amount': payment_for_this
+                })
+
+        return {
+            'allocated_amount': amount - remaining_payment,
+            'remaining_payment': remaining_payment,
+            'updated_transactions': updated_transactions
+        }
+
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -257,7 +473,8 @@ class ARAPTransactionViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['arap', 'due_date']
     ordering_fields = ['due_date', 'amount', 'paid']
-    
+    permission_classes = [permissions.IsAuthenticated]
+
     def get_queryset(self):
         queryset = ARAPTransaction.objects.all()
         
@@ -309,7 +526,6 @@ class ARAPPaymentViewSet(viewsets.GenericViewSet):
     queryset = ARAPTransaction.objects.all()
     serializer_class = ARAPPaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-
     
     def create(self, request):
         """
