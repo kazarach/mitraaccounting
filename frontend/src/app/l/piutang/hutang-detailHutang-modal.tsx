@@ -18,9 +18,10 @@ import { toast } from 'sonner';
 
 interface DetailHutangProps {
   id: number;
+  onClose?: () => void;
 }
 
-const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id }) => {
+const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id,onClose }) => {
   const [selectedFaktur, setSelectedFaktur] = useState<string | undefined>();
   const [date, setDate] = useState<Date>(new Date())
   const [paymentType, setPaymentType] = useState<string>("CASH");
@@ -77,7 +78,7 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id }) => {
       .then((res) => {
         console.log(res);
         toast.success("Transaksi return berhasil");
-        // if (onClose) onClose();
+        if (onClose) onClose();
       })
       .catch((err) => {
         toast.error(err.message);

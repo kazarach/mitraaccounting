@@ -46,7 +46,7 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-[200px] h-[30px] justify-between font-normal overflow-hidden"
+                    className="z-10 w-[200px] h-[30px] justify-between font-normal overflow-hidden"
                 >
                     <span className="truncate whitespace-nowrap overflow-hidden max-w-[200px]">
                         {value !== null
@@ -57,7 +57,7 @@ const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
                 </Button>
 
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0 border rounded-md">
+            <PopoverContent className="w-[200px] p-0 border rounded-md bg-white z-[999]">
                 <Command>
                     <CommandInput placeholder="Pilih Distributor" />
                     <CommandList>

@@ -6,10 +6,12 @@ import { DialogHeader } from '@/components/ui/dialog'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn, fetcherPost } from '@/lib/utils';
+import { clearTable } from '@/store/features/tableSlicer';
 import { Description, DialogTitle } from '@radix-ui/react-dialog'
 import { ColumnDef, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from '@tanstack/react-table';
 import { error } from 'console';
 import React, { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
 import useSWRMutation from 'swr/mutation';
 
@@ -21,9 +23,11 @@ interface GantiHargaModalProps {
 
 }
 
-const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData,onClose }) => {
+const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData, onClose }) => {
+    const dispatch = useDispatch();
     const [isLoading, setIsLoading] = useState(false);
     const [data, setData] = useState<any[]>(priceData || []);
+    console.log(priceData)
 
     useEffect(() => {
         const cloned = (priceData || []).map((item: any) => ({
@@ -100,7 +104,8 @@ const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData,onClose }) 
             .then((res) => {
                 console.log(res)
                 toast.success("Ganti Harga Berhasil");
-                if (onClose) onClose(); 
+                dispatch(clearTable({ tableName : "transaksi" }));
+                if (onClose) onClose();
             })
             .catch((err) => {
                 toast.error(err.message);
@@ -276,7 +281,7 @@ const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData,onClose }) 
 
                     <Button
                         className='font-medium bg-red-500 hover:bg-red-600'
-                        onClick={onClose }
+                        onClick={onClose}
                     >
                         Batal
                     </Button>

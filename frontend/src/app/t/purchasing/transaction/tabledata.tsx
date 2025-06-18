@@ -59,7 +59,7 @@ const formSchema = z.object({
     supplier: z.number({ required_error: "Pilih Supplier!" }),
     th_disc: z.number({ required_error: "Masukkan Diskon Nota" }).optional(),
     th_payment_type: z.string({ required_error: "Pilih Tipe Bayar" }).optional(),
-    th_dp: z.number({ required_error: "Masukkan Pembayaran" }).optional(),
+    th_dp: z.number({ required_error: "Masukkan Pembayaran" }).nullable().optional(),
     bank: z.number().optional()
 });
 
@@ -159,7 +159,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             th_date: new Date().toISOString(),
             supplier: undefined,
             th_disc: 0,
-            th_dp: undefined,
+            th_dp: null,
             th_payment_type: "CASH",       // nilai awal wajib
             bank: undefined,
         },
@@ -209,8 +209,13 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
 
     useEffect(() => {
         if (priceData && data) {
+            console.log("Cek priceItem.id vs item.stock:");
+            console.log("priceData:", priceData);
+            console.log("data:", data);
+
             const updatedPriceData = priceData.map((priceItem: any) => {
                 const matchedItem = data.find(item => item.stock === priceItem.id);
+                console.log(matchedItem)
                 return {
                     ...priceItem,
                     stock_price_buy: matchedItem ? matchedItem.stock_price_buy : null,
@@ -235,8 +240,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             const values2 = form.getValues();
             const id = data?.[0]?.transaction_id;
             // console.log(id + " id")
-
-            const th_dp = data?.[0]?.th_dp;
+            console.log(values2.th_dp)
+            const th_dp = data?.[0]?.th_dp || 0;
+            console.log(th_dp)
             const payload2: any = {
                 th_type: "PURCHASE",
                 th_ppn: isPpnIncluded ? 0 : 11,
@@ -246,7 +252,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 th_date: values.th_date,
                 th_note: "",
                 th_payment_type: values2.th_payment_type || "",
-                th_dp: (values2.th_dp + th_dp) || 0,
+                th_dp: (th_dp + values2.th_dp),
                 th_order: false,
                 th_order_reference: id || undefined,
                 th_status: true,
@@ -263,7 +269,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 })),
 
             }
-
+            console.log(payload2.th_dp)
 
             console.log(JSON.stringify(payload2, null, 1));
 
@@ -272,7 +278,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     console.log("pembayaran")
                     console.log(res)
                     toast.success("Pembayaran berhasil");
-                    dispatch(clearTable({ tableName }));
+                    // dispatch(clearTable({ tableName }));
                 })
                 .catch((err) => {
                     toast.error(err.message);
@@ -769,7 +775,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         onClose={() => setIsTambahProdukModalOpe(false)}
                                         onOpenNext={() => setIsPersediaanOpen(true)}
                                         openPersediaanModalWithStock={openPersediaanModalWithStock}
-                                        openPersediaanModal={openPersediaanModal}      
+                                        openPersediaanModal={openPersediaanModal}
                                     />
 
                                 </DialogContent>
@@ -790,7 +796,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
-                    <ScrollArea className="h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+                    <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
                         <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                             <Table>
                                 <TableHeader className="bg-gray-100 sticky top-0 z-10">

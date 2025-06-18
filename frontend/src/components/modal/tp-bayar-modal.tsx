@@ -39,7 +39,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
     const bayar = form.watch("th_dp") || 0;
     const totalBayar = review?.th_total || 0;
     const dp = review?.th_dp || 0;
-    const kurangBayar = Math.max((totalBayar - dp) - bayar, 0);
+    const kurangBayar = (((review?.th_total || 0) - (review?.th_round || 0)) - (review?.th_dp || 0))-bayar;
 
     const paymentType = form.watch("th_payment_type");
     const paymentFlags = {
@@ -205,7 +205,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                 <TableCell>No. Kartu</TableCell>
                                 <TableCell className="text-right border-l">-</TableCell>
                             </TableRow>
-                            <TableRow>
+                            {/* <TableRow>
                                 <TableCell>Surcharge</TableCell>
                                 <TableCell className="text-right border-l">0</TableCell>
                             </TableRow>
@@ -214,7 +214,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                 <TableCell className="text-right border-l p-0">
                                     <Input type="number" placeholder="0" className="bg-gray-100 text-right border-0 m-0 p-0 rounded-none" />
                                 </TableCell>
-                            </TableRow>
+                            </TableRow> */}
                             <TableRow>
                                 <TableCell></TableCell>
                             </TableRow>
@@ -242,17 +242,35 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                                 <FormControl>
                                                     <Input
                                                         {...field}
-                                                        value={field.value ?? ""}
-                                                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                                                         type="number"
                                                         placeholder="0"
-                                                        className="rounded-none border-0"
+                                                        className="rounded-none border-0 text-right"
+                                                        value={field.value ?? ""}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === "") {
+                                                                field.onChange(null);
+                                                                return;
+                                                            }
+
+                                                            const numericVal = Number(val);
+
+                                                            // Hitung sisa hutang dari review
+                                                            const totalHutang = ((review?.th_total ?? 0) - (review?.th_round ?? 0)) - (review?.th_dp ?? 0);
+
+                                                            if (numericVal > totalHutang) {
+                                                                field.onChange(totalHutang);
+                                                            } else {
+                                                                field.onChange(numericVal);
+                                                            }
+                                                        }}
                                                     />
                                                 </FormControl>
                                             </FormItem>
                                         )}
                                     />
                                 </TableCell>
+
                             </TableRow>
 
                             <TableRow>
@@ -272,7 +290,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                     <Button
                         className="bg-blue-500 hover:bg-blue-600"
                         type="button"
-                        onClick={form.handleSubmit((values:any) => {
+                        onClick={form.handleSubmit((values: any) => {
                             onSubmit(values);
                             onClose();
                             onOpenNext();

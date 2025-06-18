@@ -36,13 +36,12 @@ const PiutangTable = () => {
     const [umurHutang, setUmurHutang] = useState('all');
     const [status, setStatus] = useState('all');
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [open, setOpen] = useState(false);
+    const [selectedId, setSelectedId] = useState<number | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-
-
-
     const { data = [], error, isLoading, mutate } = useSWR(
-        [API_URL,  status],
+        [API_URL, status],
         () => {
             const statusParam = status !== "all" ? `&is_settled=${status}` : "";
 
@@ -51,9 +50,6 @@ const PiutangTable = () => {
             );
         }
     );
-
-    
-
 
     const tableData = Array.isArray(data)
         ? [...data].sort((a, b) => a.customer_name.localeCompare(b.customer_name))
@@ -73,25 +69,23 @@ const PiutangTable = () => {
         {
             header: "Action",
             cell: ({ row }) => {
-                const id = row.original.id
-                return (
-                    <Dialog >
+                const id = row.original.id;
 
-                        <DialogTrigger asChild>
-                            <Button className="bg-blue-500 hover:bg-blue-600 size-7">
-                                <Eye />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <Description></Description>
-                                <DetailPiutangModal id={id} />
-                            </DialogHeader>
-                        </DialogContent>
-                    </Dialog>
-                )
+                return (
+                    <Button
+                        className="bg-blue-500 hover:bg-blue-600 size-7"
+                        onClick={() => {
+                            setSelectedId(id);
+                            setOpen(true);
+                        }}
+                    >
+                        <Eye />
+                    </Button> 
+
+                );
             }
-        },
+        }
+        ,
     ];
 
 
@@ -242,6 +236,16 @@ const PiutangTable = () => {
                 </Table>
 
             </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        {selectedId !== null && (
+                            <DetailPiutangModal id={selectedId} onClose={() => setOpen(false)} />
+                        )}
+                    </DialogHeader>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 };
