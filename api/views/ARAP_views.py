@@ -8,6 +8,7 @@ from decimal import Decimal
 from django.utils import timezone
 from ..models import ARAP, ARAPTransaction, TransactionHistory, TransactionType
 from ..serializers import ARAPSerializer, ARAPTransactionSerializer, ARAPPaymentSerializer, TransactionHistorySerializer, ARAPSummarySerializer, ARAPPaymentInputSerializer
+from django.db.models import Prefetch
 
 
 @extend_schema_view(
@@ -58,14 +59,28 @@ class ARAPViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_receivable', 'supplier', 'customer']
     search_fields = ['supplier__name', 'customer__name']
-    ordering_fields = ['total_amount', 'total_paid']
+    ordering_fields = ['total_amount', 'total_paid', 'created_at']  # Added created_at
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
         Extends the base queryset with additional filtering options from query parameters.
         """
-        queryset = ARAP.objects.all().prefetch_related('transactions')
+        # Get transaction filtering parameters
+        unsettled_transactions_only = self.request.query_params.get('unsettled_transactions_only')
+        transaction_order = self.request.query_params.get('transaction_order', 'created_at')
+        
+        # Configure transaction prefetch based on filters
+        if unsettled_transactions_only == 'true':
+            # Filter for unsettled transactions: paid < amount
+            transaction_queryset = ARAPTransaction.objects.filter(paid__lt=F('amount')).order_by(transaction_order)
+        else:
+            transaction_queryset = ARAPTransaction.objects.order_by(transaction_order)
+        
+        # Apply prefetch with filtered/ordered transactions
+        queryset = ARAP.objects.all().prefetch_related(
+            Prefetch('transactions', queryset=transaction_queryset)
+        )
 
         # Filter by entity type
         is_receivable = self.request.query_params.get('is_receivable')
@@ -87,6 +102,22 @@ class ARAPViewSet(viewsets.ModelViewSet):
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
         if start_date and end_date:
+            # Update the existing prefetch to include date filtering
+            if unsettled_transactions_only == 'true':
+                transaction_queryset = ARAPTransaction.objects.filter(
+                    paid__lt=F('amount'),
+                    due_date__range=[start_date, end_date]
+                ).order_by(transaction_order)
+            else:
+                transaction_queryset = ARAPTransaction.objects.filter(
+                    due_date__range=[start_date, end_date]
+                ).order_by(transaction_order)
+            
+            # Re-apply prefetch with updated queryset
+            queryset = queryset.prefetch_related(
+                Prefetch('transactions', queryset=transaction_queryset)
+            )
+            # Also filter ARAP records that have transactions in date range
             queryset = queryset.filter(transactions__due_date__range=[start_date, end_date]).distinct()
         
         # Filter overdue records
@@ -94,11 +125,28 @@ class ARAPViewSet(viewsets.ModelViewSet):
         if overdue and overdue.lower() == 'true':
             from django.utils import timezone
             today = timezone.now().date()
+            
+            # Update the existing prefetch to include overdue filtering
+            if unsettled_transactions_only == 'true':
+                transaction_queryset = ARAPTransaction.objects.filter(
+                    paid__lt=F('amount'),
+                    due_date__lt=today
+                ).order_by(transaction_order)
+            else:
+                transaction_queryset = ARAPTransaction.objects.filter(
+                    due_date__lt=today
+                ).order_by(transaction_order)
+            
+            # Re-apply prefetch with updated queryset
+            queryset = queryset.prefetch_related(
+                Prefetch('transactions', queryset=transaction_queryset)
+            )
+            # Also filter ARAP records with overdue transactions
             queryset = queryset.filter(
                 transactions__due_date__lt=today,
                 total_paid__lt=F('total_amount')
             ).distinct()
-            
+        
         return queryset
     
     @extend_schema(
