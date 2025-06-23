@@ -192,7 +192,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     );
 
     const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-        "http://100.82.207.117:8000/api/stock/by_ids/",
+        `${API_URL}api/stock/by_ids/`,
         fetcherPost
     );
 

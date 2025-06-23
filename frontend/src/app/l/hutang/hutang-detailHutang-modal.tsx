@@ -21,7 +21,7 @@ interface DetailHutangProps {
   onClose?: () => void;
 }
 
-const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
+const DetailHutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
   const [selectedFaktur, setSelectedFaktur] = useState<string | undefined>();
   const [date, setDate] = useState(new Date());
   const [paymentType, setPaymentType] = useState("CASH");
@@ -77,7 +77,7 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
     const payload = {
       amount: pembayaran,
       payment_method: paymentType,
-      bank: selectedBank?.id || null,
+      payment_bank: selectedBank?.id || null,
       notes: note,
       allocation_strategy: "FIFO",
       arap_transaction_id: selectedTransaction.id,
@@ -90,7 +90,7 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
     })
       .then((res) => {
         console.log(res)
-        toast.success("Pembayaran Piutang Berhasil");
+        toast.success("Pembayaran Hutang Berhasil");
         mutate(`${API_URL}api/araps/${id}/?unsettled_transactions_only=true`);
         onClose?.();
         setNote('');
@@ -107,16 +107,16 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
         <div className="flex flex-col gap-2 justify-between w-full">
           <div className="flex justify-between">
             <Label htmlFor="Pemasok" className="text-xs min-w-1/3">
-              Customer
+              Supplier
             </Label>
             <div className="relative w-[200px] bg-gray-100 py-2 rounded-sm text-xs">
-              <p className="ml-2">{data.customer_name}</p>
+              <p className="ml-2">{data.supplier_name}</p>
             </div>
           </div>
 
           {data.transactions.length === 0 ? (
             <div className="text-center text-sm text-gray-500 py-10 border rounded-md bg-gray-100">
-              Tidak ada piutang.
+              Tidak ada Hutang.
             </div>
           ) : (
             <>
@@ -338,4 +338,4 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
 
 };
 
-export default DetailPiutangModal;
+export default DetailHutangModal;

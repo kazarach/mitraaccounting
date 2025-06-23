@@ -5,12 +5,8 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-
-import {  HutangData } from '@/data/product';
-
 import HutangTable from './tabledata';
-
-const Hutang = () => {
+const Hutang= () => {
     return (
         <div className="flex justify-center w-full pt-4">
             <Card className="w-full mx-4">
