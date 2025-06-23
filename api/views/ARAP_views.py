@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Count, Case, When, DecimalField, F, Value, Min, Max
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse, OpenApiRequest, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse, OpenApiRequest, OpenApiExample, OpenApiTypes
 from decimal import Decimal
 from django.utils import timezone
 from ..models import ARAP, ARAPTransaction, TransactionHistory, TransactionType
@@ -15,8 +15,56 @@ from django.db.models import Prefetch
     list=extend_schema(
         summary="List ARAP records",
         description="Get a list of all Accounts Receivable/Accounts Payable records with filtering capabilities.",
+        tags=["ARAP"],
+        parameters=[
+            OpenApiParameter(
+                name="is_settled",
+                description="Filter by settlement status",
+                required=False,
+                type=OpenApiTypes.BOOL,
+                enum=[True, False]
+            ),
+            # OpenApiParameter(
+            #     name="is_receivable",
+            #     description="Filter by receivable (true) or payable (false)",
+            #     required=False,
+            #     type=OpenApiTypes.BOOL,
+            #     enum=[True, False]
+            # ),
+            OpenApiParameter(
+                name="unsettled_transactions_only",
+                description="Only include records with unsettled transactions",
+                required=False,
+                type=OpenApiTypes.BOOL,
+                enum=[True, False]
+            ),
+            # OpenApiParameter(
+            #     name="overdue",
+            #     description="Filter records that are overdue",
+            #     required=False,
+            #     type=OpenApiTypes.BOOL,
+            #     enum=[True, False]
+            # ),
+            # OpenApiParameter(
+            #     name="start_date",
+            #     description="Start date for transaction due_date filtering (YYYY-MM-DD)",
+            #     required=False,
+            #     type=OpenApiTypes.DATE,
+            # ),
+            # OpenApiParameter(
+            #     name="end_date",
+            #     description="End date for transaction due_date filtering (YYYY-MM-DD)",
+            #     required=False,
+            #     type=OpenApiTypes.DATE,
+            # ),
+            # OpenApiParameter(
+            #     name="transaction_order",
+            #     description="Ordering field for transactions (e.g. created_at, due_date)",
+            #     required=False,
+            #     type=OpenApiTypes.STR,
+            # ),
+        ],
         responses={200: ARAPSerializer(many=True)},
-        tags=["ARAP"]
     ),
     retrieve=extend_schema(
         summary="Retrieve ARAP record",
