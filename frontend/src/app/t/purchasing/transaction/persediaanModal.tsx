@@ -59,7 +59,7 @@ const PersediaanModal: React.FC<any> = ({ stockData,
         string,
         any
     >(
-        `${API_URL}api/transactions/`,
+        `/api/proxy/api/transactions/`,
         fetcherPost
     );
 

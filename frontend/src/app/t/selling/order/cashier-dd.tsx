@@ -21,7 +21,7 @@ interface CashierOrderDDProps {
 const CashierOrderDD: React.FC<CashierOrderDDProps> = ({ onChange }) => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data, error, isLoading } = useSWR<Cashier>(
-    `${API_URL}/api/users/me/`,
+    `/api/proxy/api/users/me/`,
     fetcher
   );
 

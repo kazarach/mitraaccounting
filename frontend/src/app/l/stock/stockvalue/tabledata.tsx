@@ -44,7 +44,7 @@ const StockValue1 = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const supplierParam = selectedSuppliers.length > 0 ? `&supplier=${selectedSuppliers.join(",")}` : "";
   const supplierexParam = selectedSuppliersex.length > 0 ? `&exclude_breakdown=${selectedSuppliersex.join(",")}` : "";
-  const url = `${API_URL}api/stock/summary/?breakdown=${range}${supplierParam}${supplierexParam}`;
+  const url = `/api/proxy/api/stock/summary/?breakdown=${range}${supplierParam}${supplierexParam}`;
 
   console.log("🌐 URL yang digunakan:", url);
 

@@ -40,9 +40,9 @@ const FastMoving = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const url = startDate && endDate
-  ? `${API_URL}api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
+  ? `/api/proxy/api/trans-items/fast_moving/?start_date=${startDate}&end_date=${endDate}`
   : range
-  ? `${API_URL}api/trans-items/fast_moving/?range=${range}`
+  ? `/api/proxy/api/trans-items/fast_moving/?range=${range}`
   : null;
 
   console.log("🌐 URL yang digunakan:", url);

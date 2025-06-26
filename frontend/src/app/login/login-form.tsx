@@ -1,126 +1,54 @@
 "use client";
-
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import useSWRMutation from "swr/mutation";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { SelectItemText } from "@radix-ui/react-select";
-import { useRouter } from "next/navigation";
 
-const schema = yup.object().shape({
-    username: yup.string().required("Username wajib diisi"),
-    password: yup.string().required("Password wajib diisi"),
-});
+export default function LoginPage() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-type FormData = yup.InferType<typeof schema>;
-
-async function loginRequest(
-    url: string,
-    { arg }: { arg: FormData }
-) {
-    const res = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(arg),
+  const handleLogin = async () => {
+    setLoading(true);
+    const res = await fetch("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
     });
-
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error?.detail || "Login gagal");
+    setLoading(false);
+    if (res.ok) {
+      window.location.href = "/";
+      
+    } else {
+      alert("Login failed");
     }
+  };
 
-    return res.json();
-}
-
-export function LoginForm({
-    className,
-    ...props
-}: React.ComponentProps<"div">) {
-    const [errorMessage, setErrorMessage] = useState("");
-    const router = useRouter()
-    
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<FormData>({
-        resolver: yupResolver(schema),
-    });
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-
-    const { trigger, isMutating } = useSWRMutation(
-        `${API_URL}api/token/`,
-        loginRequest
-    );
-
-
-    const onSubmit = async (data: FormData) => {
-        setErrorMessage("");
-        try {
-            const response = await trigger(data);
-            console.log("Sukses login:", response);
-            if (response.access && response.refresh) {
-                localStorage.setItem("access", response.access);
-                localStorage.setItem("refresh", response.refresh);
-            }
-            router.push("/");
-        } catch (err: any) {
-            setErrorMessage(err.message);
-        }
-    };
-
-
-    return (
-        <div className={cn("flex flex-col gap-4", className)} {...props}>
-            <Card className="overflow-hidden">
-                <CardContent className="grid p-0 md:grid-cols-2">
-                    <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)}>
-                        <div className="flex flex-col gap-1">
-                            <div className="flex flex-col items-center text-center">
-                                <h1 className="text-2xl font-bold">Welcome back</h1>
-                            </div>
-                            <div className="grid gap-1">
-                                <Label htmlFor="username">Username</Label>
-                                <Input id="username" type="text" {...register("username")} />
-                                <p className={`text-xs min-h-[16px] ${errors.username ? "text-red-500" : "invisible"}`}>
-                                    {errors.username?.message || "placeholder"}
-                                </p>
-                            </div>
-                            <div className="grid gap-1">
-                                <Label htmlFor="password">Password</Label>
-                                <Input id="password" type="password" {...register("password")} />
-                                <p className={`text-xs min-h-[16px] ${errors.password ? "text-red-500" : "invisible"}`}>
-                                    {errors.password?.message || "placeholder"}
-                                </p>
-                            </div>
-                            <Button type="submit" className="w-full" disabled={isMutating}>
-                                {isMutating ? "Logging in..." : "Login"}
-                            </Button>
-                            {errorMessage && <p className="text-xs text-red-500 text-center">{errorMessage}</p>}
-                        </div>
-                    </form>
-                    <div className="relative hidden bg-muted md:block">
-                        <img
-                            src="/menu"
-                            alt="Image"
-                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
-            <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-                By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-                and <a href="#">Privacy Policy</a>.
-            </div>
-        </div>
-    );
+  return (
+    <div className="p-6 max-w-sm mx-auto flex flex-col gap-3 mt-20 shadow rounded-xl border bg-white">
+      <h1 className="text-xl font-bold mb-2 text-center">Login</h1>
+      <input
+        placeholder="Email"
+        value={username}
+        onChange={e => setUsername(e.target.value)}
+        className="border p-2 rounded w-full mb-2"
+        autoFocus
+        autoComplete="username"
+      />
+      <input
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        className="border p-2 rounded w-full mb-2"
+        autoComplete="current-password"
+      />
+      <button
+        onClick={handleLogin}
+        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-60"
+        disabled={loading || !username || !password}
+      >
+        {loading ? "Logging in..." : "Login"}
+      </button>
+    </div>
+  );
 }

@@ -22,7 +22,7 @@ export function MemberDropdownAS({ onChange }: { onChange: (ids: number[]) => vo
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data: items = [], error, isLoading } = useSWR<User[]>(
-    `${API_URL}api/users/by_role/?role_ids=6`,
+    `/api/proxy/api/users/by_role/?role_ids=6`,
     fetcher
   )  
 

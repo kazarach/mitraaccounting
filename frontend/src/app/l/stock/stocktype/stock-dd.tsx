@@ -22,7 +22,7 @@ const StockDD = ({ onChange }: StockDDProps) => {
     const [value, setValue] = React.useState<number | null>(null)
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
     const { data = [], error, isLoading } = useSWR<Stock[]>(
-        `${API_URL}api/stock/`,
+        `/api/proxy/api/stock/`,
         fetcher
     )
 

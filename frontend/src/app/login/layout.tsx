@@ -1,10 +1,13 @@
-export default function LoginLayout({ children }: { children: React.ReactNode }) {
-    return (
-      <html lang="en">
-        <body className="bg-gray-100">
-          {children}  
-        </body>
-      </html>
-    );
-  }
-  
+import { AuthProvider } from "./AuthProvider";
+import { ReactNode } from 'react';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+
+  return (
+    <html lang="en">
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
+    </html>
+  );
+}

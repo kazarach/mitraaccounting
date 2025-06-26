@@ -77,7 +77,7 @@ const PurchaseArchive = () => {
     return params;
   }, [date, selectedDistributors, selectedOperators, selectedBankIds, paymentType, returnType]);
 
-  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
+  const { data: json, error, isLoading } = useSWR(`/api/proxy/api/transactions/?${queryParams}`, fetcher);
 
   const flatData = useMemo(() => {
     if (!json) return [];

@@ -24,9 +24,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL!
 const DistributorDD: React.FC<DistributorDDProps> = ({ value, onChange }) => {
     const [open, setOpen] = React.useState(false);
     const { data = [], error, isLoading } = useSWR<Supplier[]>(
-        `${API_URL}api/suppliers/`,
+        `/api/proxy/api/suppliers/`,
         fetcher
     );
+
 
     // Set the default distributor to the first one if value is null
     React.useEffect(() => {

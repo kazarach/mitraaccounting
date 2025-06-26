@@ -22,7 +22,7 @@ export function CustomerDropdownASR({ onChange }: { onChange: (ids: number[]) =>
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    `${API_URL}api/customers/`,
+    `/api/proxy/api/customers/`,
     fetcher
   )
 

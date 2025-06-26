@@ -72,7 +72,7 @@ const PurchasingReport = () => {
     return params;
   }, [date, selectedDistributors, selectedOperators, range, statusType]);
 
-  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/report/?${queryParams}`, fetcher);
+  const { data: json, error, isLoading } = useSWR(`/api/proxy/api/transactions/report/?${queryParams}`, fetcher);
 
   // Transform data
     const flatData = useMemo(() => {

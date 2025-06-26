@@ -33,7 +33,7 @@ import TestDialog from './testdialog';
 import PiutangDialog from './testdialog';
 
 const PiutangTable = () => {
-    const [status, setStatus] = useState('all');
+    const [status, setStatus] = useState('false');
     const [sorting, setSorting] = useState<SortingState>([
         { id: "customer_name", desc: false },
     ]);
@@ -41,20 +41,16 @@ const PiutangTable = () => {
     const [search, setSearch] = useState("");
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
     const { data, error, isLoading, mutate } = useSWR(
-        [API_URL, status],
+        ['/api/proxy/api/araps/ ', status],
         () => {
             const statusParam = status !== "all" ? `&is_settled=${status}` : "";
             return fetcher(
-                `${API_URL}api/araps/?is_receivable=true${statusParam}`
+                `/api/proxy/api/araps//?is_receivable=true${statusParam}&unsettled_transactions_only=tru`
             );
         }
     );
-    // console.log(data)
 
-    // const tableData = Array.isArray(data)
-    //     ? [...data].sort((a, b) => a.customer_name.localeCompare(b.customer_name))
-    //     : [];
-
+    console.log(data)
 
     const columns: ColumnDef<any>[] = [
         {
@@ -128,9 +124,9 @@ const PiutangTable = () => {
                                 <SelectValue placeholder="Umur Hutang" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Semua</SelectItem>
-                                <SelectItem value="true">Lunas</SelectItem>
                                 <SelectItem value="false">Belum Lunas</SelectItem>
+                                <SelectItem value="true">Lunas</SelectItem>
+                                <SelectItem value="all">Semua</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

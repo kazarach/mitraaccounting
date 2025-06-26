@@ -165,34 +165,53 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!
+    // const API_URL = process.env.NEXT_PUBLIC_API_URL!
+    // const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
+    //     `/api/proxy/api/transactions/calculate_preview/`,
+    //     fetcherPost
+    // );
+
+    // const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
+    //     any,
+    //     any,
+    //     string,
+    //     any
+    // >(
+    //     `/api/proxy/api/transactions/`,
+    //     fetcherPost
+    // );
+
+    // const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<
+    //     any,
+    //     any,
+    //     string,
+    //     any
+    // >(
+    //     `/api/proxy/api/transactions`,
+    //     fetcherPatch
+    // );
+
+    // const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
+    //     `/api/proxy/api/stock/by_ids/`,
+    //     fetcherPost
+    // );
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
-        `${API_URL}/api/transactions/calculate_preview/`,
+        '/api/proxy/api/transactions/calculate_preview/',
         fetcherPost
     );
 
-    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
-        any,
-        any,
-        string,
-        any
-    >(
-        `${API_URL}api/transactions/`,
+    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<any, any, string, any>(
+        '/api/proxy/api/transactions/',
         fetcherPost
     );
 
-    const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<
-        any,
-        any,
-        string,
-        any
-    >(
-        `${API_URL}api/transactions`,
+    const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<any, any, string, any>(
+        '/api/proxy/api/transactions',
         fetcherPatch
     );
 
     const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-        `${API_URL}api/stock/by_ids/`,
+        '/api/proxy/api/stock/by_ids/',
         fetcherPost
     );
 

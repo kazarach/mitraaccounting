@@ -49,7 +49,7 @@ const GantiHargaModal: React.FC<GantiHargaModalProps> = ({ priceData, onClose })
         string,
         any
     >(
-        `${API_URL}api/stock/update_prices/`,
+        `/api/proxy/api/stock/update_prices/`,
         fetcherPost
     );
 

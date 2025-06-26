@@ -109,7 +109,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
-        `${API_URL}/api/transactions/calculate_preview/`,
+        `/api/proxy/api/transactions/calculate_preview/`,
         fetcherPost
     );
     const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
@@ -118,11 +118,11 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         string,
         any
     >(
-        `${API_URL}api/transactions/`,
+        `/api/proxy/api/transactions/`,
         fetcherPost
     );
 
-    const { data : me, error:errorme, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
+    const { data : me, error:errorme, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {

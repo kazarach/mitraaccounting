@@ -38,7 +38,7 @@ const RedeemPoint = () => {
   const [search, setSearch] = useState("");
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const { data: json, error, isLoading } = useSWR(`${API_URL}api/customers/`, fetcher);
+  const { data: json, error, isLoading } = useSWR(`/api/proxy/api/customers/`, fetcher);
 
   const flatData = useMemo(() => {
     if (!json) return [];
@@ -304,7 +304,7 @@ const RedeemPoint = () => {
           onClose={(open) => {
             setIsDialogOpen(open);
             if (!open) {
-              mutate(`${API_URL}api/customers/`); // Memicu refetch data
+              mutate(`/api/proxy/api/customers/`); // Memicu refetch data
             }
           }}
           transaction={selectedTransaction}

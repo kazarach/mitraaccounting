@@ -32,7 +32,7 @@ import Loading from '@/components/loading';
 import DetailHutangModal from './hutang-detailHutang-modal';
 
 const HutangTable = () => {
-    const [status, setStatus] = useState('all');
+    const [status, setStatus] = useState('false');
     const [sorting, setSorting] = useState<SortingState>([
         { id: "supplier_name", desc: false },
     ]);
@@ -44,7 +44,7 @@ const HutangTable = () => {
         () => {
             const statusParam = status !== "all" ? `&is_settled=${status}` : "";
             return fetcher(
-                `${API_URL}api/araps/?is_receivable=false${statusParam}`
+                `/api/proxy/api/araps/?is_receivable=false${statusParam}&unsettled_transactions_only=true`
             );
         }
     );
@@ -127,9 +127,9 @@ const HutangTable = () => {
                                 <SelectValue placeholder="Umur Hutang" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Semua</SelectItem>
-                                <SelectItem value="true">Lunas</SelectItem>
                                 <SelectItem value="false">Belum Lunas</SelectItem>
+                                <SelectItem value="true">Lunas</SelectItem>
+                                <SelectItem value="all">Semua</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

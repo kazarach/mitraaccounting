@@ -397,7 +397,7 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
           };
       
           const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-          const endpoint = `${API_URL}api/transactions/calculate_preview/`;
+          const endpoint = `/api/proxy/api/transactions/calculate_preview/`;
       
           console.log("Payload:", JSON.stringify(payload, null, 2));
       

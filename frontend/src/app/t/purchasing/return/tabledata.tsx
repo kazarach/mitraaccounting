@@ -160,11 +160,11 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
     const { trigger, data: review } = useSWRMutation<any, any, string, any>(
-        `${API_URL}/api/transactions/calculate_preview/`,
+        `/api/proxy/api/transactions/calculate_preview/`,
         fetcherPost
     );
 
-    const { data : me, error, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
+    const { data : me, error, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
     
 
     const onSubmit = async () => {

@@ -54,7 +54,7 @@ const MonitoringReport = () => {
 
   // Fetch the data using SWR with the dynamic queryParams
   const { data: json, error, isLoading } = useSWR(
-    `${API_URL}api/stock/?${queryParams}`,
+    `/api/proxy/api/stock/?${queryParams}`,
     fetcher
   );
 

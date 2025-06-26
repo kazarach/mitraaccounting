@@ -33,19 +33,22 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data, error, isLoading } = useSWR(
-    `${API_URL}api/araps/${id}/?unsettled_transactions_only=true`,
+    `/api/proxy/api/araps/${id}/?unsettled_transactions_only=true`,
     fetcher
   );
+
   const { data: bank, error: err, isLoading: lod } = useSWR(
-    `${API_URL}api/banks/`,
+    '/api/proxy/api/banks/',
     fetcher
   );
+
   const { trigger, error: ror } = useSWRMutation(
-    'arap-payment', // key hanya untuk identifikasi, tidak penting
-    async (_key, { arg }: { arg: { id: number; data: any } }) => {
-      return fetcherPost(`${API_URL}api/araps/${arg.id}/add_payment/`, { arg: arg.data });
-    }
-  );
+  'arap-payment',
+  async (_key, { arg }: { arg: { id: number; data: any } }) => {
+    return fetcherPost(`/api/proxy/api/araps/${arg.id}/add_payment/`, { arg: arg.data });
+  }
+);
+
 
 
   useEffect(() => {
@@ -91,7 +94,7 @@ const DetailPiutangModal: React.FC<DetailHutangProps> = ({ id, onClose }) => {
       .then((res) => {
         console.log(res)
         toast.success("Pembayaran Piutang Berhasil");
-        mutate(`${API_URL}api/araps/${id}/?unsettled_transactions_only=true`);
+        mutate(`/api/proxy/api/araps/${id}/?unsettled_transactions_only=true`);
         onClose?.();
         setNote('');
       })

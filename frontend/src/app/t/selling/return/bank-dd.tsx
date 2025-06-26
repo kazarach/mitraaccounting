@@ -31,7 +31,7 @@ const BankDDRS: React.FC<BankDDRSProps> = ({ value, onChange }) => {
   useAuthGuard();
   const [open, setOpen] = React.useState(false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const { data = [], error, isLoading } = useSWR<Bank[]>(`${API_URL}/api/banks/`, fetcher);
+  const { data = [], error, isLoading } = useSWR<Bank[]>(`/api/proxy/api/banks/`, fetcher);
 
   if (isLoading) return <p><SyncLoader color="#366cd6" size={5} /></p>;
   if (error) return <p>Terjadi kesalahan saat memuat data bank.</p>;

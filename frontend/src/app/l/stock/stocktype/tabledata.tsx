@@ -45,7 +45,7 @@ const Stocktype = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const url = startDate && endDate && selectedStockId
-  ? `${API_URL}api/stock-changes/?start_date=${startDate}&end_date=${endDate}&stock=${selectedStockId}`
+  ? `/api/proxy/api/stock-changes/?start_date=${startDate}&end_date=${endDate}&stock=${selectedStockId}`
   : null;
 
   console.log("🌐 URL yang digunakan:", url);

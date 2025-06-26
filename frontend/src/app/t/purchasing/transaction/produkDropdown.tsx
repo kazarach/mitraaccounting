@@ -29,7 +29,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 const ProductDropdown: React.FC<StockDropdownProps> = ({ value, onChange }) => {
     const [open, setOpen] = React.useState(false);
     const { data = [], error, isLoading } = useSWR<Stock[]>(
-        `${API_URL}api/stock/`,
+        `/api/proxy/api/stock/`,
         fetcher
     );
 

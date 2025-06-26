@@ -69,7 +69,7 @@ const SellingReturnArchive = () => {
     return params;
   }, [date, selectedDistributors, selectedCustomer, selectedBankIds, paymentType]);
 
-  const { data: json, error, isLoading } = useSWR(`${API_URL}api/transactions/?${queryParams}`, fetcher);
+  const { data: json, error, isLoading } = useSWR(`/api/proxy/api/transactions/?${queryParams}`, fetcher);
 
   const flatData = useMemo(() => {
     if (!json) return [];

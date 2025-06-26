@@ -15,7 +15,7 @@ export function OperatorDropdownAPO({ onChange }: { onChange: (ids: number[]) =>
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const { data, error, isLoading } = useSWR(`${API_URL}api/users/cashier_and_above/`, fetcher);
+  const { data, error, isLoading } = useSWR(`/api/proxy/api/users/cashier_and_above/`, fetcher);
 
   useEffect(() => {
     onChange(selected);

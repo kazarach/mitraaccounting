@@ -58,7 +58,7 @@ const SellingItems = () => {
 
   const shouldFetch = date?.from && date?.to;
   const { data: json, error, isLoading } = useSWR(
-    shouldFetch ? `${API_URL}api/stock/?${queryParams}` : null,
+    shouldFetch ? `/api/proxy/api/stock/?${queryParams}` : null,
     fetcher
   );
 
