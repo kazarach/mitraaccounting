@@ -52,6 +52,7 @@ const kasbank = () => {
     const [open3, setOpen3] = React.useState(false)
     const [value3, setValue3] = React.useState("")
     const [date, setDate] = React.useState<DateRange | undefined>(undefined)
+    const [operator, setOperator] = useState<number[]>([]);
     const dispatch = useDispatch();
     const dummyData = [
         {
@@ -88,10 +89,10 @@ const kasbank = () => {
                     <div className="flex flex-col space-y-4">
                         <div className="flex justify-between gap-4 mb-4">
                             <div className="flex flex-wrap items-end gap-4">
-                                
+
                                 <div className="flex flex-col space-y-2">
                                     <Label htmlFor="operator">Operator</Label>
-                                    <OperatorDropdown />
+                                    <OperatorDropdown onChange={(id) => setOperator(id)} />
                                 </div>
                                 <div className="flex flex-col space-y-2">
                                     <Label htmlFor="operator">Tipe</Label>

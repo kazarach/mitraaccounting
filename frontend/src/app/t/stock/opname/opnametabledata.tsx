@@ -358,7 +358,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
           };
       
           const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-          const endpoint = `/api/proxy/api/transactions/`;
+          const endpoint = `${API_URL}api/transactions/`;
       
           console.log("Payload:", JSON.stringify(payload, null, 2));
       

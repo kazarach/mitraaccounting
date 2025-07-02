@@ -177,7 +177,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     //     string,
     //     any
     // >(
-    //     `/api/proxy/api/transactions/`,
+    //     `${API_URL}api/transactions/`,
     //     fetcherPost
     // );
 
@@ -187,12 +187,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     //     string,
     //     any
     // >(
-    //     `/api/proxy/api/transactions`,
+    //     `${API_URL}api/transactions`,
     //     fetcherPatch
     // );
 
     // const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-    //     `/api/proxy/api/stock/by_ids/`,
+    //     `${API_URL}api/stock/by_ids/`,
     //     fetcherPost
     // );
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(

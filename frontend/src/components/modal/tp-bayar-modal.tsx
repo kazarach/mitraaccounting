@@ -49,7 +49,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
     };
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-    const { data: bank } = useSWR(`/api/proxy/api/banks/`, fetcher);
+    const { data: bank } = useSWR(`${API_URL}api/banks/`, fetcher);
 
     const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
         "http://100.82.207.117:8000/api/stock/by_ids/",

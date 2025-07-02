@@ -371,8 +371,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
             console.table(items);
             
             const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-            const endpoint = `/api/proxy/api/transactions/calculate_preview/`;
-            const { data: me, error, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
+            const endpoint = `${API_URL}api/transactions/calculate_preview/`;
+            const { data: me, error, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
             const customer_id = form.getValues("customer"); // sudah ID, bukan name
 
             const payload = {

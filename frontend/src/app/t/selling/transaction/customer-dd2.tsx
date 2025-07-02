@@ -22,7 +22,7 @@ export function CustomerDropdown2({ onChange }: { onChange: (ids: number[]) => v
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    `/api/proxy/api/customers/`,
+    `${API_URL}api/customers/`,
     fetcher
   )
 

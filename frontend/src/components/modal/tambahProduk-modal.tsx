@@ -48,7 +48,7 @@ const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
   // const category = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
-  const { data, error, isLoading, mutate } = useSWR(`/api/proxy/api/stock/?include_sales=true${supplierParam}`, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`${API_URL}api/stock/?include_sales=true${supplierParam}`, fetcher);
 
   const handleAddProduct = (product: any) => {
     const subtotal = (product.jumlah_barang ?? 1) * product.price_buy;

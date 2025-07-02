@@ -35,7 +35,7 @@ export function BankDDSO({
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data: items = [], error, isLoading } = useSWR<Bank[]>(
-    `/api/proxy//api/banks/`,
+    `/api/proxy/api/banks/`,
     fetcher
   )
 

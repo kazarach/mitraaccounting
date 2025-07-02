@@ -25,7 +25,7 @@ export function DistributorDropdown({ onChange }: DistributorDropdownProps) {
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data: items = [], error, isLoading } = useSWR<Supplier[]>(
-    `/api/proxy/api/suppliers/`,
+    `${API_URL}api/suppliers/`,
     fetcher
   )
 

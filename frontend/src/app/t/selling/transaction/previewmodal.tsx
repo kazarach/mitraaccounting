@@ -60,7 +60,7 @@ const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) 
         }
 
         const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-        const { data: me, error, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
+        const { data: me, error, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
         const th_dp_total = (dp || 0) + (payment || 0);
         const accessToken = localStorage.getItem("access") ?? "";
         const refreshToken = localStorage.getItem("refresh") ?? "";
@@ -70,7 +70,7 @@ const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) 
                 const patchPayload = { th_order: false };
                 console.log("🛠 PATCH Payload:", JSON.stringify(patchPayload, null, 2));
 
-                const patchResponse = await fetch(`/api/proxy/api/transactions/${transactionId}/`, {
+                const patchResponse = await fetch(`${API_URL}api/transactions/${transactionId}/`, {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
@@ -104,7 +104,7 @@ const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) 
 
             console.log("🆕 POST Payload:", JSON.stringify(postPayload, null, 2));
 
-            const postResponse = await fetch(`/api/proxy/api/transactions/`, {
+            const postResponse = await fetch(`${API_URL}api/transactions/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

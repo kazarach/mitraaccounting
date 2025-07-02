@@ -19,7 +19,7 @@ export function OperatorDropdown({ onChange }: OperatorDropdownProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
-  const { data, error, isLoading } = useSWR(`/api/proxy/api/users/cashier_and_above/`, fetcher)
+  const { data, error, isLoading } = useSWR(`api/proxy/api/users/cashier_and_above/`, fetcher)
 
   if (isLoading) return <p>Loading...</p>
   if (error) return <p>Terjadi kesalahan saat memuat data.</p>

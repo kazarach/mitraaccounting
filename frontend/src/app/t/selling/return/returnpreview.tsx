@@ -67,7 +67,7 @@ interface BayarTPModalReturnSellingProps {
       const patchPayload = { th_return: true };
       console.log("🛠 PATCH Payload:", JSON.stringify(patchPayload, null, 2));
 
-      const patchResponse = await fetch(`/api/proxy/api/transactions/${transactionId}/`, {
+      const patchResponse = await fetch(`${API_URL}api/transactions/${transactionId}/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patchPayload),
@@ -97,7 +97,7 @@ interface BayarTPModalReturnSellingProps {
 
     console.log("🆕 POST Payload:", JSON.stringify(postPayload, null, 2));
 
-    const postResponse = await fetch(`/api/proxy/api/transactions/`, {
+    const postResponse = await fetch(`${API_URL}api/transactions/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(postPayload),
