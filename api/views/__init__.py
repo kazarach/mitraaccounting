@@ -9,3 +9,4 @@ from .bank_views import BankViewSet
 from .point_views import PointTransactionViewSet, RedeemPointsView, CustomerPointsViewSet
 from .stock_change_views import StockChangeHistoryAPIView
 from .payment_views import PaymentViewSet
+from .financial_views import FinancialReportsViewSet

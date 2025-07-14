@@ -46,7 +46,7 @@ class Command(BaseCommand):
                                 payment_type='INITIAL',
                                 payment_method=random.choice(payment_methods),
                                 bank=random.choice(banks) if random.random() > 0.5 else None,
-                                recorded_by=random.choice(users),
+                                operator=random.choice(users),
                                 notes=f"Initial payment for tx {tx.id}",
                                 status=random.choice(statuses),
                                 fake=fake
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                                 payment_type='ADDITIONAL',
                                 payment_method=random.choice(payment_methods),
                                 bank=random.choice(banks) if random.random() > 0.5 else None,
-                                recorded_by=random.choice(users),
+                                operator=random.choice(users),
                                 notes=f"Additional payment for tx {tx.id}",
                                 status=random.choice(statuses),
                                 fake=fake
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                                     original_payment=None,  # Optional: link to the initial payment
                                     payment_method=random.choice(payment_methods),
                                     bank=random.choice(banks) if random.random() > 0.5 else None,
-                                    recorded_by=random.choice(users),
+                                    operator=random.choice(users),
                                     payment_date=timezone.now().date(),
                                     notes=f"Return for tx {tx.id}",
                                     status='COMPLETED'
@@ -99,7 +99,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Error: {e}"))
             self.stdout.write(self.style.ERROR(traceback.format_exc()))
 
-    def create_payment(self, arap, transaction, amount, payment_type, payment_method, bank, recorded_by, notes, status, fake):
+    def create_payment(self, arap, transaction, amount, payment_type, payment_method, bank, operator, notes, status, fake):
         """
         Use ARAP.add_payment() to apply the payment to the transaction properly.
         """
@@ -109,7 +109,7 @@ class Command(BaseCommand):
             payment_method=payment_method,
             bank=bank,
             notes=notes,
-            recorded_by=recorded_by
+            operator=operator
         )
 
     def ensure_related_models_exist(self):

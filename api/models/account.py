@@ -18,7 +18,6 @@ class Account(models.Model):
     # NAH INI KE PARENT BUAT HIERARCHICAL
     parent_account = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True,related_name='sub_accounts')
     
-    
     is_active = models.BooleanField(default=True)
     balance = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(default=timezone.now)

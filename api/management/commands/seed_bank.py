@@ -1,36 +1,42 @@
 import random
 from django.core.management.base import BaseCommand
 from faker import Faker
-from decimal import Decimal
-from api.models.bank import Bank  # Adjust the import based on your project structure
-from api.models.account import Account  # Adjust if necessary
+from api.models.bank import Bank
+from api.models.account import Account
 
 class Command(BaseCommand):
-    help = 'Seed bank data for the application'
+    help = 'Seed one Bank for each existing Account (no filtering)'
+
+    BANK_TYPES = ['Saving', 'Current', 'Business']
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-        
-        # Ensure related accounts exist
-        accounts = list(Account.objects.all())
-        
-        # Clear existing data
-        Bank.objects.all().delete()
-        
-        banks_to_create = []
-        for _ in range(10):  # Create 10 bank records
-            banks_to_create.append(self.create_bank(fake, accounts))
-        
-        # Bulk create for efficiency
-        Bank.objects.bulk_create(banks_to_create)
-        self.stdout.write(self.style.SUCCESS('Successfully seeded bank data'))
-    
-    def create_bank(self, fake, accounts):
-        return Bank(
-            code=fake.unique.bothify(text='BNK####'),
-            name=fake.company(),
-            type=random.choice(['Saving', 'Current', 'Business', None]),
-            cb=fake.swift() if random.random() > 0.3 else None,
-            active=random.choice([True, False]),
-            acc=random.choice(accounts) if accounts else None
-        )
+        created_count = 0
+
+        all_accounts = Account.objects.all()
+
+        for acc in all_accounts:
+            bank_name = acc.name
+            bank_code = fake.unique.bothify(text='BNK####')
+            bank_type = random.choice(self.BANK_TYPES)
+            swift_code = fake.swift() if random.random() > 0.3 else None
+            is_active = random.choice([True, True, False])
+
+            bank, created = Bank.objects.update_or_create(
+                acc=acc,
+                defaults={
+                    'code': bank_code,
+                    'name': bank_name,
+                    'type': bank_type,
+                    'cb': swift_code,
+                    'active': is_active,
+                }
+            )
+
+            if created:
+                created_count += 1
+                self.stdout.write(f'✅ Created bank for account {acc.account_number} - {acc.name}')
+            else:
+                self.stdout.write(f'⚠️  Bank already exists or updated for account {acc.account_number} - {acc.name}')
+
+        self.stdout.write(self.style.SUCCESS(f'\nDone. {created_count} new banks created.'))

@@ -221,7 +221,7 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
             amount=amount,
             payment_method=payment_method_mapping.get(transaction.th_payment_type),
             bank=transaction.bank,
-            recorded_by=transaction.cashier,
+            operator=transaction.cashier,
             payment_date=transaction.th_date,
             notes=notes_mapping.get(transaction.th_type, f"Auto-generated payment record for {transaction.th_code}"),
             status=status

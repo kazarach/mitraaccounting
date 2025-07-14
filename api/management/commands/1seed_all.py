@@ -33,6 +33,7 @@ class Command(BaseCommand):
             'seed_point',
             'seed_ARAP',
             'seed_payment',
+            # 'seed_payment_record',
         ]
 
         # Run each seeder

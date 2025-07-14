@@ -424,7 +424,7 @@ class Migration(migrations.Migration):
                 ('reference_id', models.IntegerField(blank=True, null=True)),
                 ('bank', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='api.bank')),
                 ('original_payment', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='related_payments', to='api.payment')),
-                ('recorded_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('operator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('transaction', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='payments', to='api.transactionhistory')),
             ],
             options={

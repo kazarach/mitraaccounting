@@ -1,7 +1,11 @@
 from django.db import models
+from django.utils import timezone
+from decimal import Decimal
+from .bank import Bank
 from .supplier import Supplier
-from .customer import Customer  # You'll need this model
+from .customer import Customer
 from .transaction_history import TransactionHistory
+from .account import Account, JournalEntry
 
 class ARAP(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, null=True, blank=True)
@@ -16,7 +20,7 @@ class ARAP(models.Model):
     def is_settled(self):
         return self.total_paid >= self.total_amount
     
-    def add_payment(self, transaction: 'ARAPTransaction', amount, payment_method='CASH', bank=None, notes='', recorded_by=None):
+    def add_payment(self, transaction: 'ARAPTransaction', amount, payment_method='CASH', bank=None, notes='', operator=None):
         """
         Pay a specific ARAPTransaction.
         """
@@ -44,7 +48,7 @@ class ARAP(models.Model):
             amount=amount,
             payment_method=payment_method,
             bank=bank,
-            recorded_by=recorded_by,
+            operator=operator,
             payment_date=timezone.now().date(),
             notes=notes or f"Payment for transaction {transaction.id}",
             status='COMPLETED'

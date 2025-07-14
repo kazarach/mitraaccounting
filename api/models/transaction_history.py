@@ -11,6 +11,7 @@ from .sales import Sales
 from .stock import Stock
 from .stock_price import PriceCategory, StockPrice
 from django.conf import settings
+from ..utils.journal_utils import create_journal_entries_for_transaction
 
 class TransactionType(models.TextChoices):
     SALE = 'SALE', 'Sale'
@@ -188,7 +189,7 @@ class TransactionHistory(models.Model):
             amount=payment_amount,
             payment_method=payment_method_mapping.get(self.th_payment_type),
             bank=self.bank,
-            recorded_by=self.cashier,
+            operator=self.cashier,
             payment_date=self.th_date,
             notes=notes_mapping.get(self.th_type, f"Auto-generated payment record for {self.th_code}"),
             status=payment_status
@@ -198,8 +199,6 @@ class TransactionHistory(models.Model):
 
     def save(self, *args, **kwargs):
         # Store original point value to detect changes
-        print(f"=== CUSTOM SAVE CALLED for {self.th_code} ===")
-        print(self.th_total)
         is_new = not self.pk
         original_point = None
         # original_total = None
@@ -298,7 +297,6 @@ class TransactionHistory(models.Model):
                 self.th_total = calculated_total
                 # Use update_fields to avoid triggering a full save again
                 TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
-            print(calculated_total)
             # Create point transaction record if this is a sale and customer exists
             # and we have points to add (either new transaction or updated points)
             if self.th_type == TransactionType.SALE and self.customer and self.th_point:
@@ -352,6 +350,15 @@ class TransactionHistory(models.Model):
             #         payment_record = self.create_automatic_payment_record(is_new=is_new)
             #         if payment_record:
             #             print(f"Auto-created payment record {payment_record.id} for transaction {self.th_code}")
+        
+        if self.th_type in [
+            TransactionType.SALE,
+            TransactionType.PURCHASE,
+            TransactionType.RETURN_SALE,
+            TransactionType.RETURN_PURCHASE,
+            TransactionType.EXPENSE
+        ]:
+            create_journal_entries_for_transaction(self)
 
     def get_payment_balance(self):
         """

@@ -366,16 +366,16 @@ class ARAPViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def add_payment(self, request, pk=None):
         """
-        Add a payment directly to this ARAP record.
+        Add a payment directly to this ARAP record with full accounting integration.
         """
         try:
             arap = self.get_object()
             amount = Decimal(str(request.data.get('amount', 0)))
             payment_method = request.data.get('payment_method', 'CASH')
-            bank = request.data.get('bank')
+            bank_id = request.data.get('bank')
             notes = request.data.get('notes', '')
             allocation_strategy = request.data.get('allocation_strategy', 'FIFO')
-            arap_transaction_id = request.data.get('arap_transaction_id')  # <-- New
+            arap_transaction_id = request.data.get('arap_transaction_id')
 
             if amount <= 0:
                 return Response(
@@ -383,38 +383,65 @@ class ARAPViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            result = self._allocate_payment(arap, amount, allocation_strategy, arap_transaction_id)
+            # Get bank object if provided
+            bank = None
+            if bank_id:
+                try:
+                    from ..models.bank import Bank
+                    bank = Bank.objects.get(id=bank_id)
+                except Bank.DoesNotExist:
+                    pass
+
+            # Allocate payment with accounting integration
+            result = self._allocate_payment(
+                arap=arap,
+                amount=amount,
+                allocation_strategy=allocation_strategy,
+                arap_transaction_id=arap_transaction_id
+            )
+
 
             if 'error' in result:
                 return Response({'error': result['error']}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Create payment record
             from ..models.payment_record import Payment
             payment = Payment.objects.create(
                 arap=arap,
+                supplier=arap.supplier,
+                customer=arap.customer,
                 payment_type='ADDITIONAL',
                 amount=result['allocated_amount'],
                 payment_method=payment_method,
                 bank=bank,
-                recorded_by=request.user,
-                payment_date=timezone.now().date(),
+                operator=request.user,
+                payment_date=timezone.now(),
                 notes=notes or f"Pembayaran untuk {arap}",
                 status='COMPLETED'
             )
 
+            # Update ARAP totals
             arap.total_paid += result['allocated_amount']
             arap.save()
+
+            # Count total journal entries created
+            total_journal_entries = 0
+            for updated_transaction in result['updated_transactions']:
+                transaction = updated_transaction['transaction']
+                total_journal_entries += transaction.transaction_history.journal_entries.count()
 
             return Response({
                 'payment_id': payment.id,
                 'allocated_amount': str(result['allocated_amount']),
                 'remaining_payment': str(result['remaining_payment']),
                 'updated_transactions': len(result['updated_transactions']),
-                'arap_remaining': str(arap.remaining_amount())
+                'arap_remaining': str(arap.remaining_amount()),
+                'journal_entries_created': total_journal_entries,
+                'accounts_updated': total_journal_entries  # Each journal entry updates one account
             })
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
     
     @extend_schema(
         summary="Get payment schedule",

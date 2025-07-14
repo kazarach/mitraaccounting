@@ -1,5 +1,5 @@
 # Import all models to make them available when importing from the models package
-from .account import Account
+from .account import Account, JournalEntry
 from .bank import Bank
 from .member_type import MemberType
 from .customer import Customer

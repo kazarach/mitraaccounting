@@ -85,7 +85,7 @@ class Command(BaseCommand):
                 payment_method=random.choice(payment_methods),
                 bank=random.choice(banks) if random.random() > 0.5 else None,
                 bank_reference=f'{random.randint(1000, 9999)}-{random.randint(10000, 99999)}' if random.random() > 0.5 else None,
-                recorded_by=random.choice(users),
+                operator=random.choice(users),
                 payment_date=timezone.now() - timezone.timedelta(
                     days=random.randint(0, 365),
                     hours=random.randint(0, 24),
@@ -123,7 +123,7 @@ class Command(BaseCommand):
                     payment_method=random.choice(payment_methods),
                     bank=random.choice(banks) if random.random() > 0.5 else None,
                     bank_reference=f'{random.randint(1000, 9999)}-{random.randint(10000, 99999)}' if random.random() > 0.5 else None,
-                    recorded_by=random.choice(users),
+                    operator=random.choice(users),
                     payment_date=payment.payment_date + timezone.timedelta(
                         days=random.randint(1, 30),
                         hours=random.randint(0, 24),
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                 payment_method=payment.payment_method,
                 bank=random.choice(banks) if random.random() > 0.5 else None,
                 bank_reference=f'RTN-{random.randint(1000, 9999)}' if random.random() > 0.5 else None,
-                recorded_by=random.choice(users),
+                operator=random.choice(users),
                 payment_date=payment.payment_date + timezone.timedelta(
                     days=random.randint(5, 60),
                     hours=random.randint(0, 24),

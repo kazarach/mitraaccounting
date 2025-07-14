@@ -6,32 +6,81 @@ from api.models.account import Account, AccountType, JournalEntry
 from api.models.transaction_history import TransactionHistory
 from django.utils import timezone
 
+
 class Command(BaseCommand):
-    help = 'Seed account and journal entry data for the application'
+    help = 'Seed required core accounts and related models for ARAP functionality'
+
+    CORE_ACCOUNTS = [
+        {
+            'account_number': '1100',
+            'name': 'Cash',
+            'account_type': AccountType.ASSET,
+            'description': 'Cash account'
+        },
+        {
+            'account_number': '1200',
+            'name': 'Bank',
+            'account_type': AccountType.ASSET,
+            'description': 'Bank account'
+        },
+        {
+            'account_number': '3300',
+            'name': 'Accounts Receivable',
+            'account_type': AccountType.ASSET,
+            'description': 'Receivable from customers'
+        },
+        {
+            'account_number': '4400',
+            'name': 'Accounts Payable',
+            'account_type': AccountType.LIABILITY,
+            'description': 'Payable to suppliers'
+        },
+        {
+            'account_number': '5000',
+            'name': 'Sales Revenue',
+            'account_type': AccountType.REVENUE,
+            'description': 'Revenue from sales'
+        },
+        {
+            'account_number': '9000',
+            'name': 'General Expense',
+            'account_type': AccountType.EXPENSE,
+            'description': 'General company expenses'
+        },
+    ]
 
     def handle(self, *args, **kwargs):
         fake = Faker()
+        created_count = 0
 
-        self.stdout.write('Ensuring related models exist...')
+        # Create or update core accounts
+        for acc_data in self.CORE_ACCOUNTS:
+            account, created = Account.objects.update_or_create(
+                account_number=acc_data['account_number'],
+                defaults={
+                    'name': acc_data['name'],
+                    'account_type': acc_data['account_type'],
+                    'description': acc_data['description'],
+                    'is_active': True,
+                    'parent_account': None,
+                }
+            )
+            if created:
+                created_count += 1
+                self.stdout.write(f'✅ Created account: {account.account_number} - {account.name}')
+            else:
+                self.stdout.write(f'⚠️  Updated/Verified account: {account.account_number} - {account.name}')
+
+        self.stdout.write(self.style.SUCCESS(f'\nDone. {created_count} new accounts created.'))
+
+        # Optionally: Create one child (sub) account for each core account
+        self.create_sub_accounts(fake)
+
+        # Seed related models for testing journal entries
         self.ensure_related_models_exist(fake)
-
-        self.stdout.write('Clearing existing Account and JournalEntry data...')
-        Account.objects.all().delete()
-        JournalEntry.objects.all().delete()
-
-        self.stdout.write('Creating parent accounts...')
-        parent_accounts = self.create_parent_accounts(fake)
-
-        self.stdout.write('Creating sub-accounts...')
-        self.create_sub_accounts(fake, parent_accounts)
-
-        self.stdout.write('Creating journal entries...')
         self.create_journal_entries(fake)
 
-        self.stdout.write(self.style.SUCCESS('✅ Successfully seeded account and journal entry data'))
-
     def ensure_related_models_exist(self, fake):
-        """Ensure there are some transactions to associate with journal entries."""
         if not TransactionHistory.objects.exists():
             transactions = [
                 TransactionHistory(
@@ -46,42 +95,32 @@ class Command(BaseCommand):
             ]
             TransactionHistory.objects.bulk_create(transactions)
 
-    def create_parent_accounts(self, fake):
-        """Create and return a list of parent Account objects."""
-        parent_accounts = []
-        for _ in range(5):
-            parent = Account.objects.create(
-                account_number=fake.unique.numerify(text='##########'),
-                name=fake.company(),
-                description=fake.sentence(),
-                account_type=random.choice(AccountType.choices)[0],
-                parent_account=None,
-                is_active=random.choice([True, False]),
-                balance=Decimal(random.uniform(-10000, 50000)).quantize(Decimal('0.01'))
-            )
-            parent_accounts.append(parent)
-        return parent_accounts
-
-    def create_sub_accounts(self, fake, parent_accounts):
-        """Create sub-accounts with references to parent accounts."""
-        sub_accounts = [
-            Account(
-                account_number=fake.unique.numerify(text='##########'),
-                name=fake.company(),
-                description=fake.sentence(),
-                account_type=random.choice(AccountType.choices)[0],
-                parent_account=random.choice(parent_accounts),
-                is_active=random.choice([True, False]),
-                balance=Decimal(random.uniform(-10000, 50000)).quantize(Decimal('0.01'))
-            )
-            for _ in range(15)
-        ]
-        Account.objects.bulk_create(sub_accounts)
-
+    def create_sub_accounts(self, fake):
+        """Create sub-accounts for core accounts, and 3 fake bank sub-accounts under Bank (1200)."""
+        for parent in Account.objects.filter(account_number__in=[acc['account_number'] for acc in self.CORE_ACCOUNTS]):
+            if parent.account_number == '1200':
+                # Only create 3 fake bank sub-accounts under Bank
+                for bank_name in ['Bank BCA', 'Bank Mandiri', 'Bank BNI']:
+                    sub_acc_number = f"{parent.account_number}{random.randint(100,999)}"  # e.g., 1200123
+                    if not Account.objects.filter(name=bank_name, parent_account=parent).exists():
+                        Account.objects.create(
+                            account_number=sub_acc_number,
+                            name=bank_name,
+                            account_type=parent.account_type,
+                            description=f"{bank_name} account under {parent.name}",
+                            parent_account=parent,
+                            is_active=True,
+                            balance=Decimal('0.00')
+                        )
+                        self.stdout.write(f'🏦 Created bank sub-account: {sub_acc_number} - {bank_name}')
+                        
     def create_journal_entries(self, fake):
-        """Create journal entries linked to random transactions and accounts."""
         transaction_ids = list(TransactionHistory.objects.values_list('id', flat=True))
         account_ids = list(Account.objects.values_list('id', flat=True))
+
+        if not transaction_ids or not account_ids:
+            self.stdout.write("⚠️ Skipping journal entries: no transactions or accounts found.")
+            return
 
         journal_entries = [
             JournalEntry(
@@ -95,3 +134,4 @@ class Command(BaseCommand):
             for _ in range(50)
         ]
         JournalEntry.objects.bulk_create(journal_entries)
+        self.stdout.write(f'📘 Created {len(journal_entries)} journal entries.')

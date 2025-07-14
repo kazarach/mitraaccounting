@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, F, Count
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiResponse
 
-from ..models import Payment
+from ..models import Payment, Account
 from ..serializers import PaymentSerializer
 
 @extend_schema_view(
@@ -50,11 +50,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing Payment records including create, read, update, delete and custom filters.
     """
-    queryset = Payment.objects.select_related('transaction', 'arap', 'original_payment', 'bank', 'recorded_by')
+    queryset = Payment.objects.select_related('transaction', 'arap', 'original_payment', 'bank', 'operator')
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
-    filterset_fields = ['transaction', 'arap', 'payment_type', 'status', 'recorded_by', 'customer', 'supplier']
+    filterset_fields = ['transaction', 'arap', 'payment_type', 'status', 'operator', 'customer', 'supplier']
     search_fields = ['bank_reference', 'notes']
     ordering_fields = ['payment_date', 'amount']
     ordering = ['-payment_date']
@@ -71,7 +71,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(recorded_by=self.request.user)
+        serializer.save(operator=self.request.user)
 
     @extend_schema(
         summary="Payment Summary",
@@ -91,3 +91,28 @@ class PaymentViewSet(viewsets.ModelViewSet):
             count=Count('id')
         ).order_by('payment_type', 'status')
         return Response(summary)
+
+    @extend_schema(
+        summary="Payment Inflow/Outflow Report",
+        description="Returns inflow/outflow direction and account used per payment.",
+        tags=["Payments"]
+    )
+    @action(detail=False, methods=['get'])
+    def inflow_outflow(self, request):
+        payments = self.get_queryset()
+        data = []
+
+        for p in payments:
+            data.append({
+                'id': p.id,
+                'facture_code': getattr(getattr(p.transaction, 'transaction_history', None), 'th_code', None),
+                'payment_type': p.payment_type,
+                'payment_method': p.payment_method,
+                'amount': float(p.amount),
+                'direction': p.direction,
+                'bank_name': p.bank.name if p.bank else "Cash",
+                'account_used': Account.objects.filter(name__icontains=p.bank.name).first().name if p.bank else "Cash",
+                'payment_date': p.payment_date.date(),
+            })
+
+        return Response(data)
