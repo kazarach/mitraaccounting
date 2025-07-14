@@ -54,7 +54,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
-    filterset_fields = ['transaction', 'arap', 'payment_type', 'status', 'operator', 'customer', 'supplier']
+    filterset_fields = ['transaction', 'arap', 'payment_type', 'status', 'operator', 'customer', 'supplier', 'payment_method']
     search_fields = ['bank_reference', 'notes']
     ordering_fields = ['payment_date', 'amount']
     ordering = ['-payment_date']
