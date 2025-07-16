@@ -19,9 +19,12 @@ def create_journal_entries_for_transaction(transaction):
     # Delete previous journal entries
     JournalEntry.objects.filter(transaction=transaction).delete()
 
-    if not transaction.th_total or transaction.th_total <= 0:
-        return
+    amount = transaction.th_total if transaction.th_total else transaction.th_dp
 
+    if not amount or amount <= 0:
+        print(f"[SKIPPED] Journal creation skipped due to missing amount (th_total and th_dp both empty or zero)")
+        return
+    print("CREATE")
     # Resolve accounts (fallback to first active sub-account if applicable)
     acc_cash = get_posting_account('1100')     # Cash (or sub)
     acc_bank = get_posting_account('1200')     # Bank (or sub)
@@ -38,19 +41,19 @@ def create_journal_entries_for_transaction(transaction):
             # Dr AR, Cr Sales
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_ar,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
         else:
             acc = acc_cash if transaction.th_payment_type == 'CASH' else acc_bank
             entries.append(JournalEntry(
                 transaction=transaction, account=acc,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
         entries.append(JournalEntry(
             transaction=transaction, account=acc_sales,
-            debit_amount=0, credit_amount=transaction.th_total,
+            debit_amount=0, credit_amount=amount,
             description=description, date=transaction.th_date
         ))
 
@@ -59,24 +62,24 @@ def create_journal_entries_for_transaction(transaction):
             # Dr Expense, Cr AP
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_expense,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_ap,
-                debit_amount=0, credit_amount=transaction.th_total,
+                debit_amount=0, credit_amount=amount,
                 description=description, date=transaction.th_date
             ))
         else:
             acc = acc_cash if transaction.th_payment_type == 'CASH' else acc_bank
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_expense,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
             entries.append(JournalEntry(
                 transaction=transaction, account=acc,
-                debit_amount=0, credit_amount=transaction.th_total,
+                debit_amount=0, credit_amount=amount,
                 description=description, date=transaction.th_date
             ))
 
@@ -84,42 +87,66 @@ def create_journal_entries_for_transaction(transaction):
         acc = acc_cash if transaction.th_payment_type == 'CASH' else acc_bank
         entries.append(JournalEntry(
             transaction=transaction, account=acc_expense,
-            debit_amount=transaction.th_total, credit_amount=0,
+            debit_amount=amount, credit_amount=0,
             description=description, date=transaction.th_date
         ))
         entries.append(JournalEntry(
             transaction=transaction, account=acc,
-            debit_amount=0, credit_amount=transaction.th_total,
+            debit_amount=0, credit_amount=amount,
             description=description, date=transaction.th_date
         ))
 
-    elif transaction.th_type == TransactionType.RETURN:
-        if transaction.customer:
+    elif transaction.th_type in [TransactionType.RETURN_SALE, TransactionType.RETURN_PURCHASE]:
+        if transaction.th_type == TransactionType.RETURN_SALE and transaction.customer:
             # Sales return: Cr AR / Cash, Dr Sales (negative revenue)
             acc = acc_cash if transaction.th_payment_type == 'CASH' else acc_ar
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_sales,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
             entries.append(JournalEntry(
                 transaction=transaction, account=acc,
-                debit_amount=0, credit_amount=transaction.th_total,
+                debit_amount=0, credit_amount=amount,
                 description=description, date=transaction.th_date
             ))
-        elif transaction.supplier:
+
+        elif transaction.th_type == TransactionType.RETURN_PURCHASE and transaction.supplier:
             # Purchase return: Cr Expense, Dr Cash / AP
             acc = acc_cash if transaction.th_payment_type == 'CASH' else acc_ap
             entries.append(JournalEntry(
                 transaction=transaction, account=acc,
-                debit_amount=transaction.th_total, credit_amount=0,
+                debit_amount=amount, credit_amount=0,
                 description=description, date=transaction.th_date
             ))
             entries.append(JournalEntry(
                 transaction=transaction, account=acc_expense,
-                debit_amount=0, credit_amount=transaction.th_total,
+                debit_amount=0, credit_amount=amount,
                 description=description, date=transaction.th_date
             ))
+
+    elif transaction.th_type == TransactionType.TRANSFER:
+        # You need a way to store both accounts involved
+        from_account = transaction.from_account
+        to_account = transaction.to_account
+        print("transfer")
+        print(amount)
+        if not from_account or not to_account:
+            raise ValueError("TRANSFER requires both from_account and to_account")
+
+        entries.append(JournalEntry(
+            transaction=transaction, account=from_account,
+            debit_amount=0, credit_amount=amount,
+            description=f"Transfer from {from_account.name} to {to_account.name}",
+            date=transaction.th_date
+        ))
+        entries.append(JournalEntry(
+            transaction=transaction, account=to_account,
+            debit_amount=amount, credit_amount=0,
+            description=f"Transfer from {from_account.name} to {to_account.name}",
+            date=transaction.th_date
+        ))
+
 
 
     JournalEntry.objects.bulk_create(entries)

@@ -18,6 +18,7 @@ from api.views import PointTransactionViewSet, CustomerPointsViewSet
 from api.views import StockChangeHistoryAPIView
 from api.views import PaymentViewSet
 from api.views import FinancialReportsViewSet
+from api.views import AccountViewSet
 # from api.views import TransactionAuditViewSet, ARAPAnalyticsViewSet, AccountingValidationViewSet
 
 # Create a router and register viewsets
@@ -38,6 +39,8 @@ router.register(r'point-transactions', PointTransactionViewSet, basename='point_
 router.register(r'customer-points', CustomerPointsViewSet, basename='point_customer')
 router.register(r'payments', PaymentViewSet, basename='payment')
 router.register(r'financial-reports', FinancialReportsViewSet, basename='financial-reports')
+router.register(r'accounts', AccountViewSet, basename='account')
+
 # router.register(r'transaction-audit', TransactionAuditViewSet, basename='transaction-audit')
 # router.register(r'arap-analytics', ARAPAnalyticsViewSet, basename='arap-analytics')
 # router.register(r'accounting-validation', AccountingValidationViewSet, basename='accounting-validation')

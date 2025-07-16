@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-from .transaction_history import TransactionHistory
 
 class AccountType(models.TextChoices):
     ASSET = 'ASSET', 'Asset'

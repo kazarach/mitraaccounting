@@ -11,3 +11,4 @@ from .customer_serializer import CustomerCreateSerializer, CustomerSerializer
 from .point_serializer import PointTransactionSerializer, PointTransactionCreateSerializer, CustomerPointSummarySerializer, RedeemPointsSerializer
 from .stock_change_serializer import StockChangeSerializer, StockChangeDetailSerializer
 from .payment_serializer import PaymentSerializer
+from .account_serializer import AccountSerializer

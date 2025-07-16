@@ -10,3 +10,4 @@ from .point_views import PointTransactionViewSet, RedeemPointsView, CustomerPoin
 from .stock_change_views import StockChangeHistoryAPIView
 from .payment_views import PaymentViewSet
 from .financial_views import FinancialReportsViewSet
+from .account_views import AccountViewSet

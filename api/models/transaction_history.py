@@ -10,6 +10,7 @@ from .event_discount import EventDisc
 from .sales import Sales
 from .stock import Stock
 from .stock_price import PriceCategory, StockPrice
+from .account import Account
 from django.conf import settings
 from ..utils.journal_utils import create_journal_entries_for_transaction
 
@@ -66,6 +67,9 @@ class TransactionHistory(models.Model):
     th_point = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     
     th_status = models.BooleanField(default=True)
+
+    from_account = models.ForeignKey(Account, on_delete=models.SET_NULL, blank=True, null=True, related_name='transfers_out')
+    to_account = models.ForeignKey(Account, on_delete=models.SET_NULL, blank=True, null=True, related_name='transfers_in')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -293,10 +297,11 @@ class TransactionHistory(models.Model):
             
             # Calculate th_total only if we have related items
             calculated_total = sum(item.netto for item in self.items.all())
-            if calculated_total != self.th_total:
-                self.th_total = calculated_total
-                # Use update_fields to avoid triggering a full save again
-                TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
+            if self.th_type not in [TransactionType.TRANSFER, TransactionType.PAYMENT, TransactionType.RECEIPT]:
+                calculated_total = sum(item.netto for item in self.items.all())
+                if calculated_total != self.th_total:
+                    self.th_total = calculated_total
+                    TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
             # Create point transaction record if this is a sale and customer exists
             # and we have points to add (either new transaction or updated points)
             if self.th_type == TransactionType.SALE and self.customer and self.th_point:
@@ -340,23 +345,14 @@ class TransactionHistory(models.Model):
                         balance_after=self.customer.point,
                         note=f"Points adjusted due to sales return {self.th_code}"
                     )
-
-            # should_create_payment = (
-            #         is_new or 
-            #         (original_total != self.th_total and abs((original_total or 0) - (self.th_total or 0)) > 0.01)
-            #     )
-                
-            # if should_create_payment:
-            #         payment_record = self.create_automatic_payment_record(is_new=is_new)
-            #         if payment_record:
-            #             print(f"Auto-created payment record {payment_record.id} for transaction {self.th_code}")
-        
+        print(self.th_type)
         if self.th_type in [
             TransactionType.SALE,
             TransactionType.PURCHASE,
             TransactionType.RETURN_SALE,
             TransactionType.RETURN_PURCHASE,
-            TransactionType.EXPENSE
+            TransactionType.EXPENSE,
+            TransactionType.TRANSFER,
         ]:
             create_journal_entries_for_transaction(self)
 
