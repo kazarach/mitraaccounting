@@ -22,6 +22,7 @@ class TransactionType(models.TextChoices):
     USAGE = 'USAGE', 'Internal Usage'
     TRANSFER = 'TRANSFER', 'Transfer'
     PAYMENT = 'PAYMENT', 'Payment'
+    
     RECEIPT = 'RECEIPT', 'Receipt'
     ADJUSTMENT = 'ADJUSTMENT', 'Adjustment'
     EXPENSE = 'EXPENSE', 'Expense'
@@ -297,11 +298,10 @@ class TransactionHistory(models.Model):
             
             # Calculate th_total only if we have related items
             calculated_total = sum(item.netto for item in self.items.all())
-            if self.th_type not in [TransactionType.TRANSFER, TransactionType.PAYMENT, TransactionType.RECEIPT]:
-                calculated_total = sum(item.netto for item in self.items.all())
-                if calculated_total != self.th_total:
-                    self.th_total = calculated_total
-                    TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
+            if calculated_total != self.th_total:
+                self.th_total = calculated_total
+                # Use update_fields to avoid triggering a full save again
+                TransactionHistory.objects.filter(pk=self.pk).update(th_total=self.th_total)
             # Create point transaction record if this is a sale and customer exists
             # and we have points to add (either new transaction or updated points)
             if self.th_type == TransactionType.SALE and self.customer and self.th_point:

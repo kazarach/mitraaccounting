@@ -40,15 +40,32 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     event_discount_name = serializers.StringRelatedField(source='event_discount', read_only=True)
     th_due_date = serializers.DateTimeField(required=False, allow_null=True)
 
+    from_account_name = serializers.SerializerMethodField()
+    from_account_number = serializers.SerializerMethodField()
+    to_account_name = serializers.SerializerMethodField()
+    to_account_number = serializers.SerializerMethodField()
 
     class Meta:
         model = TransactionHistory
-        fields = '__all__'
+        fields = '__all__' + (
+            'from_account_name', 'from_account_number',
+            'to_account_name', 'to_account_number',
+        )
     
     def get_supplier_name(self, obj):
-        if obj.supplier:
-            return obj.supplier.name
-        return None
+        return obj.supplier.name if obj.supplier else None
+
+    def get_from_account_name(self, obj):
+        return obj.from_account.name if obj.from_account else None
+
+    def get_from_account_number(self, obj):
+        return obj.from_account.account_number if obj.from_account else None
+
+    def get_to_account_name(self, obj):
+        return obj.to_account.name if obj.to_account else None
+
+    def get_to_account_number(self, obj):
+        return obj.to_account.account_number if obj.to_account else None
     
     def create(self, validated_data):
         items_data = validated_data.pop('items')
