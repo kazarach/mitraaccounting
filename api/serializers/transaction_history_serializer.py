@@ -47,11 +47,12 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TransactionHistory
-        fields = '__all__' + (
+        fields = (
+            '__all__',
             'from_account_name', 'from_account_number',
             'to_account_name', 'to_account_number',
         )
-    
+
     def get_supplier_name(self, obj):
         return obj.supplier.name if obj.supplier else None
 
