@@ -252,4 +252,21 @@
   background-color: #f6f6f9; /* contoh warna striping */
 }
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #print-area, #print-area * {
+    visibility: visible !important;
+  }
+  #print-area {
+    position: absolute !important;
+    left: 0; top: 0; width: 100vw;
+    background: white !important;
+    z-index: 9999;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
 

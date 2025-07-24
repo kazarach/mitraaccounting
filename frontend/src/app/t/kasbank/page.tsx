@@ -1,23 +1,24 @@
+
 import {
     Card,
     CardContent,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import KasBankArsipTable from "./tabledata";
-const KasBankArsip = () => {
+import KasBankTransTable from "./tabledata";
+const KasBankTrans = () => {
     return (
         <div className="flex justify-center items-center w-full pt-4">
-            <Card className="w-full mx-4">
+            <Card className="w-1/3 mx-4">
                 <CardHeader>
-                    <CardTitle>Arsip Kas dan Bank</CardTitle>
+                    <CardTitle>Transaksi Kas dan Bank</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <KasBankArsipTable/>
+                    <KasBankTransTable/>
                 </CardContent>
             </Card>
         </div>
     );
 };
 
-export default KasBankArsip; 
+export default KasBankTrans; 

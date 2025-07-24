@@ -39,20 +39,15 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
     const bayar = form.watch("th_dp") || 0;
     const totalBayar = review?.th_total || 0;
     const dp = review?.th_dp || 0;
-    const kurangBayar = (((review?.th_total || 0) - (review?.th_round || 0)) - (review?.th_dp || 0))-bayar;
+    const kurangBayar = (((review?.th_total || 0) - (review?.th_round || 0)) - (review?.th_dp || 0)) - bayar;
 
     const paymentType = form.watch("th_payment_type");
-    const paymentFlags = {
-        isCredit: paymentType === "CREDIT",
-        isBank: paymentType === "BANK" || paymentType === "CREDIT",
-        isCash: paymentType === "CASH",
-    };
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-    const { data: bank } = useSWR(`${API_URL}api/banks/`, fetcher);
+    const { data: bank } = useSWR(`/api/proxy/api/banks/`, fetcher);
 
     const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-        "http://100.82.207.117:8000/api/stock/by_ids/",
+        "/api/proxy/api/stock/by_ids/",
         fetcherPost
     );
 
@@ -108,7 +103,7 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                             <TableRow>
                                 <TableCell></TableCell>
                             </TableRow>
-                            <TableRow>
+                            {/* <TableRow>
                                 <TableCell>Tipe Bayar</TableCell>
                                 <TableCell className="text-left border-l p-0">
                                     <FormField
@@ -132,36 +127,9 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                         )}
                                     />
                                 </TableCell>
-                            </TableRow>
+                            </TableRow> */}
 
-                            <TableRow>
-                                <TableCell>Jatuh Tempo</TableCell>
-                                <TableCell className="text-right border-l p-0">
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                disabled={!paymentFlags.isCredit}
-                                                className={cn(
-                                                    "w-full justify-start text-right font-normal text-sm border-0 rounded-none bg-white",
-                                                    !paymentFlags.isCredit && "bg-gray-300 cursor-not-allowed"
-                                                )}
-                                            >
-                                                <CalendarIcon />
-                                                {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0 bg-white border rounded-md">
-                                            <Calendar
-                                                mode="single"
-                                                selected={date}
-                                                onSelect={setDate}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </TableCell>
-                            </TableRow>
+
 
                             <TableRow>
                                 <TableCell>Bank</TableCell>
@@ -173,14 +141,12 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                             <FormItem>
                                                 <FormControl>
                                                     <Select
-                                                        disabled={!paymentFlags.isBank}
                                                         value={field.value !== undefined ? String(field.value) : ""}
                                                         onValueChange={(val) => field.onChange(Number(val))}
                                                     >
                                                         <SelectTrigger
                                                             className={cn(
-                                                                "relative w-full border-0 bg-white text-sm rounded-none",
-                                                                !paymentFlags.isBank && "bg-gray-300 cursor-not-allowed"
+                                                                "relative w-full border-0 bg-white text-sm rounded-none"
                                                             )}
                                                         >
                                                             <SelectValue placeholder="Pilih Bank" className="text-xs" />
@@ -277,6 +243,32 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
                                 <TableCell>Kurang Bayar</TableCell>
                                 <TableCell className="text-right border-l">
                                     {kurangBayar.toLocaleString("id-ID")}
+                                </TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell>Jatuh Tempo</TableCell>
+                                <TableCell className="text-right border-l p-0">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className={cn(
+                                                    "w-full justify-start text-right font-normal text-sm border-0 rounded-none bg-white"
+                                                )}
+                                            >
+                                                <CalendarIcon />
+                                                {date ? format(date, "PPP") : <span>Pilih Tanggal</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 bg-white border rounded-md">
+                                            <Calendar
+                                                mode="single"
+                                                selected={date}
+                                                onSelect={setDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </TableCell>
                             </TableRow>
                         </TableBody>

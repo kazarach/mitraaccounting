@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher, fetcherPatch, fetcherPost } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Copy, Trash } from 'lucide-react';
+import { CalendarIcon, Check, ChevronsUpDown, Copy, Search, Trash } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format, setDate } from 'date-fns';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -124,6 +124,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [reviewData, setReviewData] = useState<any>(null);
     const [pricesData, setPricesData] = useState<any>(null);
     const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchLoading, setSearchLoading] = useState(false);
 
     const openPersediaanModalWithStock = (stock: Stock) => {
         setSelectedStock(stock);
@@ -165,36 +167,6 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         },
     })
 
-    // const API_URL = process.env.NEXT_PUBLIC_API_URL!
-    // const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
-    //     `/api/proxy/api/transactions/calculate_preview/`,
-    //     fetcherPost
-    // );
-
-    // const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<
-    //     any,
-    //     any,
-    //     string,
-    //     any
-    // >(
-    //     `${API_URL}api/transactions/`,
-    //     fetcherPost
-    // );
-
-    // const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<
-    //     any,
-    //     any,
-    //     string,
-    //     any
-    // >(
-    //     `${API_URL}api/transactions`,
-    //     fetcherPatch
-    // );
-
-    // const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-    //     `${API_URL}api/stock/by_ids/`,
-    //     fetcherPost
-    // );
     const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
         '/api/proxy/api/transactions/calculate_preview/',
         fetcherPost
@@ -258,10 +230,10 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         if (submitAction === "bayar") {
             const values2 = form.getValues();
             const id = data?.[0]?.transaction_id;
-            // console.log(id + " id")
-            console.log(values2.th_dp)
             const th_dp = data?.[0]?.th_dp || 0;
-            console.log(th_dp)
+            const th_total = data?.[0]?.th_total || 0;
+            const totalDp = th_dp + values2.th_dp;
+            const paymentType = totalDp < th_total ? "CREDIT" : (values2.th_payment_type || "");
             const payload2: any = {
                 th_type: "PURCHASE",
                 th_ppn: isPpnIncluded ? 0 : 11,
@@ -270,8 +242,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 th_disc: values.th_disc,
                 th_date: values.th_date,
                 th_note: "",
-                th_payment_type: values2.th_payment_type || "",
-                th_dp: (th_dp + values2.th_dp),
+                th_payment_type: paymentType,
+                th_dp: totalDp,
                 th_order: false,
                 th_order_reference: id || undefined,
                 th_status: true,
@@ -286,8 +258,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     disc_percent: item.disc_percent || 0,
                     disc_percent2: item.disc_percent2 || 0,
                 })),
-
-            }
+            };
             console.log(payload2.th_dp)
 
             console.log(JSON.stringify(payload2, null, 1));
@@ -665,12 +636,60 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         toast.error("Table berhasil dihapus!");
     };
 
+    const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && searchQuery.trim() !== "") {
+            setSearchLoading(true);
+            try {
+                const res = await fetcher(`/api/proxy/api/stock/?search=${searchQuery.trim()}`);
+                if (!res || res.length === 0) {
+                    toast.error("Produk tidak ditemukan");
+                } else {
+                    if (res.length > 1) {
+                        toast.info(`Ditemukan ${res.length} produk, menambahkan produk pertama.`);
+                    }
+                    const product = res[0];
+                    handleAddProduct({
+                        id: product.id,
+                        barcode: product.barcode,
+                        code: product.code,
+                        name: product.name,
+                        price_buy: Number(product.price_buy),
+                        unit_name: product.unit_name,
+                        conversion_unit: product.conversion_unit,
+                        jumlah_barang: 1,
+                    });
+                }
+            } catch (err: any) {
+                toast.error(err.message || "Gagal mencari produk");
+            }
+            setSearchLoading(false);
+            setSearchQuery("");
+        }
+    };
+
+    const handleAddProduct = (product: any) => {
+        const subtotal = (product.jumlah_barang ?? 1) * product.price_buy;
+        const newItem = {
+            stock: product.id,
+            barcode: product.barcode,
+            stock_code: product.code,
+            stock_name: product.name,
+            jumlah_pesanan: 0,
+            quantity: product.jumlah_barang ?? 1,
+            stock_price_buy: product.price_buy,
+            unit: product.unit_name,
+            conversion_unit: product.conversion_unit
+        };
+        toast.success(product.name + " Berhasil Ditambahkan");
+        dispatch(addRow({ tableName, row: newItem }));
+    };
+
     return (
         <div className="flex flex-col space-y-4">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
 
-                    <div className="flex justify-between gap-4 mb-4">
+                    <div className="flex justify-between gap-4 mb-2">
 
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex flex-col space-y-2">
@@ -811,7 +830,28 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 </DialogContent>
                             </Dialog>
                             <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
-
+                        </div>
+                    </div>
+                    <div className='flex items-end justify-end'>
+                        <div className='flex items-end'>
+                            <div className={cn(
+                                "w-[297px]",
+                                "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                            )}>
+                                <Search size={20} style={{ marginRight: '10px' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Cari Produk (ID/Kode)"
+                                    style={{ border: 'none', outline: 'none', flex: '1' }}
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
+                                    disabled={searchLoading}
+                                />
+                                {searchLoading && <span className="ml-2 animate-spin">🔄</span>}
+                            </div>
                         </div>
                     </div>
 

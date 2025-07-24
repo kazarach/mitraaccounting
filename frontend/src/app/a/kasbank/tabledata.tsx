@@ -4,98 +4,122 @@ import React, { useEffect, useState } from 'react';
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow
 } from "@/components/ui/table";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, fetcher } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronsUpDown, ChevronUp, Copy, DollarSign, Eye, Search, Trash, X } from 'lucide-react';
+import { CalendarIcon, ChevronsUpDown, Check, Search, Eye, Trash, Printer, Pencil, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
 import { format } from 'date-fns';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateRange } from 'react-day-picker';
-
-import useSWR from 'swr';
-import { useReactTable, getCoreRowModel, getSortedRowModel, ColumnDef, flexRender, SortingState, getFacetedRowModel, getFilteredRowModel, getFacetedUniqueValues } from '@tanstack/react-table';
-import { ScrollArea } from '@radix-ui/react-scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import DetailPiutangModal from '@/app/l/piutang/hutang-detailHutang-modal';
+import { operators } from '@/data/product';
+import { TipeDropdown } from '@/components/dropdown-checkbox/tipe-dropdown';
+import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
+import { DateRange } from 'react-day-picker';
+import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/components/loading';
-import DetailHutangModal from './hutang-detailHutang-modal';
-import { ScrollBar } from '@/components/ui/scroll-area';
+import { ColumnDef, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getFacetedRowModel, getFacetedUniqueValues, flexRender, SortingState } from '@tanstack/react-table';
+import { error } from 'console';
+import { id } from 'date-fns/locale';
 
-const HutangTable = () => {
-    const [status, setStatus] = useState('false');
-    const [sorting, setSorting] = useState<SortingState>([
-        { id: "supplier_name", desc: false },
-    ]);
-    const [open, setOpen] = useState(false);
+const KasBankArsipTable = () => {
     const [search, setSearch] = useState("");
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-    const { data, error, isLoading, mutate } = useSWR(
-        [API_URL, status],
-        () => {
-            const statusParam = status !== "all" ? `&is_settled=${status}` : "";
-            return fetcher(
-                `/api/proxy/api/araps/?is_receivable=false${statusParam}&unsettled_transactions_only=true`
-            );
-        }
-    );
-    // console.log(data)
+    const [date, setDate] = React.useState<DateRange | undefined>(undefined)
+    const [operator, setOperator] = useState("");
+    const [tipe, setTipe] = useState("");
+    const [tipeTransfer, setTipeTransfer] = useState("");
+    const [includePiutang, setIncludePiutang] = useState(false);
+    const [open2, setOpen2] = React.useState(false)
+    const [value2, setValue2] = React.useState("")
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: "th_code", desc: false },
+    ]);
+    const [selectedRow, setSelectedRow] = useState<any | null>(null);
+    const [showPrint, setShowPrint] = useState(false);
 
-    // const tableData = Array.isArray(data)
-    //     ? [...data].sort((a, b) => a.customer_name.localeCompare(b.customer_name))
-    //     : [];
 
+    const { data, error, isLoading } = useSWR(`/api/proxy/api/transactions/?th_type=TRANSFER&th_type=EXPENSE`, fetcher);
+
+    console.log(data)
 
     const columns: ColumnDef<any>[] = [
         {
-            header: "Nama Supplier",
-            accessorKey: "supplier_name",
-            size: 300,
+            header: "No Faktur",
+            accessorKey: "th_code",
+            size: 100,
             enableSorting: true,
             filterFn: "includesString",
         },
+        {
+            header: "Tanggal",
+            accessorKey: "th_date",
+            cell: ({ getValue }) => {
+                const rawValue = getValue();
+                if (!rawValue || typeof rawValue !== 'string') return "-";
+                const parsedDate = new Date(rawValue);
+                if (isNaN(parsedDate.getTime())) return "-";
+                return format(parsedDate, "d/M/yyyy", { locale: id });
+            },
+        },
 
-        { header: "Sisa Hutang", accessorKey: "remaining_amount" },
-        { header: "Jumlah Hutang", accessorKey: "total_arap" },
+        { header: "Jumlah", accessorKey: "th_dp" },
+        { header: "Tipe", accessorKey: "th_type" },
+        { header: "Akun Asal", accessorKey: "from_account" },
+        { header: "Akun Tujuan", accessorKey: "to_account" },
+        { header: "Keterangan", accessorKey: "th_note" },
+        {
+            header: "Status",
+            accessorKey: "status",
+            cell: ({ getValue }) => {
+                const status = getValue() as string;
+                if (status === "COMPLETED") {
+                    return (
+                        <div className="inline-flex items-center gap-1 text-green-600 font-medium">
+                            <Check size={16} /> Complete
+                        </div>
+                    );
+                }
+                return (
+                    <div className="inline-flex items-center gap-1 text-yellow-600 font-medium">
+                        <X size={16} /> Not Complete
+                    </div>
+                );
+            },
+        },
+        { header: "operator", accessorKey: "cashier_username" },
         {
             header: "Action",
             cell: ({ row }) => {
-                const [open, setOpen] = useState(false);
                 const selectedId = row.original.id;
-
                 return (
-                    <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger asChild>
-                            <Button
-                                className="bg-blue-500 hover:bg-blue-600 size-7"
-                                onClick={() => setOpen(true)}
-                            >
-                                <Eye />
-                            </Button>
-                        </DialogTrigger>
-
-                        <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                                <DialogTitle>Detail Hutang</DialogTitle>
-                                <DialogDescription></DialogDescription>
-                            </DialogHeader>
-
-                            <DetailHutangModal id={selectedId} onClose={() => setOpen(false)} />
-                        </DialogContent>
-                    </Dialog>
+                    <Button
+                        className="bg-blue-500 hover:bg-blue-600 size-7"
+                        onClick={() => {
+                            setSelectedRow(row.original);
+                            setShowPrint(true);
+                        }}
+                    >
+                        <Printer />
+                    </Button>
                 );
             }
         }
+
     ];
 
 
@@ -106,6 +130,8 @@ const HutangTable = () => {
             sorting,
             globalFilter: search,
         },
+        enableColumnResizing: true, // Ini penting
+        columnResizeMode: "onChange", // atau "onEnd"
         onSortingChange: setSorting,
         onGlobalFilterChange: setSearch,
         getCoreRowModel: getCoreRowModel(),
@@ -114,49 +140,83 @@ const HutangTable = () => {
         getFacetedRowModel: getFacetedRowModel(),
         getFacetedUniqueValues: getFacetedUniqueValues(),
     });
-
-
-
     return (
         <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
                 <div className="flex flex-wrap items-end gap-4">
+
+                    {/* <div className="flex flex-col space-y-2">
+                        <Label htmlFor="operator">Operator</Label>
+                        <OperatorDropdown onChange={(id) => setOperator(id)} />
+                    </div> */}
                     <div className="flex flex-col space-y-2">
-                        <Label htmlFor="status">Status Hutang</Label>
-                        <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger className="relative w-[150px] h-[30px] bg-gray-100">
-                                <SelectValue placeholder="Umur Hutang" />
+                        <Label htmlFor="tipe">Tipe</Label>
+                        <Select value={tipe} onValueChange={setTipe}>
+                            <SelectTrigger className="w-[150px] h-[30px] justify-between font-normal bg-slate-100 ">
+                                <SelectValue placeholder="Pilih Tipe" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="false">Belum Lunas</SelectItem>
-                                <SelectItem value="true">Lunas</SelectItem>
-                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="0">Semua</SelectItem>
+                                <SelectItem value="CASH">Kas</SelectItem>
+                                <SelectItem value="BANK">Bank</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+                    <div className="flex flex-col space-y-2" >
+                        <Label htmlFor="date">Tanggal</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-[150px] h-[30px] justify-start text-left font-normal",
+                                        !date
+                                    )}
+                                >
+                                    <CalendarIcon />
+                                    {date?.from ? (
+                                        date.to ? (
+                                            <>
+                                                {format(date.from, "LLL dd, y")} -{" "}
+                                                {format(date.to, "LLL dd, y")}
+                                            </>
+                                        ) : (
+                                            format(date.from, "LLL dd, y")
+                                        )
+                                    ) : (
+                                        <span>Pilih Tanggal</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={date?.from}
+                                    selected={date}
+                                    onSelect={setDate}
+                                    numberOfMonths={2}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
-
-                <div className="flex items-end">
-                    <div className="flex items-end gap-2">
-                        <div
-                            className={cn(
-                                "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                            )}
-                        >
-                            <Search size={20} style={{ marginRight: "10px" }} />
-                            <input
-                                placeholder="Cari"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{ border: "none", outline: "none", flex: "1" }}
-                            />
+                <div className='flex items-end'>
+                    <div className='flex items-end gap-2'>
+                        <div className={cn(
+                            "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                            "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                        )}>
+                            <Search size={20} style={{ marginRight: '10px' }} />
+                            <input type="text" placeholder="Cari Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="rounded-md border overflow-auto">
+           <div className="rounded-md border overflow-auto">
                 <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
                     <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                         <Table>
@@ -261,4 +321,4 @@ const HutangTable = () => {
     );
 };
 
-export default HutangTable; 
+export default KasBankArsipTable;

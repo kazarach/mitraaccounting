@@ -7,6 +7,10 @@ import {
   ChevronDown,
   FileChartColumn,
   House,
+  EllipsisVertical,
+  LogOut,
+  PersonStanding,
+  ShieldEllipsis,
 } from "lucide-react";
 import {
   Sidebar,
@@ -17,13 +21,32 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import useSWR from "swr";
+import { fetcher } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Avatar, AvatarImage } from "./ui/avatar";
 
+const handleLogout = async () => {
+  try {
+    await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (err) {
+    console.error("Logout error", err);
+  }
+
+  // Redirect setelah logout
+  window.location.href = "/";
+};
 // Pindahkan data menu ke atas
+
 const Menus = [
   {
     title: "Transaksi",
@@ -53,9 +76,9 @@ const Menus = [
           { title: "Pemakaian Persediaan", url: "/t/stock/use" },
         ],
       },
-      { title: "Mutasi", url: "#" },
-      { title: "Kas/Bank", url: "#" },
-      { title: "Open Drawer", url: "#" },
+      // { title: "Mutasi", url: "#" },
+      { title: "Kas/Bank", url: "/t/kasbank" },
+      // { title: "Open Drawer", url: "#" },
     ],
   },
   {
@@ -107,6 +130,7 @@ export function AppSidebar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openMainMenus, setOpenMainMenus] = useState<string | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+  const { data = [], error, isLoading } = useSWR(`/api/proxy/api/users/me/`, fetcher)
 
   useEffect(() => {
     const token = localStorage.getItem("access");
@@ -248,45 +272,72 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button className="bg-white text-slate-800 hover:bg-slate-800 hover:text-white hover:border-white hover:border">{isLoggedIn ? "Admin" : "Login"}</Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-60">
-      {isLoggedIn ? (
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none text-center">Admin</h4>
-            <p className="text-sm text-center text-muted-foreground">
-              Welcome to MitraAccounting.
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <a href="/admin">
-              <Button className="w-full cursor-pointer">Admin Page</Button>
-            </a>
-            <Button
-              onClick={() => {
-                localStorage.removeItem("access");
-                localStorage.removeItem("refresh");
-                window.location.href = "/";
-              }}
-              className="bg-white text-red-500 border border-red-500 hover:bg-red-500 hover:text-white cursor-pointer w-full"
-            >
-              Logout
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-sm mb-2 text-muted-foreground">Silakan login terlebih dahulu</p>
-          <a href="/login">
-            <Button className="w-full">Login</Button>
-          </a>
-        </div>
-      )}
-    </PopoverContent>
-        </Popover>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            {isLoading ? (
+              <SidebarMenuButton size="lg">
+                <span className="text-sm text-muted-foreground">Loading user...</span>
+              </SidebarMenuButton>
+            ) : error ? (
+              <SidebarMenuButton size="lg">
+                <span className="text-sm text-red-500">Error loading user</span>
+              </SidebarMenuButton>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className=" text-white hover:text-white hover:bg-slate-700"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg grayscale bg-slate-200">
+                      <img src="https://www.shutterstock.com/image-vector/vector-male-face-avatar-logo-600nw-426321556.jpg" alt="" />
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">
+                        {data?.username}
+                      </span>
+                      <span className="text-muted-foreground truncate text-xs">
+                        {data?.role?.name}
+                      </span>
+                    </div>
+                    <EllipsisVertical className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                      <Avatar className="h-8 w-8 rounded-lg grayscale bg-slate-200">
+                        <img src="https://www.shutterstock.com/image-vector/vector-male-face-avatar-logo-600nw-426321556.jpg" alt="" />
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">
+                          {data?.username}
+                        </span>
+                        <span className="text-muted-foreground truncate text-xs">
+                          {data?.role?.name}
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem>
+                    <ShieldEllipsis />
+                    Admin
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleLogout}>
+                    <LogOut />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
