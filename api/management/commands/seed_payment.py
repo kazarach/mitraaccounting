@@ -16,15 +16,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-        self.ensure_related_models_exist()
+        self.ensure_required_data()
 
-        # Clear existing payments
         Payment.objects.all().delete()
+        self.stdout.write("Creating payments from ARAP records...")
 
         try:
             with transaction.atomic():
-                self.stdout.write("Creating payments from ARAP records...")
-
                 araps = ARAP.objects.prefetch_related('transactions').all()
                 users = list(get_user_model().objects.all())
                 banks = list(Bank.objects.all())
@@ -33,77 +31,66 @@ class Command(BaseCommand):
 
                 for arap in araps:
                     for tx in arap.transactions.all():
-                        if tx.remaining_amount() <= 0:
+                        remaining = tx.remaining_amount()
+                        if remaining <= 0:
                             continue
 
-                        # INITIAL payment (1 per transaction)
-                        initial_amount = tx.remaining_amount() * Decimal(random.uniform(0.3, 1)).quantize(Decimal('0.01'))
-                        if initial_amount > 0:
-                            self.create_payment(
-                                arap=arap,
-                                transaction=tx,
-                                amount=initial_amount,
-                                payment_type='INITIAL',
-                                payment_method=random.choice(payment_methods),
-                                bank=random.choice(banks) if random.random() > 0.5 else None,
-                                operator=random.choice(users),
-                                notes=f"Initial payment for tx {tx.id}",
-                                status=random.choice(statuses),
-                                fake=fake
-                            )
+                        # Initial payment
+                        initial_amount = (remaining * Decimal(random.uniform(0.3, 1))).quantize(Decimal('0.01'))
+                        self.create_payment(
+                            arap, tx, initial_amount, 'INITIAL',
+                            random.choice(payment_methods),
+                            random.choice(banks) if random.random() > 0.5 else None,
+                            random.choice(users), f"Initial payment for tx {tx.id}",
+                            random.choice(statuses)
+                        )
 
-                        # Additional payments (random 0–2)
-                        num_additional = random.randint(0, 2)
-                        for _ in range(num_additional):
+                        # Additional payments
+                        for _ in range(random.randint(0, 2)):
                             if tx.remaining_amount() <= 0:
                                 break
-                            add_amount = min(tx.remaining_amount(), Decimal(random.uniform(10, 200)))
+                            add_amount = min(tx.remaining_amount(), Decimal(random.uniform(10, 200)).quantize(Decimal('0.01')))
                             self.create_payment(
+                                arap, tx, add_amount, 'ADDITIONAL',
+                                random.choice(payment_methods),
+                                random.choice(banks) if random.random() > 0.5 else None,
+                                random.choice(users), f"Additional payment for tx {tx.id}",
+                                random.choice(statuses)
+                            )
+
+                        # Random return payment
+                        if random.random() < 0.1 and tx.paid > 0:
+                            returned_amount = (tx.paid * Decimal(random.uniform(0.1, 0.5))).quantize(Decimal('0.01'))
+                            Payment.objects.create(
                                 arap=arap,
                                 transaction=tx,
-                                amount=add_amount,
-                                payment_type='ADDITIONAL',
+                                payment_type='RETURN',
+                                amount=returned_amount,
+                                original_payment=None,
                                 payment_method=random.choice(payment_methods),
                                 bank=random.choice(banks) if random.random() > 0.5 else None,
                                 operator=random.choice(users),
-                                notes=f"Additional payment for tx {tx.id}",
-                                status=random.choice(statuses),
-                                fake=fake
+                                payment_date=timezone.now().date(),
+                                notes=f"Return for tx {tx.id}",
+                                status='COMPLETED'
                             )
-
-                        # Return payment (random chance)
-                        if random.random() < 0.1:
-                            returned_amount = tx.paid * Decimal(random.uniform(0.1, 0.5)).quantize(Decimal('0.01'))
-                            if returned_amount > 0:
-                                Payment.objects.create(
-                                    arap=arap,
-                                    transaction=tx,
-                                    payment_type='RETURN',
-                                    amount=returned_amount,
-                                    original_payment=None,  # Optional: link to the initial payment
-                                    payment_method=random.choice(payment_methods),
-                                    bank=random.choice(banks) if random.random() > 0.5 else None,
-                                    operator=random.choice(users),
-                                    payment_date=timezone.now().date(),
-                                    notes=f"Return for tx {tx.id}",
-                                    status='COMPLETED'
-                                )
-                                tx.paid -= returned_amount
-                                tx.save()
-                                arap.total_paid -= returned_amount
-                                arap.save()
+                            tx.paid -= returned_amount
+                            tx.save()
+                            arap.total_paid -= returned_amount
+                            arap.save()
 
                 self.stdout.write(self.style.SUCCESS("Successfully seeded payments from ARAPs."))
+
         except Exception as e:
             import traceback
-            self.stdout.write(self.style.ERROR(f"Error: {e}"))
-            self.stdout.write(self.style.ERROR(traceback.format_exc()))
+            self.stderr.write(self.style.ERROR(f"Error: {e}"))
+            self.stderr.write(self.style.ERROR(traceback.format_exc()))
 
-    def create_payment(self, arap, transaction, amount, payment_type, payment_method, bank, operator, notes, status, fake):
+    def create_payment(self, arap, transaction, amount, payment_type, payment_method, bank, operator, notes, status):
         """
         Use ARAP.add_payment() to apply the payment to the transaction properly.
         """
-        return arap.add_payment(
+        arap.add_payment(
             transaction=transaction,
             amount=Decimal(amount),
             payment_method=payment_method,
@@ -112,9 +99,9 @@ class Command(BaseCommand):
             operator=operator
         )
 
-    def ensure_related_models_exist(self):
+    def ensure_required_data(self):
         """
-        Ensure required records exist before running
+        Ensure related models have data before seeding payments.
         """
         User = get_user_model()
         if not User.objects.exists():

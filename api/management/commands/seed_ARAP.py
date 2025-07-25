@@ -4,10 +4,9 @@ from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction as db_transaction
-from django.utils import timezone
 
 from api.models.arap import ARAP, ARAPTransaction
-from api.models.transaction_history import TransactionHistory, TransactionType
+from api.models.transaction_history import TransactionHistory
 from api.models.customer import Customer
 from api.models.supplier import Supplier
 
@@ -17,36 +16,33 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.stdout.write("Seeding ARAP data from TransactionHistory...")
+
         try:
             with db_transaction.atomic():
-                # Clear previous test ARAP data
+                # Clean up old ARAP data
                 ARAPTransaction.objects.all().delete()
                 ARAP.objects.all().delete()
 
-                # Track existing ARAPs
-                arap_map = {}  # Keyed by (customer_id, is_receivable) or (supplier_id, is_receivable)
+                # Track created ARAPs by (party_id, is_receivable)
+                arap_map = {}
 
-                # Filter transactions that should create ARAPs
+                # Define valid transaction type codes
+                RECEIVABLE_CODES = ['SALE', 'RETURN_PURCHASE']
+                PAYABLE_CODES = ['PURCHASE', 'RETURN_SALE', 'EXPENSE']
+                VALID_CODES = RECEIVABLE_CODES + PAYABLE_CODES
+
+                # Filter relevant transactions
                 eligible_transactions = TransactionHistory.objects.filter(
-                    th_type__in=[
-                        TransactionType.SALE,
-                        TransactionType.PURCHASE,
-                        TransactionType.RETURN_SALE,
-                        TransactionType.RETURN_PURCHASE,
-                        TransactionType.EXPENSE
-                    ]
+                    th_type__code__in=VALID_CODES
                 ).exclude(th_total=0)
 
-                for transaction in eligible_transactions:
-                    is_receivable = transaction.th_type in [
-                        TransactionType.SALE,
-                        TransactionType.RETURN_PURCHASE
-                    ]
+                for tx in eligible_transactions:
+                    th_type_code = tx.th_type.code
+                    is_receivable = th_type_code in RECEIVABLE_CODES
+                    party = tx.customer if is_receivable else tx.supplier
 
-                    # Use customer or supplier depending on is_receivable
-                    party = transaction.customer if is_receivable else transaction.supplier
                     if not party:
-                        continue  # Skip if missing key entity
+                        continue  # Skip if party is missing
 
                     key = (party.id, is_receivable)
 
@@ -63,20 +59,23 @@ class Command(BaseCommand):
                         arap = arap_map[key]
 
                     # Create ARAPTransaction
-                    arap_tx = ARAPTransaction.objects.create(
-                        transaction_history=transaction,
+                    ARAPTransaction.objects.create(
+                        transaction_history=tx,
                         arap=arap,
-                        amount=transaction.th_total,
+                        amount=tx.th_total,
                         paid=Decimal('0.00'),
-                        due_date=transaction.th_date + timedelta(days=random.randint(15, 45))
+                        due_date=tx.th_date + timedelta(days=random.randint(15, 45))
                     )
 
-                    # Update ARAP total
-                    arap.total_amount += arap_tx.amount
-                    arap.save()
+                    # Accumulate total
+                    arap.total_amount += tx.th_total
+
+                # Update ARAP totals after loop
+                ARAP.objects.bulk_update(arap_map.values(), ['total_amount'])
 
                 self.stdout.write(self.style.SUCCESS(
-                    f"Successfully seeded {len(eligible_transactions)} ARAP transactions for {len(arap_map)} ARAP records."
+                    f"Successfully seeded {len(eligible_transactions)} ARAPTransactions "
+                    f"for {len(arap_map)} ARAP records."
                 ))
 
         except Exception as e:

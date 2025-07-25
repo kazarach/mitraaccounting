@@ -21,6 +21,7 @@ class Command(BaseCommand):
             'seed_log_drawer',
             'seed_myindex',
             'seed_sales',
+            'seed_transaction_type',
 
             'seed_stock',
             'seed_stock_price',

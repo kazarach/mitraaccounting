@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta, date
 
-from api.models.transaction_history import TransactionHistory, TransItemDetail
+from api.models.transaction_history import TransactionHistory, TransItemDetail, TransactionType
 from api.models.supplier import Supplier
 from api.models.customer import Customer
 from api.models.bank import Bank
@@ -19,173 +19,134 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-
-        # Ensure related models have some data to reference
         self.ensure_related_models_exist()
 
-        # Clear existing transaction history data
         TransactionHistory.objects.all().delete()
         TransItemDetail.objects.all().delete()
 
-        # Set the start and end dates for 2025
         start_date = date(2025, 1, 1)
-        end_date = date(2025, 1, 31)  # Reduced to just January for faster seeding during testing
+        end_date = date(2025, 1, 31)
 
-        # Generate transaction histories for each day in January 2025 (for testing)
         try:
             with db_transaction.atomic():
-                # Create transactions first, then add items separately
                 self.stdout.write("Creating base transactions...")
                 all_transactions = []
-                
                 current_date = start_date
+                all_types = list(TransactionType.objects.all())
+
                 while current_date <= end_date:
-                    # For each day, create at least 3 transactions
                     for _ in range(3):
-                        # Create transaction dict without calculating points yet
                         transaction_data = self.create_transaction_data(fake, current_date)
-                        
-                        # Skip point calculation during create by setting a temporary value
                         transaction_data['th_point'] = Decimal('0.00')
-                        
-                        # Use create directly to get a saved instance with a PK
+                        transaction_data['th_type'] = random.choice(all_types) if all_types else None
+
                         transaction = TransactionHistory.objects.create(**transaction_data)
                         all_transactions.append(transaction)
-                    
                     current_date += timedelta(days=1)
-                
-                # Now create transaction items for all transactions
+
                 self.stdout.write("Creating transaction items...")
                 for transaction in all_transactions:
-                    items_data = self.create_transaction_items_data(transaction, transaction.th_type)
-                    # Bulk create the items for this transaction
+                    item_types = [transaction.th_type.code] if transaction.th_type else []
+                    items_data = self.create_transaction_items_data(transaction, th_type=item_types)
                     items = [TransItemDetail(**item_data) for item_data in items_data]
                     TransItemDetail.objects.bulk_create(items)
-                
-                # Set up return references for some transactions
+
                 self.stdout.write("Setting up return and order references...")
                 self.set_transaction_references(all_transactions)
-                
-                # Finally, update points and totals for all transactions
+
                 self.stdout.write("Calculating transaction points and totals...")
                 for transaction in all_transactions:
-                    # Now that items are saved, we can safely calculate points
                     points = transaction.calculate_points() or Decimal('0.00')
-                    
-                    # Calculate total from items
                     total = sum(item.netto for item in transaction.items.all())
-                    
-                    # Update directly in the database to avoid triggering the model's save logic
                     TransactionHistory.objects.filter(id=transaction.id).update(
                         th_point=points,
                         th_total=total
                     )
-                
+
                 self.stdout.write(self.style.SUCCESS('Successfully seeded transaction history data'))
+
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error seeding transaction history data: {str(e)}'))
             import traceback
             self.stdout.write(self.style.ERROR(traceback.format_exc()))
 
     def set_transaction_references(self, transactions):
-        """
-        Set up return and order references for some transactions
-        """
-        # For return references - 10% of transactions become returns
-        return_candidates = random.sample(
-            transactions, 
-            k=min(len(transactions) // 10, len(transactions))
-        )
-        
-        # For order references - 20% of transactions get order references
+        return_candidates = random.sample(transactions, k=min(len(transactions) // 10, len(transactions)))
         order_candidates = random.sample(
-            [t for t in transactions if t not in return_candidates],  # Don't overlap with returns
+            [t for t in transactions if t not in return_candidates],
             k=min(len(transactions) // 5, len(transactions))
         )
-        
-        # Set return references
+
         for transaction in return_candidates:
-            # Find a suitable original transaction to return (excluding self)
-            potential_originals = [t for t in transactions 
-                                   if t.id != transaction.id 
-                                   and t not in return_candidates  # Don't make returns of returns
-                                   and t.th_type in ['SALE', 'PURCHASE']]  # Can only return sales/purchases
-            
-            if potential_originals:
-                original_transaction = random.choice(potential_originals)
-                
-                # Mark this transaction as a return and set the reference
-                TransactionHistory.objects.filter(id=transaction.id).update(
-                    th_return=True,
-                    th_return_reference=original_transaction,
-                    # Also update the transaction type to match the return type
-                    th_type='RETURN_SALE' if original_transaction.th_type == 'SALE' else 'RETURN_PURCHASE'
-                )
-        
-        # Set order references
+            potential_originals = TransactionHistory.objects.filter(
+                id__in=[t.id for t in transactions if t not in return_candidates and t.id != transaction.id],
+                th_type__code__in=['SALE', 'PURCHASE']
+            )
+
+            if potential_originals.exists():
+                original_transaction = random.choice(list(potential_originals))
+                code = original_transaction.th_type.code if original_transaction.th_type else None
+                return_type_code = 'RETURN_SALE' if code == 'SALE' else 'RETURN_PURCHASE' if code == 'PURCHASE' else None
+                if not return_type_code:
+                    continue
+
+                return_type_tag = TransactionType.objects.get(code=return_type_code)
+                transaction.th_return = True
+                transaction.th_return_reference = original_transaction
+                transaction.th_type = return_type_tag
+                transaction.save()
+
         for transaction in order_candidates:
-            # Find suitable references (excluding self and returns)
-            potential_references = [t for t in transactions 
-                                   if t.id != transaction.id
-                                   and not t.th_return  # Don't reference returns
-                                   and t.th_type in ['SALE', 'PURCHASE']]  # Only reference regular transactions
-            
-            if potential_references:
-                reference = random.choice(potential_references)
-                # Use update directly to avoid any save() method issues
-                TransactionHistory.objects.filter(id=transaction.id).update(
-                    th_order=True,
-                    th_order_reference=reference
-                )
+            potential_originals = TransactionHistory.objects.filter(
+                id__in=[t.id for t in transactions if t not in order_candidates and t.id != transaction.id],
+                th_type__code__in=['SALE', 'PURCHASE']
+            )
+
+            if potential_originals.exists():
+                original_transaction = random.choice(list(potential_originals))
+                code = original_transaction.th_type.code if original_transaction.th_type else None
+                order_type_code = 'ORDERIN' if code == 'SALE' else 'ORDEROUT' if code == 'PURCHASE' else None
+                if not order_type_code:
+                    continue
+
+                order_type_tag = TransactionType.objects.get(code=order_type_code)
+                transaction.th_order = True
+                transaction.th_order_reference = original_transaction
+                transaction.th_type = order_type_tag
+                transaction.save()
 
     def ensure_related_models_exist(self):
-        """
-        Ensure we have some related model instances to reference
-        """
-        # Ensure we have some users
         User = get_user_model()
         if not User.objects.exists():
             User.objects.create(username='admin', password='admin123')
 
-        # Ensure we have some suppliers
         if not Supplier.objects.exists():
             Supplier.objects.create(name='Tech Suppliers Inc.', code='SUP001')
             Supplier.objects.create(name='Global Traders', code='SUP002')
-        
-        # Ensure we have some customers
+
         if not Customer.objects.exists():
             Customer.objects.create(name='John Doe', telp='1234567890')
             Customer.objects.create(name='Jane Smith', telp='0987654321')
-        
-        # Ensure we have some banks
+
         if not Bank.objects.exists():
             Bank.objects.create(bank_name='Sample Bank', bank_code='BNK001')
             Bank.objects.create(bank_name='Another Bank', bank_code='BNK002')
-        
-        # Ensure we have some event discounts
+
         if not EventDisc.objects.exists():
             EventDisc.objects.create(code='ED001', name='Summer Sale', type='Percentage')
-        
-        # Ensure we have some stocks
+
         if not Stock.objects.exists():
             from django.core.management import call_command
             call_command('seed_stock')
 
     def create_transaction_data(self, fake, current_date):
-        """
-        Create a dictionary of transaction data without saving the object
-        """
-        # Randomly select related models, with some chance of being None
         supplier = random.choice(list(Supplier.objects.all()))
         customer = random.choice(list(Customer.objects.all()))
-        
-        # Get the User model and filter for users with role level >= 30 (cashiers and above)
         User = get_user_model()
         eligible_cashiers = User.objects.filter(role__level__gte=30)
-        
-        # If no eligible cashiers are found, log a warning and create one
+
         if not eligible_cashiers.exists():
-            self.stdout.write(self.style.WARNING('No eligible cashiers found (role level >= 30). Creating a default cashier.'))
+            self.stdout.write(self.style.WARNING('No eligible cashiers found. Creating default.'))
             from api.models.custom_user import UserRole
             cashier_role, _ = UserRole.objects.get_or_create(name='cashier', defaults={'level': 30})
             default_cashier = User.objects.create_user(
@@ -195,80 +156,53 @@ class Command(BaseCommand):
             )
             cashier = default_cashier
         else:
-            # Select a random cashier from eligible users
             cashier = random.choice(list(eligible_cashiers))
-            
+
         bank = random.choice(list(Bank.objects.all()))
         event_discount = random.choice(list(EventDisc.objects.all()) + [None])
-
-        # Generate transaction types
-        transaction_types = ['SALE', 'PURCHASE', 'USAGE', 'TRANSFER', 
-                            'PAYMENT', 'RECEIPT', 'ADJUSTMENT', 'EXPENSE']
-        payment_types = ['CASH', 'BANK', 'CREDIT']
-
-        # Select transaction type
-        th_type = random.choice(transaction_types)
-
-        # Generate values
         total = Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01'))
-        discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
-        discount = random.choice(discount_values) if random.random() > 0.5 else None
-        ppn = 11
+        discount = random.choice([Decimal(i * 0.5) for i in range(11)]) if random.random() > 0.5 else None
 
-        # Create transaction data dictionary
-        transaction_data = {
+        return {
             'supplier': supplier,
             'customer': customer,
             'cashier': cashier,
-            'th_type': th_type,
-            'th_payment_type': random.choice(payment_types),
+            'th_payment_type': random.choice(['CASH', 'BANK', 'CREDIT']),
             'th_disc': discount,
-            'th_ppn': ppn,
-            'th_total': total,  # This will be recalculated later
+            'th_ppn': 11,
+            'th_total': total,
             'th_date': current_date,
             'th_note': fake.sentence() if random.random() > 0.5 else None,
-            'th_status': random.random() > 0.1,  # 90% chance of being active
+            'th_status': random.random() > 0.1,
             'bank': bank,
             'event_discount': event_discount,
-            'th_delivery': random.random() > 0.7,  # 30% chance of delivery
-            'th_return': False,  # Will be set later for some transactions
-            'th_order': False,   # Will be set later for some transactions
-            # th_code will be auto-generated in the model's save method
+            'th_delivery': random.random() > 0.7,
+            'th_return': False,
+            'th_order': False,
         }
 
-        return transaction_data
-
     def create_transaction_items_data(self, transaction, th_type=None, num_items=5):
-        """
-        Create transaction items data for a given transaction
-        """
         items_data = []
         stocks = list(Stock.objects.all())
-        
-        # Use between 1 and num_items items
         actual_items = random.randint(1, num_items)
-        
+
+        th_type = [th_type] if isinstance(th_type, str) else (th_type or [])
+
         for _ in range(actual_items):
             stock = random.choice(stocks)
             quantity = Decimal(random.uniform(1, 10)).quantize(Decimal('0.01'))
-            if th_type in ['RETURN_PURCHASE', 'SALE', 'USAGE', 'TRANSFER', 'EXPENSE']:
+
+            if any(t in ['RETURN_PURCHASE', 'SALE', 'USAGE', 'TRANSFER', 'EXPENSE'] for t in th_type):
                 quantity *= -1
-            elif th_type == 'ADJUSTMENT':
-                if random.random() < 0.5:
-                    quantity *= -1
+            elif 'ADJUSTMENT' in th_type and random.random() < 0.5:
+                quantity *= -1
+
             sell_price = (stock.price_buy * Decimal(random.uniform(1.1, 1.5))).quantize(Decimal('0.01'))
-            price_order = (stock.price_buy * Decimal(random.uniform(0.9, 1))).quantize(Decimal('0.01'))
-            discount_values = [Decimal(x) for x in [i * 0.5 for i in range(11)]]
-            discount_percent = random.choice(discount_values) if random.random() > 0.5 else None
-            disc_values = [Decimal(x) for x in range(0, 1001, 50)]
-            discount = random.choice(disc_values) if random.random() > 0.5 else None
-            
-            # Calculate netto (needed for total calculation)
-            price_after_discount = sell_price
-            if discount:
-                price_after_discount -= discount
-            elif discount_percent:
-                price_after_discount -= (sell_price * discount_percent / 100)
+            price_order = (stock.price_buy * Decimal(random.uniform(0.9, 1.0))).quantize(Decimal('0.01'))
+            discount_percent = random.choice([Decimal(i * 0.5) for i in range(11)]) if random.random() > 0.5 else None
+            discount = random.choice([Decimal(x) for x in range(0, 1001, 50)]) if random.random() > 0.5 else None
+
+            price_after_discount = sell_price - (discount or (sell_price * discount_percent / 100 if discount_percent else 0))
             netto = price_after_discount * quantity
 
             items_data.append({

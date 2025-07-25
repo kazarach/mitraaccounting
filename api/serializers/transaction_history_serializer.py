@@ -30,6 +30,11 @@ class TransItemDetailSerializer(serializers.ModelSerializer):
     def get_conversion_unit(self, obj):
         stock = obj.stock
         return stock.conversion_path_with_unit(include_base=True)
+    
+class TransactionTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionType
+        fields = ['id', 'code', 'label']
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
     items = TransItemDetailSerializer(many=True)

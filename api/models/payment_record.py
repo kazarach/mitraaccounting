@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .transaction_history import TransactionHistory
+from .transaction_history import TransactionHistory, TransactionType
 from .bank import Bank
 from .arap import ARAP
 from django.conf import settings
@@ -41,6 +41,7 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.id} - {self.transaction_history.th_code if self.transaction_history else 'N/A'} ({self.payment_type})"
+    
     @property
     def direction(self):
         if self.arap:
@@ -55,7 +56,7 @@ class Payment(models.Model):
             from .transaction_history import TransactionType, PaymentType
 
             # Determine th_type and participants
-            transaction_type = TransactionType.PAYMENT
+            transaction_type = TransactionType.objects.get(code='PAYMENT')
             payment_method = PaymentType.BANK if self.bank else PaymentType.CASH
             customer = self.customer
             supplier = self.supplier
