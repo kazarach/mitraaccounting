@@ -9,7 +9,7 @@ from rest_framework_simplejwt.views import (
 from api.views import UserAccountViewSet, UserRoleViewSet
 from api.views import StockViewSet
 from api.views import CategoryViewSet
-from api.views import TransItemDetailViewSet, TransactionHistoryViewSet
+from api.views import TransItemDetailViewSet, TransactionHistoryViewSet, TransactionTypeViewSet
 from api.views import SupplierViewSet
 from api.views import ARAPViewSet, ARAPPaymentViewSet
 from api.views import CustomerViewSet
@@ -29,6 +29,7 @@ router.register(r'stock', StockViewSet, basename='stock')
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'transactions', TransactionHistoryViewSet, basename='transaction')
 router.register(r'trans-items', TransItemDetailViewSet, basename='transitem')
+router.register(r'trans-type', TransactionTypeViewSet, basename='transtype')
 router.register(r'suppliers', SupplierViewSet, basename='supplier')
 router.register(r'araps', ARAPViewSet, basename='hutang_piutang')
 # router.register(r'araps-transactions', ARAPTransactionViewSet, basename='transaksi_hutang_piutang')

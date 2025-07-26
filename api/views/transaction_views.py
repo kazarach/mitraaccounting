@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,10 +9,11 @@ from django.db.models.functions import Coalesce
 from datetime import timedelta, datetime 
 from decimal import Decimal
 
+
 from ..filters.transaction_history_filters import TransactionHistoryFilter, TransactionItemDetailFilter
 from ..models import TransactionHistory, TransItemDetail, TransactionType, Supplier
 from ..models import Stock, StockPriceHistory, StockPrice
-from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer
+from ..serializers import TransactionHistorySerializer, TransItemDetailSerializer, TransactionTypeSerializer
 
 import pytz
 
@@ -457,7 +458,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 response_only=True
             )
         },
-        tags=["Transactions"]
+        tags=["Transaction"]
     )
     @action(detail=True, methods=['get'])
     def get_price_history(self, request, pk=None):
@@ -548,6 +549,8 @@ class TransItemDetailViewSet(viewsets.ModelViewSet):
     serializer_class = TransItemDetailSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = TransactionItemDetailFilter
+    permission_classes = [permissions.IsAuthenticated]
+
 
     @extend_schema(
         summary="Fast moving items",
@@ -622,3 +625,21 @@ class TransItemDetailViewSet(viewsets.ModelViewSet):
         ]
 
         return Response(result)
+    
+@extend_schema_view(
+    list=extend_schema(
+        summary="List all transaction types",
+        tags=["Transaction"]
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve a transaction type by ID",
+        tags=["Transaction"]
+    )
+)
+class TransactionTypeViewSet(mixins.ListModelMixin,
+                             mixins.RetrieveModelMixin,
+                             viewsets.GenericViewSet):
+    queryset = TransactionType.objects.all().order_by('id')
+    serializer_class = TransactionTypeSerializer
+    lookup_field = 'id'
+    permission_classes = [permissions.IsAuthenticated]

@@ -1,5 +1,5 @@
 from django.db.models import Sum, Q, F, ExpressionWrapper, DecimalField
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
@@ -32,6 +32,7 @@ class FinancialReportsViewSet(viewsets.ViewSet):
     """
     ViewSet for generating financial reports using journal entries
     """
+    permission_classes = [permissions.IsAuthenticated]
 
     def _get_date_range_filter(self, field, start_date, end_date):
         if start_date and end_date:

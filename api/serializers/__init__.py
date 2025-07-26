@@ -3,7 +3,7 @@ from .stock_assembly_serializer import StockAssemblySerializer
 from .stock_price_serializer import StockPriceSerializer
 from .category_serializer import CategorySerializer, CategoryCreateUpdateSerializer
 from .user_serializer import UserAccountSerializer, UserRegistrationSerializer, UserRoleSerializer
-from .transaction_history_serializer import TransactionHistorySerializer, TransItemDetailSerializer
+from .transaction_history_serializer import TransactionHistorySerializer, TransItemDetailSerializer, TransactionTypeSerializer
 from .bank_serializer import BankSerializer, BankCreateUpdateSerializer, AccountMinimalSerializer
 from .supplier_serializer import SupplierSerializer, SupplierCreateUpdateSerializer
 from .ARAP_serializer import ARAPPaymentSerializer, ARAPSerializer, ARAPSummarySerializer, ARAPTransactionSerializer, ARAPPaymentInputSerializer

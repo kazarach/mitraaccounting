@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from faker import Faker
 from api.models.account import Account, AccountType, JournalEntry
-from api.models.transaction_history import TransactionHistory
+from api.models.transaction_history import TransactionHistory,TransactionType
 from django.utils import timezone
 
 
@@ -82,10 +82,13 @@ class Command(BaseCommand):
 
     def ensure_related_models_exist(self, fake):
         if not TransactionHistory.objects.exists():
+            # Get or create the TransactionType instance
+            sale_type, _ = TransactionType.objects.get_or_create(code='SALE', defaults={'label': 'Sale'})
+
             transactions = [
                 TransactionHistory(
                     th_code=f'TH-{fake.unique.random_number(digits=5)}',
-                    th_type='SALE',
+                    th_type=sale_type,  # Use the instance, not string
                     th_payment_type='Cash',
                     th_total=Decimal(random.uniform(100, 10000)).quantize(Decimal('0.01')),
                     th_date=timezone.make_aware(fake.date_time_this_year()),
