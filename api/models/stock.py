@@ -61,29 +61,41 @@ class Stock(models.Model):
         return self.is_online and (self.category is None or getattr(self.category, 'spc_online', True))
     
     def last_buy(self):
-        from ..models.transaction_history import TransItemDetail
+        from ..models.transaction_history import TransItemDetail, TransactionType
+
+        try:
+            purchase_type = TransactionType.objects.get(code='PURCHASE')
+        except TransactionType.DoesNotExist:
+            return None
+
         last_buy_item = TransItemDetail.objects.filter(
             stock=self,
-            transaction__th_type='PURCHASE',
+            transaction__th_type=purchase_type,
             transaction__th_status=True
         ).select_related('transaction').order_by('-transaction__th_date').first()
-        
+
         if last_buy_item:
             return last_buy_item.transaction.th_date.strftime('%Y-%m-%d')
         return None
 
     def last_sell(self):
-        from ..models.transaction_history import TransItemDetail
-        
+        from ..models.transaction_history import TransItemDetail, TransactionType
+
+        try:
+            sale_type = TransactionType.objects.get(code='SALE')
+        except TransactionType.DoesNotExist:
+            return None
+
         last_sell_item = TransItemDetail.objects.filter(
             stock=self,
-            transaction__th_type='SALE',
+            transaction__th_type=sale_type,
             transaction__th_status=True
         ).select_related('transaction').order_by('-transaction__th_date').first()
-        
+
         if last_sell_item:
             return last_sell_item.transaction.th_date.strftime('%Y-%m-%d')
         return None
+
     
     def get_price_for_customer(self, customer):
         from .stock_price import StockPrice
