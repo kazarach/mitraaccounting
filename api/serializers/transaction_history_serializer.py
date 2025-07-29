@@ -35,6 +35,7 @@ class TransactionTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionType
         fields = ['id', 'code', 'label']
+
 class TransactionHistorySerializer(serializers.ModelSerializer):
     items = TransItemDetailSerializer(many=True)
     supplier_name = serializers.SerializerMethodField()
@@ -44,6 +45,7 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     event_discount_name = serializers.StringRelatedField(source='event_discount', read_only=True)
     th_due_date = serializers.DateTimeField(required=False, allow_null=True)
 
+    type_name = serializers.SerializerMethodField()
     from_account_name = serializers.SerializerMethodField()
     from_account_number = serializers.SerializerMethodField()
     to_account_name = serializers.SerializerMethodField()
@@ -55,7 +57,10 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
 
     def get_supplier_name(self, obj):
         return obj.supplier.name if obj.supplier else None
-
+    
+    def get_type_name(self, obj):
+        return obj.th_type.code if obj.th_type else None
+    
     def get_from_account_name(self, obj):
         return obj.from_account.name if obj.from_account else None
 
