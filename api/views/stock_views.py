@@ -941,6 +941,7 @@ class StockViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         import pytz
         from datetime import timedelta, datetime
+        from ..models import TransactionType
 
         jakarta_tz = pytz.timezone('Asia/Jakarta')
         now_jakarta = timezone.now().astimezone(jakarta_tz)
@@ -975,14 +976,23 @@ class StockViewSet(viewsets.ModelViewSet):
         if cashier_id and cashier_id.isdigit():
             additional_filters['cashier_id'] = int(cashier_id)
 
+        # Resolve transaction type IDs
+        sale_type_id = TransactionType.objects.filter(code='SALE').values_list('id', flat=True).first()
+        return_sale_type_id = TransactionType.objects.filter(code='RETURN_SALE').values_list('id', flat=True).first()
+        purchase_type_id = TransactionType.objects.filter(code='PURCHASE').values_list('id', flat=True).first()
+        return_purchase_type_id = TransactionType.objects.filter(code='RETURN_PURCHASE').values_list('id', flat=True).first()
+
+        if None in [sale_type_id, return_sale_type_id, purchase_type_id, return_purchase_type_id]:
+            raise ValueError("One or more TransactionType codes are missing. Please seed the data correctly.")
+
         for range_name, range_dates in date_ranges.items():
             base_filter = {
                 'th_date__range': (range_dates['start_date'], range_dates['end_date']),
                 **additional_filters
             }
 
-            def get_quantity(th_type):
-                filter_with_type = {**base_filter, 'th_type': th_type}
+            def get_quantity(th_type_id):
+                filter_with_type = {**base_filter, 'th_type_id': th_type_id}
                 trans = TransactionHistory.objects.filter(**filter_with_type)
                 data = TransItemDetail.objects.filter(
                     transaction__in=trans,
@@ -990,10 +1000,10 @@ class StockViewSet(viewsets.ModelViewSet):
                 ).values('stock_id').annotate(total_quantity=Sum('quantity'))
                 return {item['stock_id']: item['total_quantity'] for item in data}
 
-            sales_by_stock = get_quantity(TransactionType.SALE)
-            return_sales_by_stock = get_quantity(TransactionType.RETURN_SALE)
-            purchase_by_stock = get_quantity(TransactionType.PURCHASE)
-            return_purchase_by_stock = get_quantity(TransactionType.RETURN_PURCHASE)
+            sales_by_stock = get_quantity(sale_type_id)
+            return_sales_by_stock = get_quantity(return_sale_type_id)
+            purchase_by_stock = get_quantity(purchase_type_id)
+            return_purchase_by_stock = get_quantity(return_purchase_type_id)
 
             for stock in stock_data:
                 sold = sales_by_stock.get(stock['id'], 0)
