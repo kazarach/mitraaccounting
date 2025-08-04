@@ -278,6 +278,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         Calculate transaction totals without saving to database.
         Returns the processed transaction with all calculations applied.
         """
+        print('tes')
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -319,7 +320,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         
         # Apply transaction-level calculations
         th_total = total_netto
-        
+        print(th_total)
         if temp_transaction.th_disc:
             discount_amount = th_total * (temp_transaction.th_disc / Decimal('100'))
             th_total -= discount_amount
@@ -336,7 +337,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
 
         # Calculate potential loyalty points
         potential_points = 0
-        if temp_transaction.th_type == 'SALE':
+        if temp_transaction.th_type and temp_transaction.th_type.code == 'SALE':
             potential_points = self._calculate_points(processed_items)
         
         # Prepare response
@@ -356,8 +357,8 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     
     def _calculate_item_totals(self, item):
         """Helper method to calculate item totals without saving to database"""
-        # Replicate the calculation logic from TransItemDetail.save()
-        if item.transaction.th_type in ['SALE', 'RETURN_SALE', 'ORDEROUT']:
+        th_type_code = item.transaction.th_type.code if item.transaction.th_type else None
+        if th_type_code in ['SALE', 'RETURN_SALE', 'ORDEROUT']:
             base_price = item.sell_price or item.stock.hpp
             sign = -1 if item.transaction.th_type == 'RETURN_SALE' else 1
 
@@ -371,7 +372,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
 
             item.netto = item.quantity * price_after_disc2 * sign
         
-        elif item.transaction.th_type in ['PURCHASE', 'RETURN_PURCHASE', 'ORDERIN']:
+        elif th_type_code in ['PURCHASE', 'RETURN_PURCHASE', 'ORDERIN']:
             base_price = item.stock_price_buy or Decimal('0')
             sign = -1 if item.transaction.th_type == 'RETURN_PURCHASE' else 1
 
