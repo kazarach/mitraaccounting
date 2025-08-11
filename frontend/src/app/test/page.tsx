@@ -1,194 +1,227 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-import { addRow } from "@/store/features/tableSlicer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Search, ChevronDown, ChevronUp } from "lucide-react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  flexRender,
-  SortingState,
-  Row,
-  ColumnDef,
-} from "@tanstack/react-table";
-import { toast } from "sonner";
-import useSWR from "swr";
-import { fetcher } from "@/lib/utils";
-import Loading from "@/components/loading";
+import React, { useMemo } from "react"
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable, RowData } from "@tanstack/react-table"
+import { Button } from "@/components/ui/button"
+import { Trash, Plus } from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import { RootState } from "@/store/store"
+import { setTableData, deleteRow, clearTable, addRow } from "@/store/features/tableSlicer"
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { toast } from "sonner"
 
-interface TambahProdukModalProps {
-  tableName: string;
+interface TransactionRow {
+  id: number
+  stock_name: string
+  jumlah_pesanan: number
+  quantity: number
+  stock_price_buy: number
+  disc?: number
+  disc_percent?: number
+  disc_percent2?: number
 }
 
-const TambahProdukModal: React.FC<TambahProdukModalProps> = ({ tableName }) => {
-  const dispatch = useDispatch();
-  const [search, setSearch] = useState("");
-  const [sorting, setSorting] = useState<SortingState>([{ id: "name", desc: false }]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData extends RowData> {
+    updateData: (rowIndex: number, columnId: string, value: unknown) => void
+  }
+}
 
-  const { data, error, isLoading, mutate } = useSWR("http://100.82.207.117:8000/api/stock/", fetcher);
+interface Props {
+  tableName: string
+}
 
-  const handleAddProduct = (product: any) => {
-    const quantity = quantities[product.id] ?? 1;
-    const newItem = {
-      name: product.name,
-      jumlah_pesanan: "-",
-      jumlah_barang: quantity,
-      harga_beli: product.purchasePrice,
-      subtotal: product.purchasePrice * quantity,
-    };
-    toast.success(`${product.name} berhasil ditambahkan`);
-    dispatch(addRow({ tableName, row: newItem }));
-  };
+const TransactionTable: React.FC<Props> = ({ tableName }) => {
+  const dispatch = useDispatch()
+  const data = useSelector((state: RootState) => state.table[tableName] || [])
+  const [isPpnIncluded, setIsPpnIncluded] = React.useState(true)
 
-  const handleQuantityChange = (productId: string, value: number) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [productId]: Math.max(1, value),
-    }));
-  };
+  // ✅ Default editable cell
+  const defaultColumn: Partial<ColumnDef<TransactionRow>> = {
+    cell: ({ getValue, row: { index }, column: { id }, table }) => {
+      const initialValue = getValue()
+      const [value, setValue] = React.useState(initialValue)
 
-  const columns: ColumnDef<any>[] = [
-    {
-      accessorKey: "name",
-      header: () => (
-        <div
-          className="flex items-center gap-2 cursor-pointer font-medium"
-          onClick={() => {
-            const isDesc = sorting[0]?.id === "name" && sorting[0]?.desc;
-            setSorting([{ id: "name", desc: !isDesc }]);
-          }}
-        >
-          Produk {sorting[0]?.id === "name" && (sorting[0].desc ? <ChevronDown size={16} /> : <ChevronUp size={16} />)}
-        </div>
-      ),
+      const onBlur = () => {
+        table.options.meta?.updateData(index, id, value)
+      }
+
+      React.useEffect(() => {
+        setValue(initialValue)
+      }, [initialValue])
+
+      // Kolom non-editable
+      if (id === "stock_name" || id === "total") {
+        return <span>{value as string}</span>
+      }
+
+      return (
+        <input
+          type="number"
+          value={value as number}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={onBlur}
+          className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+        />
+      )
     },
-    { accessorKey: "barcode", header: "Barcode" },
-    { accessorKey: "quantity", header: "Jumlah Stok" },
-    { accessorKey: "boughtLast7Days", header: "Terbeli (7H)" },
-    { accessorKey: "boughtLast30Days", header: "Terbeli (30H)" },
-    { accessorKey: "soldLast7Days", header: "Terjual (7H)" },
-    { accessorKey: "soldLast30Days", header: "Terjual (30H)" },
-    {
-        accessorKey: "price_buy",
-        header: "Harga Beli",
-        cell: ({ getValue }) => {
-          const value = getValue<number>();
-          return value != null ? `Rp${value.toLocaleString("id-ID")}` : "-";
-        },
-      },      
-    {
-      accessorKey: "jumlahInput",
-      header: "Jumlah",
-      enableSorting: false,
-      cell: ({ row }: { row: Row<any> }) => {
-        const productId = row.original.id;
-        const quantity = quantities[productId] ?? 1;
+  }
 
-        return (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleQuantityChange(productId, quantity - 1)}
-              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              −
-            </button>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => handleQuantityChange(productId, Math.max(1, Number(e.target.value)))}
-              className="w-12 text-center border rounded"
-              min={1}
-            />
-            <button
-              onClick={() => handleQuantityChange(productId, quantity + 1)}
-              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              +
-            </button>
-          </div>
-        );
+  const columns = useMemo<ColumnDef<TransactionRow>[]>(() => [
+    { header: "Produk", accessorKey: "stock_name", size: 240 },
+    { header: "Pesanan", accessorKey: "jumlah_pesanan", size: 80 },
+    { header: "Jml. Barang", accessorKey: "quantity", size: 80 },
+    { header: "Harga Beli", accessorKey: "stock_price_buy", size: 100 },
+    { header: "Diskon (Rp)", accessorKey: "disc", size: 100 },
+    { header: "Diskon (%)", accessorKey: "disc_percent", size: 90 },
+    { header: "Diskon 2 (%)", accessorKey: "disc_percent2", size: 90 },
+    {
+      id: "total",
+      header: "Total",
+      cell: ({ row }) => {
+        const r = row.original
+        const price = r.stock_price_buy || 0
+        const qty = r.quantity || 0
+        const disc = r.disc || 0
+        const disc1 = r.disc_percent || 0
+        const disc2 = r.disc_percent2 || 0
+
+        const afterDisc1 = price - disc
+        const afterDisc2 = afterDisc1 - (afterDisc1 * disc1) / 100
+        const afterDisc3 = afterDisc2 - (afterDisc2 * disc2) / 100
+        const subtotal = qty * afterDisc3
+
+        return <div className="text-right font-semibold">{subtotal.toLocaleString("id-ID")}</div>
       },
     },
     {
-      accessorKey: "action",
       header: "Action",
-      enableSorting: false,
-      cell: ({ row }: { row: Row<any> }) => (
-        <Button onClick={() => handleAddProduct(row.original)} className="bg-blue-500 hover:bg-blue-600 size-7">
-          <Plus />
-        </Button>
+      cell: ({ row }) => (
+        <div className="text-center">
+          <Button
+            onClick={() => handleDelete(row.original.id)}
+            className="bg-red-500 hover:bg-red-600 size-7"
+          >
+            <Trash size={14} />
+          </Button>
+        </div>
       ),
     },
-  ];
+  ], [])
 
   const table = useReactTable({
-    data: data || [],
+    data,
     columns,
-    state: { sorting, globalFilter: search },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setSearch,
+    defaultColumn,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
+    meta: {
+      updateData: (rowIndex, columnId, value) => {
+        dispatch(setTableData({
+          tableName,
+          data: data.map((row, index) => {
+            if (index === rowIndex) {
+              return {
+                ...row,
+                [columnId]: Number(value) || 0,
+              }
+            }
+            return row
+          })
+        }))
+      },
+    },
+  })
 
-  if (isLoading) return <Loading/>;
-  if (error) return <p>Terjadi kesalahan saat memuat data.</p>;
+  const handleDelete = (id: number) => {
+    dispatch(deleteRow({ tableName, id }))
+    toast.error("Produk berhasil dihapus!")
+  }
+
+  const handleClear = () => {
+    dispatch(clearTable({ tableName }))
+    toast.error("Table berhasil dihapus!")
+  }
+
+  const handleAddRow = () => {
+    const newRow: TransactionRow = {
+      id: Date.now(),
+      stock_name: "Produk Baru",
+      jumlah_pesanan: 0,
+      quantity: 0,
+      stock_price_buy: 0,
+      disc: 0,
+      disc_percent: 0,
+      disc_percent2: 0,
+    }
+    dispatch(addRow({ tableName, row: newRow }))
+    toast.success("Baris baru ditambahkan")
+  }
+
+  const totalSummary = useMemo(() => {
+    const subtotal = data.reduce((acc, r) => {
+      const price = r.stock_price_buy || 0
+      const qty = r.quantity || 0
+      const disc = r.disc || 0
+      const disc1 = r.disc_percent || 0
+      const disc2 = r.disc_percent2 || 0
+
+      const afterDisc1 = price - disc
+      const afterDisc2 = afterDisc1 - (afterDisc1 * disc1) / 100
+      const afterDisc3 = afterDisc2 - (afterDisc2 * disc2) / 100
+      return acc + qty * afterDisc3
+    }, 0)
+
+    const totalPPN = isPpnIncluded ? 0 : subtotal * 0.11
+    const totalAfterPPN = subtotal + totalPPN
+
+    return { subtotal, totalAfterPPN }
+  }, [data, isPpnIncluded])
 
   return (
-    <Card className="p-4">
-      <div className="my-2 relative w-1/4">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-        <Input
-          placeholder="Cari Produk..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10"
-        />
+    <div className="p-4">
+      <div className="flex justify-between mb-2">
+        <Button onClick={handleAddRow} className="bg-green-500 hover:bg-green-600 flex items-center gap-2">
+          <Plus size={16} /> Tambah Data
+        </Button>
+        <Button variant="outline" onClick={handleClear}>Clear Table</Button>
       </div>
-      <div className="rounded-md border overflow-x-auto max-h-[70vh] min-h-[68vh] bg-white relative">
-        <Table className="w-full min-w-[1000px] bg-white">
-          <TableHeader className="sticky top-0 bg-gray-100 z-20">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-left">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="bg-white">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-left">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
-  );
-};
+      <table className="border-collapse border w-full">
+        <thead>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th key={header.id} className="border px-2 py-1 bg-gray-100">
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map((row) => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id} className="border px-2 py-1">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+        <TableFooter>
+          <TableRow>
+            <TableCell colSpan={3} className="text-right font-bold border">Total:</TableCell>
+            <TableCell colSpan={2} className="text-left font-bold border">
+              {totalSummary.subtotal.toLocaleString("id-ID")}
+            </TableCell>
+            <TableCell colSpan={2} className="text-left font-bold border">
+              {totalSummary.totalAfterPPN.toLocaleString("id-ID")}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </table>
+    </div>
+  )
+}
 
-export default TambahProdukModal;
+export default TransactionTable

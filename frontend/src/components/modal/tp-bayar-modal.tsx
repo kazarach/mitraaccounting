@@ -44,7 +44,9 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
     const paymentType = form.watch("th_payment_type");
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-    const { data: bank } = useSWR(`/api/proxy/api/banks/`, fetcher);
+    const { data: bank } = useSWR(`/api/proxy/api/accounts/`, fetcher);
+    const selectedBank = bank?.find((b: any) => b.id === form.watch("bank"));
+
 
     const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
         "/api/proxy/api/stock/by_ids/",
@@ -169,18 +171,11 @@ const BayarTPModal: React.FC<any> = ({ review, form, date, setDate, supplier_nam
 
                             <TableRow>
                                 <TableCell>No. Kartu</TableCell>
-                                <TableCell className="text-right border-l">-</TableCell>
-                            </TableRow>
-                            {/* <TableRow>
-                                <TableCell>Surcharge</TableCell>
-                                <TableCell className="text-right border-l">0</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>Subsidi</TableCell>
-                                <TableCell className="text-right border-l p-0">
-                                    <Input type="number" placeholder="0" className="bg-gray-100 text-right border-0 m-0 p-0 rounded-none" />
+                                <TableCell className="text-right border-l">
+                                    {selectedBank?.account_number || "-"}
                                 </TableCell>
-                            </TableRow> */}
+                            </TableRow>
+
                             <TableRow>
                                 <TableCell></TableCell>
                             </TableRow>

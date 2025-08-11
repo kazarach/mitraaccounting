@@ -169,7 +169,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
 
     const onSubmit = async () => {
         const payload = {
-            th_type: "PURCHASE",
+            th_type: 2,
             cashier: me.id,
             th_date: date.toISOString() || "",
             th_note: "",

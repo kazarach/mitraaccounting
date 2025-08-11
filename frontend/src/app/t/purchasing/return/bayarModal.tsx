@@ -62,7 +62,7 @@ const BayarTPModal: React.FC<BayarTPModalProps> = ({
   const onSubmit = async () => {
     console.log(review)
     const payload = {
-      th_type: "RETURN_PURCHASE",
+      th_type: 9,
       cashier: me.id,
       th_date: review.date.toISOString() || "",
       th_note: "",

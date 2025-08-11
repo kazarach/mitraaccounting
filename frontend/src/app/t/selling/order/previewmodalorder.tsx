@@ -57,7 +57,7 @@ interface BayarTPModalJualProps {
               th_dp: (dp || 0) + (payment || 0),
               bank: selectedBank || null,
               th_due_date: date?.toISOString() || null,
-              th_type: "ORDERIN",
+              th_type: 11,
               cashier: rawPayload.cashier ?? null,
               th_order: true,
               th_payment_type: payType

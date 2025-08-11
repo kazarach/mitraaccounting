@@ -56,9 +56,9 @@ const TambahProdukModalTP: React.FC<TambahProdukModalProps> = ({ tableName, onCl
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL!
     const { data, error, isLoading, mutate } = useSWR(
-  `/api/proxy/api/stock/?include_sales=true${supplierParam}`,
-  fetcher
-);
+        `/api/proxy/api/stock/?include_sales=true${supplierParam}`,
+        fetcher
+    );
 
 
     const handleAddProduct = (product: any) => {

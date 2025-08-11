@@ -45,9 +45,9 @@ const OpnameReport = () => {
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
   const url = startDate && endDate
-  ? `/api/proxy/api/transactions/?th_type=ADJUSTMENT&start_date=${startDate}&end_date=${endDate}`
+  ? `/api/proxy/api/transactions/?th_type=7&start_date=${startDate}&end_date=${endDate}`
   : range
-  ? `/api/proxy/api/transactions/?th_type=ADJUSTMENT&range=${range}`
+  ? `/api/proxy/api/transactions/?th_type=7&range=${range}`
   : null;
 
   // console.log("🌐 URL yang digunakan:", url);

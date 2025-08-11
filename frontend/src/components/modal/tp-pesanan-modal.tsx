@@ -61,7 +61,7 @@ const TpModal = () => {
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_type=ORDEROUT&th_order=true${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`${API_URL}api/transactions/?th_type=12&th_order=true${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 

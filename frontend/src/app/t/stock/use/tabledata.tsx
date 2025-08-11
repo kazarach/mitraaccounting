@@ -165,7 +165,7 @@ const StockUses: React.FC<Props> = ({ tableName }) => {
 
     const onSubmit = async () => {
         const payload = {
-            th_type: "USAGE",
+            th_type: 3,
             cashier: me.id,
             th_date: date.toISOString() || "",
             th_note: "",

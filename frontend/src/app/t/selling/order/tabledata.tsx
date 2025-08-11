@@ -396,7 +396,7 @@ const TransactionOrderSellingTable: React.FC<Props> = ({ tableName }) => {
             const customer_id = form.getValues("customer"); // sudah ID, bukan name
       
           const payload = {
-            th_type: "SALE",
+            th_type: 1,
             customer: customer_id,
             th_disc: th_disc,
             th_ppn: th_ppn,
@@ -432,7 +432,7 @@ const TransactionOrderSellingTable: React.FC<Props> = ({ tableName }) => {
             ...result,
             customer_name: customer?.name ?? "",
             _rawPayload: {
-              th_type: "SALE",
+              th_type: 1,
               customer: customer_id,
               th_disc: th_disc,
               th_ppn: th_ppn,

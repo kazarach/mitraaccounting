@@ -91,7 +91,7 @@ const PersediaanModal: React.FC<any> = ({ stockData,
         ];
 
         const payload = {
-            th_type: "ADJUSTMENT",
+            th_type: 7,
             cashier: 2,
             th_payment_type: "CASH",
             items,

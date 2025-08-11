@@ -385,7 +385,7 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
             const customer_id = form.getValues("customer"); // sudah ID, bukan name
       
           const payload = {
-            th_type: "SALE", 
+            th_type: 1, 
             customer: customer_id,
             th_disc: th_disc,
             th_ppn: th_ppn,
@@ -426,7 +426,7 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
             fromOrderModal: true,
             transactionId: result?.id ?? payload.id,
             _rawPayload: {
-              th_type: "SALE",
+              th_type: 1,
               customer: customer_id,
               th_disc: th_disc,
               th_ppn: th_ppn,
@@ -586,7 +586,7 @@ const ReturnSellingTable: React.FC<Props> = ({ tableName }) => {
                                     fromOrderModal: true,
                                     transactionId: transactionId ?? null,
                                     _rawPayload: {
-                                        th_type: "SALE",
+                                        th_type: 1,
                                         customer: id,
                                         th_disc: Number(thDisc),
                                         th_ppn: thPpn,

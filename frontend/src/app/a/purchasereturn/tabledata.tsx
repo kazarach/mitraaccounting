@@ -52,7 +52,7 @@ const PurchaseReturn = () => {
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=RETURN_PURCHASE&th_order=false&th_status=true`;
+    let params = `th_type=9&th_order=false&th_status=true`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");

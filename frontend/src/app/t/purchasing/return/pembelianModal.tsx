@@ -64,7 +64,7 @@ const PembelianModal = ({ tableName }: { tableName: string }) => {
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&supplier=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`/api/proxy/api/transactions/?th_type=PURCHASE${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`/api/proxy/api/transactions/?th_type=2${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 

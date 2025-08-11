@@ -85,7 +85,7 @@ interface BayarTPModalReturnSellingProps {
     const postPayload = {
       ...rawPayload,
       cashier: rawPayload.cashier ?? null,
-      th_type: "RETURN_SALE",
+      th_type: 10,
       th_order: false,
       th_return: true,
       th_dp: th_dp_total,

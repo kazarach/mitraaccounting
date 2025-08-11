@@ -9,17 +9,16 @@ import { ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const items = [
-  { id: "1", name: "Kas" },
-  { id: "2", name: "Bank" },
-  { id: "3", name: "Piutang" },
+  { id: "4", name: "Transfer" },
+  { id: "8", name: "Pengeluaran" },
+  
 ];
-
 interface TipeDropdownProps {
   selected: string[];
   onChange: (selected: string[]) => void;
 }
 
-export function TipeDropdown({ selected, onChange }: TipeDropdownProps) {
+export function TipeKasBankDropdown({ selected, onChange }: TipeDropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -105,5 +104,3 @@ export function TipeDropdown({ selected, onChange }: TipeDropdownProps) {
     </Popover>
   );
 }
-
-

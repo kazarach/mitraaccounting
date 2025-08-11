@@ -34,7 +34,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { distributors, products } from '@/data/product';
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as yup from "yup";
 import { useForm, Controller } from "react-hook-form";
@@ -49,6 +49,12 @@ import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import useSWRMutation from 'swr/mutation';
 import useSWR from 'swr';
 
+declare module "@tanstack/react-table" {
+    interface TableMeta<TData extends RowData> {
+        updateData: (rowIndex: number, columnId: string, value: unknown) => void
+    }
+}
+
 
 const formSchema = z.object({
     th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
@@ -60,8 +66,7 @@ const formSchema = z.object({
 
 
 type PayloadType = {
-    th_type: string;
-    supplier: number;
+    th_type: number;
     // th_ppn: number;
     cashier: number;
     // th_disc: number;
@@ -131,7 +136,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         }
         if (submitAction === "simpan") {
             const payload: any = {
-                th_type: "PURCHASE",
+                th_type: 2,
                 supplier: values.supplier,
                 cashier: me.id,
                 th_date: values.th_date,
@@ -164,7 +169,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         if (submitAction === "bayar") {
             const values2 = form.getValues();
             const payload2: any = {
-                th_type: "ORDEROUT",
+                th_type: 12,
                 supplier: values.supplier,
                 cashier: 3,
                 th_date: values.th_date,

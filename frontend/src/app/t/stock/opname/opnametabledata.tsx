@@ -350,7 +350,7 @@ const OpnameTable: React.FC<Props> = ({ tableName }) => {
             console.table(items);
       
           const payload = {
-            th_type: "ADJUSTMENT", // ← masih wajib karena backend minta
+            th_type: 7, // ← masih wajib karena backend minta
             th_payment_type:"CASH",
             cashier: operator_id,
             ...(transactionId && { id: transactionId }),

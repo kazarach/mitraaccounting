@@ -33,7 +33,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { distributors, products } from '@/data/product';
-import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from '@tanstack/react-table';
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as yup from "yup";
 import DistributorDD from '@/components/dropdown-normal/distributor_dd';
@@ -51,11 +51,7 @@ import TambahProdukModalTP from './tambahprodukModal';
 import PersediaanModal, { Stock } from './persediaanModal';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
-declare module "@tanstack/react-table" {
-    interface TableMeta<TData extends RowData> {
-        updateData: (rowIndex: number, columnId: string, value: unknown) => void
-    }
-}
+
 
 const formSchema = z.object({
     th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
@@ -234,7 +230,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             th_disc: 0,
             th_dp: null,
             th_payment_type: "CASH",
-            bank: 1,
+            bank: undefined,
         },
     })
 
@@ -421,38 +417,8 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     }
 
 
-    const defaultColumn: Partial<ColumnDef<TransactionRow>> = {
-        cell: ({ getValue, row: { index }, column: { id }, table }) => {
-            const initialValue = getValue()
-            const [value, setValue] = React.useState(initialValue)
 
-            const onBlur = () => {
-                table.options.meta?.updateData(index, id, value)
-            }
-
-            React.useEffect(() => {
-                setValue(initialValue)
-            }, [initialValue])
-
-            if (id === "stock_name" || id === "total") {
-                return <span>{value as string}</span>
-            }
-
-            return (
-                <input
-                    type="number"
-                    value={value as number}
-                    onChange={(e) => setValue(e.target.value)}
-                    onBlur={onBlur}
-                // className="pl-1 text-left bg-gray-100 rounded-sm w-full"
-                className='w-full h-full'
-                />
-            )
-        },
-    }
-
-
-    const columns = useMemo<ColumnDef<TransactionRow>[]>(() => [
+    const columns: ColumnDef<TransactionRow>[] = [
         {
             header: "Produk",
             accessorKey: "stock_name",
@@ -461,7 +427,6 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         {
             header: "Satuan",
             accessorKey: "unit",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
             size: 80,
         },
         {
@@ -569,54 +534,119 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         // },
         {
             header: "Jml. Barang",
-            accessorKey: "quantity",
+            cell: ({ row }) => {
+                const idx = row.index;
+                const jumlahBarang = row.original.quantity || 0;
+                return (
+                    <input
+                        type="number"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+                        value={tempInputs[idx]?.quantity || ""}
+                        onChange={(e) => onInputChange(idx, "quantity", e.target.value)}
+                        onBlur={() => onInputBlur(idx, row.original.id)}
+                    />
+                );
+            },
             size: 80,
         },
 
         {
             header: "Harga Beli",
-            accessorKey: "stock_price_buy",
+            cell: ({ row }) => {
+                const idx = row.index;
+                return (
+                    <input
+                        type="number"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+                        value={tempInputs[idx]?.stock_price_buy || ""}
+                        onChange={(e) => onInputChange(idx, "stock_price_buy", e.target.value)}
+                        onBlur={() => onInputBlur(idx, row.original.id)}
+                    />
+                );
+            },
             size: 100,
         },
         {
             header: "Diskon (Rp)",
-            accessorKey: "disc",
+            cell: ({ row }) => {
+                const idx = row.index;
+                return (
+                    <input
+                        type="number"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+                        value={tempInputs[idx]?.disc || 0}
+                        onChange={(e) => onInputChange(idx, "disc", e.target.value)}
+                        onBlur={() => onInputBlur(idx, row.original.id)}
+                    />
+                );
+            },
             size: 100,
         },
         {
             header: "Diskon (%)",
-            accessorKey: "disc_percent",
+            cell: ({ row }) => {
+                const idx = row.index;
+                return (
+                    <input
+                        type="number"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+                        value={tempInputs[idx]?.disc_percent || 0}
+                        onChange={(e) => onInputChange(idx, "disc_percent", e.target.value)}
+                        onBlur={() => onInputBlur(idx, row.original.id)}
+                    />
+                );
+            },
             size: 90,
         },
         {
             header: "Diskon 2 (%)",
-            accessorKey: "disc_percent2",
+            cell: ({ row }) => {
+                const idx = row.index;
+                return (
+                    <input
+                        type="number"
+                        className="pl-1 text-left bg-gray-100 rounded-sm w-full"
+                        value={tempInputs[idx]?.disc_percent2 || 0}
+                        onChange={(e) => onInputChange(idx, "disc_percent2", e.target.value)}
+                        onBlur={() => onInputBlur(idx, row.original.id)}
+                    />
+                );
+            },
             size: 90,
         },
         {
             header: "Total",
-            cell: ({ row }) => {
-                const price = row.original.stock_price_buy || 0;
-                const qty = row.original.quantity || 0;
-                const disc = row.original.disc || 0;
-                const disc1 = row.original.disc_percent || 0;
-                const disc2 = row.original.disc_percent2 || 0;
-
-                const afterDisc1 = price - disc;
-                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
-                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
-                const subtotal = qty * afterDisc3;
-
-                return (
-                    <div className="text-left">
-                        {subtotal.toLocaleString("id-ID", {
-                            maximumFractionDigits: 2,
-                        })}
-                    </div>
-                );
-            },
-            size: 100
+            cell: ({ row }) => (
+                <div className="text-right font-semibold">
+                    {(row.original.subtotal || 0).toLocaleString("id-ID")}
+                </div>
+            ),
+            size: 120,
         },
+        // {
+        //     header: "Total",
+        //     cell: ({ row }) => {
+        //         const price = row.original.stock_price_buy || 0;
+        //         const qty = row.original.quantity || 0;
+        //         const disc = row.original.disc || 0;
+        //         const disc1 = row.original.disc_percent || 0;
+        //         const disc2 = row.original.disc_percent2 || 0;
+
+        //         const afterDisc1 = price - disc;
+        //         const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
+        //         const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+        //         const subtotal = qty * afterDisc3;
+
+        //         return (
+        //             <div className="text-left">
+        //                 {subtotal.toLocaleString("id-ID", {
+        //                     maximumFractionDigits: 2,
+        //                 })}
+        //             </div>
+        //         );
+        //     },
+        //     size: 100
+        // },
 
         {
             header: "Inc. PPN",
@@ -658,29 +688,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             ),
             size: 50,
         },
-    ], [])
+    ];
 
     const table = useReactTable({
         data,
         columns,
-        defaultColumn,
         getCoreRowModel: getCoreRowModel(),
-        meta: {
-            updateData: (rowIndex, columnId, value) => {
-                dispatch(setTableData({
-                    tableName,
-                    data: data.map((row, index) => {
-                        if (index === rowIndex) {
-                            return {
-                                ...row,
-                                [columnId]: Number(value) || 0,
-                            }
-                        }
-                        return row
-                    })
-                }))
-            },
-        },
     });
 
     useEffect(() => {

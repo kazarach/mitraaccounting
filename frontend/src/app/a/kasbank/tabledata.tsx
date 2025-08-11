@@ -27,7 +27,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { operators } from '@/data/product';
-import { TipeDropdown } from '@/components/dropdown-checkbox/tipe-dropdown';
 import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
 import { DateRange } from 'react-day-picker';
 import useSWR from 'swr';
@@ -36,12 +35,14 @@ import Loading from '@/components/loading';
 import { ColumnDef, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getFacetedRowModel, getFacetedUniqueValues, flexRender, SortingState } from '@tanstack/react-table';
 import { error } from 'console';
 import { id } from 'date-fns/locale';
+import { TipeKasBankDropdown } from '@/components/dropdown-checkbox/tipekasbank-dd';
 
 const KasBankArsipTable = () => {
     const [search, setSearch] = useState("");
     const [date, setDate] = React.useState<DateRange | undefined>(undefined)
-    const [operator, setOperator] = useState("");
-    const [tipe, setTipe] = useState("");
+    const [operator, setOperator] = useState<number[]>([]);
+
+    const [selectedTipe, setSelectedTipe] = useState<string[]>([])
     const [tipeTransfer, setTipeTransfer] = useState("");
     const [includePiutang, setIncludePiutang] = useState(false);
     const [open2, setOpen2] = React.useState(false)
@@ -52,8 +53,33 @@ const KasBankArsipTable = () => {
     const [selectedRow, setSelectedRow] = useState<any | null>(null);
     const [showPrint, setShowPrint] = useState(false);
 
+    const { data = [], error, isLoading } = useSWR(
+        [
+            operator,
+            selectedTipe,
+            date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+            date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+        ],
+        () => {
+            let params = "";
 
-    const { data, error, isLoading } = useSWR(`/api/proxy/api/transactions/?th_type=TRANSFER&th_type=EXPENSE`, fetcher);
+            if (operator.length > 0) params += `&cashier=${operator.join(",")}`;
+
+            if (selectedTipe.length > 0) {
+                selectedTipe.forEach((tipe) => {
+                    params += `&th_type=${tipe}`;
+                });
+            } else {
+                params += `&th_type=4&th_type=8`;
+            }
+
+            if (date?.from) params += `&start_date=${format(date.from, "yyyy-MM-dd")}`;
+            if (date?.to) params += `&end_date=${format(date.to, "yyyy-MM-dd")}`;
+
+            return fetcher(`/api/proxy/api/transactions/?${params}`);
+        }
+    );
+
 
     console.log(data)
 
@@ -76,18 +102,28 @@ const KasBankArsipTable = () => {
                 return format(parsedDate, "d/M/yyyy", { locale: id });
             },
         },
-
-        { header: "Jumlah", accessorKey: "th_dp" },
-        { header: "Tipe", accessorKey: "th_type" },
-        { header: "Akun Asal", accessorKey: "from_account" },
-        { header: "Akun Tujuan", accessorKey: "to_account" },
+        {
+            accessorKey: "th_dp",
+            header: "Jumlah",
+            cell: (info: any) => {
+                const value = Number(info.getValue());
+                if (isNaN(value)) return "-";
+                return value.toLocaleString("id-ID", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                });
+            },
+        },
+        { header: "Tipe", accessorKey: "type_name" },
+        { header: "Akun Asal", accessorKey: "from_account_name" },
+        { header: "Akun Tujuan", accessorKey: "to_account_name" },
         { header: "Keterangan", accessorKey: "th_note" },
         {
             header: "Status",
-            accessorKey: "status",
+            accessorKey: "th_status",
             cell: ({ getValue }) => {
-                const status = getValue() as string;
-                if (status === "COMPLETED") {
+                const status = getValue() as boolean;
+                if (status === true) {
                     return (
                         <div className="inline-flex items-center gap-1 text-green-600 font-medium">
                             <Check size={16} /> Complete
@@ -107,15 +143,26 @@ const KasBankArsipTable = () => {
             cell: ({ row }) => {
                 const selectedId = row.original.id;
                 return (
-                    <Button
-                        className="bg-blue-500 hover:bg-blue-600 size-7"
-                        onClick={() => {
-                            setSelectedRow(row.original);
-                            setShowPrint(true);
-                        }}
-                    >
-                        <Printer />
-                    </Button>
+                    <div className="">
+                        <Button
+                            className="bg-blue-500 hover:bg-blue-600 size-7 mr-1"
+                            onClick={() => {
+                                setSelectedRow(row.original);
+                                setShowPrint(true);
+                            }}
+                        >
+                            <Printer />
+                        </Button>
+                        <Button
+                            className="bg-blue-500 hover:bg-blue-600 size-7"
+                            onClick={() => {
+                                setSelectedRow(row.original);
+                                setShowPrint(true);
+                            }}
+                        >
+                            <Eye />
+                        </Button>
+                    </div>
                 );
             }
         }
@@ -130,38 +177,28 @@ const KasBankArsipTable = () => {
             sorting,
             globalFilter: search,
         },
-        enableColumnResizing: true, // Ini penting
-        columnResizeMode: "onChange", // atau "onEnd"
-        onSortingChange: setSorting,
         onGlobalFilterChange: setSearch,
+        globalFilterFn: (row, columnId, filterValue) => {
+            const searchValue = filterValue.toLowerCase();
+
+            const noFaktur = row.getValue("th_code")?.toString().toLowerCase() || "";
+            const keterangan = row.getValue("th_note")?.toString().toLowerCase() || "";
+
+            return (
+                noFaktur.includes(searchValue) ||
+                keterangan.includes(searchValue)
+            );
+        },
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        getFacetedRowModel: getFacetedRowModel(),
-        getFacetedUniqueValues: getFacetedUniqueValues(),
     });
+
     return (
         <div className="flex flex-col space-y-4">
             <div className="flex justify-between gap-4 mb-4">
                 <div className="flex flex-wrap items-end gap-4">
 
-                    {/* <div className="flex flex-col space-y-2">
-                        <Label htmlFor="operator">Operator</Label>
-                        <OperatorDropdown onChange={(id) => setOperator(id)} />
-                    </div> */}
-                    <div className="flex flex-col space-y-2">
-                        <Label htmlFor="tipe">Tipe</Label>
-                        <Select value={tipe} onValueChange={setTipe}>
-                            <SelectTrigger className="w-[150px] h-[30px] justify-between font-normal bg-slate-100 ">
-                                <SelectValue placeholder="Pilih Tipe" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="0">Semua</SelectItem>
-                                <SelectItem value="CASH">Kas</SelectItem>
-                                <SelectItem value="BANK">Bank</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
                     <div className="flex flex-col space-y-2" >
                         <Label htmlFor="date">Tanggal</Label>
                         <Popover>
@@ -170,23 +207,23 @@ const KasBankArsipTable = () => {
                                     id="date"
                                     variant={"outline"}
                                     className={cn(
-                                        "w-[150px] h-[30px] justify-start text-left font-normal",
+                                        "w-[150px] h-[30px] justify-start text-left font-normal text-xs",
                                         !date
                                     )}
                                 >
-                                    <CalendarIcon />
+                                    <CalendarIcon size={16} />
                                     {date?.from ? (
                                         date.to ? (
                                             <>
-                                                {format(date.from, "LLL dd, y")} -{" "}
-                                                {format(date.to, "LLL dd, y")}
+                                                {format(date.from, "dd/MM/yy")} - {format(date.to, "dd/MM/yy")}
                                             </>
                                         ) : (
-                                            format(date.from, "LLL dd, y")
+                                            format(date.from, "dd/MM/yy")
                                         )
                                     ) : (
                                         <span>Pilih Tanggal</span>
                                     )}
+
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
@@ -201,6 +238,26 @@ const KasBankArsipTable = () => {
                             </PopoverContent>
                         </Popover>
                     </div>
+                    <div className="flex flex-col space-y-2">
+                        <Label htmlFor="operator">Operator</Label>
+                        <OperatorDropdown onChange={(id) => setOperator(id)} />
+                    </div>
+                    <div className="flex flex-col space-y-2">
+                        <Label htmlFor="tipe">Tipe</Label>
+                        {/* <Select value={tipe} onValueChange={setTipe}>
+                            <SelectTrigger className="w-[150px] h-[30px] justify-between font-normal bg-slate-100 ">
+                                <SelectValue placeholder="Pilih Tipe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="TRANSFER">Transfer</SelectItem>
+                                <SelectItem value="EXPENSE">Pengeluaran</SelectItem>
+                            </SelectContent>
+                        </Select> */}
+                        <TipeKasBankDropdown
+                            selected={selectedTipe}               // ✅ Wajib ada
+                            onChange={setSelectedTipe}            // ✅ Wajib ada
+                        />
+                    </div>
                 </div>
                 <div className='flex items-end'>
                     <div className='flex items-end gap-2'>
@@ -210,13 +267,19 @@ const KasBankArsipTable = () => {
                             "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                         )}>
                             <Search size={20} style={{ marginRight: '10px' }} />
-                            <input type="text" placeholder="Cari Faktur" style={{ border: 'none', outline: 'none', flex: '1' }} />
+                            <input
+                                type="text"
+                                placeholder="Cari Faktur / Keterangan"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                style={{ border: 'none', outline: 'none', flex: '1' }}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-           <div className="rounded-md border overflow-auto">
+            <div className="rounded-md border overflow-auto">
                 <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
                     <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
                         <Table>

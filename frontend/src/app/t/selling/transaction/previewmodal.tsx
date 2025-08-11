@@ -93,7 +93,7 @@ const BayarTPModalJual: React.FC<BayarTPModalJualProps> = ({ data, onSuccess }) 
             const postPayload = {
                 ...rawPayload,
                 cashier: me.id,
-                th_type: "SALE",
+                th_type: 1,
                 th_order: false,
                 th_dp: th_dp_total,
                 bank: selectedBank || null,

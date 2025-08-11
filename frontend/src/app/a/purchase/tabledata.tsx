@@ -53,7 +53,7 @@ const PurchaseArchive = () => {
   console.log(API_URL)
 
   const queryParams = useMemo(() => {
-    let params = `th_type=PURCHASE&th_status=true&th_order=false`;
+    let params = `th_type=2&th_status=true&th_order=false`;
     if (date?.from && date?.to) {
       const start = date.from.toLocaleDateString("sv-SE");
       const end = date.to.toLocaleDateString("sv-SE");

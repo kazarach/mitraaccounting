@@ -1,54 +1,24 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableFooter,
-    TableHead,
-    TableHeader,
-    TableRow
-} from "@/components/ui/table";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, fetcher, fetcherPost } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronDown, ChevronsUpDown, ChevronUp, Clock, Copy, DollarSign, Eye, Printer, Search, Trash, X } from 'lucide-react';
+import { fetcher, fetcherPost } from '@/lib/utils';
+import { CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar"
-import { addDays, format } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/modal/tp-pesanan-modal';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { useDispatch, useSelector } from 'react-redux';
-import { distributors, operators, poinMemberPelanggan } from '@/data/product';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { OperatorDropdown } from '@/components/dropdown-checkbox/operator-dropdown';
-import { TipeDropdown } from '@/components/dropdown-checkbox/tipe-dropdown';
-import { DateRange } from 'react-day-picker';
 import useSWR from 'swr';
-import { ColumnDef, useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getFacetedRowModel, getFacetedUniqueValues, SortingState, flexRender } from '@tanstack/react-table';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import Loading from '@/components/loading';
-import { id } from 'date-fns/locale';
-import { dateForm } from '@/utils/format';
 import useSWRMutation from 'swr/mutation';
+
 
 
 const KasBankTransTable = () => {
     const [date, setDate] = useState(new Date());
-    const [tipeTrans, setTipeTrans] = useState<string | undefined>("TRANSFER");
+    const [tipeTrans, setTipeTrans] = useState<string | undefined>("4");
     const [tipeTF, setTipeTF] = useState<string | undefined>("0");
     const [bankValue, setBankValue] = useState<number | undefined>(undefined);
     const [bankValue2, setBankValue2] = useState<number | undefined>(undefined);
@@ -70,7 +40,7 @@ const KasBankTransTable = () => {
 
         const payload = {
             th_date: date,
-            th_type: tipeTrans,
+            th_type: parseInt(tipeTrans ?? "0", 10),
             from_account: bankValue,
             to_account: bankValue2,
             th_note: keterangan,
@@ -78,7 +48,7 @@ const KasBankTransTable = () => {
             items: [],
             th_payment_type: "CASH",
             cashier: me.id,
-            th_status:true
+            th_status: true
         };
         console.log(JSON.stringify(payload, null, 1));
         post(payload)
@@ -86,7 +56,7 @@ const KasBankTransTable = () => {
                 console.log(res)
                 toast.success("Transaksi berhasil");
                 setDate(new Date());
-                setTipeTrans("TRANSFER");
+                setTipeTrans("4");
                 setBankValue(undefined);
                 setBankValue2(undefined);
                 setKeterangan("");
@@ -98,6 +68,30 @@ const KasBankTransTable = () => {
                 toast.error(err.message);
             });
     };
+
+    function terbilangID(n: number): string {
+        const satuan = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+
+        if (n < 12) return satuan[n];
+        else if (n < 20) return terbilangID(n - 10) + " belas";
+        else if (n < 100) return terbilangID(Math.floor(n / 10)) + " puluh" + terbilangID(n % 10);
+        else if (n < 200) return "seratus " + terbilangID(n - 100);
+        else if (n < 1000) return terbilangID(Math.floor(n / 100)) + " ratus" + terbilangID(n % 100);
+        else if (n < 2000) return "seribu " + terbilangID(n - 1000);
+        else if (n < 1000000) return terbilangID(Math.floor(n / 1000)) + " ribu" + terbilangID(n % 1000);
+        else if (n < 1000000000) return terbilangID(Math.floor(n / 1000000)) + " juta" + terbilangID(n % 1000000);
+        else if (n < 1000000000000) return terbilangID(Math.floor(n / 1000000000)) + " miliar" + terbilangID(n % 1000000000);
+
+        return "";
+    }
+
+    useEffect(() => {
+        if (jumlah !== undefined && !isNaN(jumlah)) {
+            setTerbilang(jumlah === 0 ? "nol" : terbilangID(jumlah).trim());
+        } else {
+            setTerbilang("");
+        }
+    }, [jumlah]);
 
     return (
         <div className="flex flex-col space-y-4">
@@ -135,8 +129,8 @@ const KasBankTransTable = () => {
                                     <SelectValue placeholder="Pilih Tipe" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="TRANSFER">Transfer antar Kas / Bank</SelectItem>
-                                    <SelectItem value="EXPENSE">Pengeluaran Kas / Bank</SelectItem>
+                                    <SelectItem value="4">Transfer antar Kas / Bank</SelectItem>
+                                    <SelectItem value="8">Pengeluaran Kas / Bank</SelectItem>
                                     {/* <SelectItem value="2">Pemasukan Kas / Bank</SelectItem> */}
                                 </SelectContent>
                             </Select>
@@ -227,7 +221,10 @@ const KasBankTransTable = () => {
                         type="number"
                         placeholder="0"
                         value={jumlah ?? ""}
-                        onChange={(e) => setJumlah(Number(e.target.value))}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setJumlah(val === "" ? undefined : Number(val));
+                        }}
                         className="w-[240px] h-[30px] bg-slate-100"
                     />
 
@@ -238,10 +235,9 @@ const KasBankTransTable = () => {
                     <Input
                         id="terbilang"
                         value={terbilang}
-                        onChange={(e) => setTerbilang(e.target.value)}
+                        readOnly
                         className="w-[240px] h-[30px] bg-slate-100"
                     />
-
                 </div>
 
                 <div className="flex justify-end gap-2 mt-2 w-full">
