@@ -127,7 +127,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         fetcherPost
     );
 
-    const { data : me, error:errorme, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
+    const { data: me, error: errorme, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
@@ -208,7 +208,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         };
     }
 
-    const columns: ColumnDef<any>[] = [
+    const columns = useMemo<ColumnDef<any>[]>(() => [
         {
             header: "Produk",
             accessorKey: "stock_name",
@@ -271,7 +271,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                 </div>
             ),
         },
-    ];
+    ], [])
 
     const table = useReactTable({
         data,
@@ -510,7 +510,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                             )}
                             <DialogContent className="w-1/4 max-h-11/12">
                                 <BayarTPModal
-                                    review={review}                             
+                                    review={review}
                                     supplier_name={supplier_name}
                                     onClose={() => setOpen(false)}
                                 />
