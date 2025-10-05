@@ -37,7 +37,7 @@ export function TukarPointModal({
 
   try {
     if (addPoint > 0) {
-      const res = await fetch(`${API_URL}api/point-transactions/`, {
+      const res = await fetch(`/api/proxy/api/point-transactions/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,7 +59,7 @@ export function TukarPointModal({
     }
 
     if (redeemPoint < 0) {
-      const res = await fetch(`${API_URL}api/point-transactions/`, {
+      const res = await fetch(`/api/proxy/api/point-transactions/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ export function TukarPointModal({
 
     toast.success("Poin berhasil dikirim.");
     onClose(false);
-    mutate(`${API_URL}api/customers/`);
+    mutate(`/api/proxy/api/customers/`);
   } catch (error) {
     console.error("❌ Gagal mengirim poin:", error);
     toast.error("Terjadi kesalahan saat mengirim poin.");

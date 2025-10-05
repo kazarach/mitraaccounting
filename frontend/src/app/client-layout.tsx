@@ -9,25 +9,19 @@ import { store } from "@/store/store";
 import { usePathname } from "next/navigation";  
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();  
-
-
+  const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
   return (
-    <SidebarProvider>
-
-      {!isLoginPage && <AppSidebar />}
-      
-      <main className="flex flex-1 flex-col">
-        {!isLoginPage && <Header />}
-        
-        <Provider store={store}>
+    <Provider store={store}>
+      <SidebarProvider>
+        {!isLoginPage && <AppSidebar />}
+        <main className="flex flex-1 flex-col">
+          {!isLoginPage && <Header />}
           {children}
-        </Provider>
-      </main>
-
-      <Toaster position="top-right" richColors />
-    </SidebarProvider>
+        </main>
+        <Toaster position="top-right" richColors />
+      </SidebarProvider>
+    </Provider>
   );
 }

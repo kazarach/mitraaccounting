@@ -157,11 +157,11 @@ const StockUses: React.FC<Props> = ({ tableName }) => {
         string,
         any
     >(
-        `${API_URL}api/transactions/`,
+        `/api/proxy/api/transactions/`,
         fetcherPost
     );
 
-    const { data: me, error, isLoading, mutate } = useSWR(`${API_URL}api/users/me/`, fetcher);
+    const { data: me, error, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
 
     const onSubmit = async () => {
         const payload = {

@@ -51,7 +51,7 @@ const TambahProdukReturnSelling: React.FC<TambahProdukModalProps> = ({ tableName
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL!
   const { data = [], error, isLoading, mutate } = useSWR(
-  `${API_URL}api/stock/?transaction_type=SALE${supplierParam}`,
+  `/api/proxy/api/stock/?transaction_type=SALE${supplierParam}`,
   fetcher
 );
 

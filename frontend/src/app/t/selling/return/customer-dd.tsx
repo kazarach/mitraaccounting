@@ -25,7 +25,6 @@ type CustomerDDRSProps = {
   };
 
   const CustomerDDRS: React.FC<CustomerDDRSProps> = ({ value, onChange }) => {
-    useAuthGuard();
     const [open, setOpen] = React.useState(false);
     const API_URL = process.env.NEXT_PUBLIC_API_URL!;
     const { data = [], error, isLoading } = useSWR<Customer[]>(

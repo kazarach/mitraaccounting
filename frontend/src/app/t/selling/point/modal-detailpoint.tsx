@@ -40,7 +40,7 @@ const DetailPointModal: React.FC<DetailPointModalProps> = ({ open, onClose, tran
 
   const { data, error, isLoading } = useSWR(
   customerId
-    ? `${API_URL}api/point-transactions/?customer=${customerId}${transactionType ? `&transaction_type=${transactionType}` : ""}`
+    ? `/api/proxy/api/point-transactions/?customer=${customerId}${transactionType ? `&transaction_type=${transactionType}` : ""}`
     : null,
   fetcher
 );

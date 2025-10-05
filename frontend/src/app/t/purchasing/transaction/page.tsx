@@ -5,8 +5,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import TransactionTable from './tabledata';
-import { DialogHeader } from "@/components/ui/dialog";
-import { DialogTitle } from "@radix-ui/react-dialog";
 
 const TransactionPurchase = () => {
   return (

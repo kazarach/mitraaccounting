@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -31,21 +32,8 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Avatar, AvatarImage } from "./ui/avatar";
+import { useRouter } from "next/navigation";
 
-const handleLogout = async () => {
-  try {
-    await fetch("/api/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch (err) {
-    console.error("Logout error", err);
-  }
-
-  // Redirect setelah logout
-  window.location.href = "/";
-};
-// Pindahkan data menu ke atas
 
 const Menus = [
   {
@@ -126,7 +114,7 @@ const Menus = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [openMainMenus, setOpenMainMenus] = useState<string | null>(null);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
@@ -136,6 +124,17 @@ export function AppSidebar() {
     const token = localStorage.getItem("access");
     setIsLoggedIn(!!token);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+      localStorage.removeItem("access");
+      router.replace("/"); 
+      console.log("logout");
+    } catch (err) {
+      console.error("Logout error", err);
+    }
+  };
 
   // Buka menu sesuai path saat load
   useEffect(() => {
@@ -170,6 +169,15 @@ export function AppSidebar() {
     }));
   };
 
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-open");
+    if (saved) setOpenMainMenus(saved);
+  }, []);
+  useEffect(() => {
+    if (openMainMenus) localStorage.setItem("sidebar-open", openMainMenus);
+  }, [openMainMenus]);
+
+
   return (
     <Sidebar className="bg-slate-800 h-screen">
       <SidebarHeader>
@@ -186,11 +194,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
 
-              <SidebarMenuButton className="flex items-center gap-2 w-full p-2 rounded-sm hover:bg-slate-700 transition hover:text-white">
-                <a href="/" className="flex items-center gap-2 w-full text-white">
+              <SidebarMenuButton className="flex items-center gap-2 w-full p-2 rounded-sm hover:bg-slate-700 transition hover:text-white" asChild>
+                <Link href="/" className="flex items-center gap-2 w-full text-white" prefetch>
                   <House size={18} className="text-white" />
                   <span>Home</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
 
               {Menus.map((menu) => (
@@ -232,17 +240,17 @@ export function AppSidebar() {
                                   />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
-                              <CollapsibleContent>
+                              <CollapsibleContent asChild>
                                 <div className="ml-4 border-l-2 border-gray-500 pl-3">
                                   {subItem.subItems.map((nestedSub) => (
                                     <div key={nestedSub.title} className="hover:bg-slate-700 transition rounded-sm">
-                                      <a
+                                      <Link
                                         href={nestedSub.url}
                                         className={`flex items-center px-2 py-1.5 text-white ${pathname === nestedSub.url ? "bg-slate-700 rounded-sm font-semibold" : ""
                                           }`}
-                                      >
+                                        prefetch>
                                         <span>{nestedSub.title}</span>
-                                      </a>
+                                      </Link>
 
                                     </div>
                                   ))}
@@ -251,13 +259,13 @@ export function AppSidebar() {
                             </Collapsible>
                           ) : (
                             <div key={subItem.title} className="hover:bg-slate-700 transition rounded-sm">
-                              <a
+                              <Link
                                 href={subItem.url}
                                 className={`flex items-center px-2 py-1.5 text-white ${pathname === subItem.url ? "bg-slate-700 rounded-sm font-semibold" : ""
                                   }`}
-                              >
+                                prefetch>
                                 <span>{subItem.title}</span>
-                              </a>
+                              </Link>
 
                             </div>
                           )

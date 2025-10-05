@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   Table,
@@ -32,8 +32,8 @@ import CustomerDDTS from './customer-dd';
 import TambahProdukModalSelling from './tambahprodukmodalselling';
 import TpModalSelling from './modalpesanan';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+// import BayarTPModalJual from './previewmodal'; // (sementara dimatikan jika belum dipakai)
 import useSWR from 'swr';
-import BayarTPModalJual from './previewmodal';
 
 type Customer = {
   id: number;
@@ -94,6 +94,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
   const [cashierId, setCashierId] = useState<number | null>(null);
   const data = useSelector((state: RootState) => state.table[tableName] || []);
 
+  // const { data: me } = useSWR(`/api/proxy/api/users/me/`, fetcher);
+
+  useSWR('/api/proxy/api/users/me/', fetcher, {
+    onError: (err: any) => console.warn('[/me] error', err?.status)
+  });
+
+
+
   const form = useForm<z.infer<typeof formSchema>>({
     defaultValues: {
       th_date: new Date().toISOString(),
@@ -118,7 +126,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     dispatch(setTableData({ tableName, data: updated }));
   };
 
-  const columns: ColumnDef<TransactionRow>[] = [
+  const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Produk", accessorKey: "stock_name" },
     {
       header: "Jumlah Barang",
@@ -233,7 +241,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         </div>
       ),
     },
-  ];
+  ], []);
 
   const table = useReactTable({
     data,
@@ -303,10 +311,6 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
   const th_disc = form.watch("th_disc") || 0;
   const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-  const { data: me } = useSWR(`/api/proxy/api/users/me/`, fetcher);
-
-
   const postOnlyTableItems = async () => {
     const customerIdVal = form.getValues("customer");
     const thDiscVal = form.getValues("th_disc");
@@ -344,17 +348,17 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         th_ppn: th_ppn,
         th_payment_type: th_payment_type,
         th_dp: thDp,
-        cashier: me?.id, 
+        // cashier: me?.id, 
         ...(transactionId && { id: transactionId }),
         items,
       };
 
       const response = await fetch(`/api/proxy/api/transactions/calculate_preview/`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const text = await response.text();
@@ -377,7 +381,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
           th_ppn: th_ppn,
           th_payment_type: th_payment_type,
           id: result?.id ?? payload.id,
-          cashier: me?.id,
+          // cashier: me?.id,
           items
         }
       });
@@ -700,7 +704,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
               </Button>
               <DialogContent className="min-w-[30vw] max-h-[90vh]">
                 {/* Komponen preview modal bisa ditempatkan kembali kalau sudah siap */}
-                <BayarTPModalJual
+                {/* <BayarTPModalJual
                   data={{ ...previewData, transactionId: previewData?.transactionId, fromOrderModal: previewData?.fromOrderModal }}
                   onSuccess={() => {
                     dispatch(clearTable({ tableName }));
@@ -712,7 +716,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                     });
                     setCustomer(null);
                   }}
-                />
+                /> */}
               </DialogContent>
             </Dialog>
           </div>

@@ -4,6 +4,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import TransactionTable from "@/app/test/page";
 import TransactionSellingTable from "./tabledata";
 
 const SellingTransaction = () => {
@@ -14,7 +16,8 @@ const SellingTransaction = () => {
           <CardTitle>Transaksi Penjualan</CardTitle>
         </CardHeader>
         <CardContent>
-          <TransactionSellingTable tableName='s_transaksi' />
+          <TransactionSellingTable tableName='s_transaksi'/>
+          <p>Ini coba aman</p>
         </CardContent>
       </Card>
     </div>

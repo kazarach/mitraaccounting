@@ -1,71 +1,64 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
     TableFooter,
     TableHead,
     TableHeader,
-    TableRow
+    TableRow,
 } from "@/components/ui/table";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn, fetcher, fetcherPatch, fetcherPost } from "@/lib/utils";
+import { CalendarIcon, Search, Trash } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import TpModal from "@/components/modal/tp-pesanan-modal";
+import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { addRow, deleteRow, setTableData, clearTable } from "@/store/features/tableSlicer";
+import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from "@tanstack/react-table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { z } from "zod";
+import { id as localeId } from "date-fns/locale";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import BayarTPModal from "@/components/modal/tp-bayar-modal";
+import useSWRMutation from "swr/mutation";
+import GantiHargaModal from "./gantiHargaModal";
+import TambahProdukModalTP from "./tambahprodukModal";
+import PersediaanModal, { Stock } from "./persediaanModal";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, fetcher, fetcherPatch, fetcherPost } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown, Copy, Search, Trash } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar"
-import { format, setDate } from 'date-fns';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import TpModal from '@/components/modal/tp-pesanan-modal';
-import { toast } from 'sonner';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import { addRow, deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
-import { distributors, products } from '@/data/product';
-import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
-import * as yup from "yup";
-import DistributorDD from '@/components/dropdown-normal/distributor_dd';
-import OperatorDD from '@/components/dropdown-normal/operator_dd';
-import DatePick from '@/components/dropdown-normal/datePick_dd';
-import { z } from "zod"
-import { id } from 'date-fns/locale'
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, UseFormReturn } from "react-hook-form"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import BayarTPModal from '@/components/modal/tp-bayar-modal';
-import useSWRMutation from 'swr/mutation';
-import GantiHargaModal from './gantiHargaModal';
-import TambahProdukModalTP from './tambahprodukModal';
-import PersediaanModal, { Stock } from './persediaanModal';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import DistributorDD from "@/components/dropdown-normal/distributor_dd";
+
+// -------------------- Utils --------------------
+const toNum = (v: unknown): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
 
 declare module "@tanstack/react-table" {
     interface TableMeta<TData extends RowData> {
-        updateData: (rowIndex: number, columnId: string, value: unknown) => void
+        updateData: (rowIndex: number, columnId: string, value: unknown) => void;
     }
 }
 
+// -------------------- Schema --------------------
 const formSchema = z.object({
     th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
     supplier: z.number({ required_error: "Pilih Supplier!" }),
-    th_disc: z.number({ required_error: "Masukkan Diskon Nota" }).optional(),
-    th_payment_type: z.string({ required_error: "Pilih Tipe Bayar" }).optional(),
-    th_dp: z.number({ required_error: "Masukkan Pembayaran" }).nullable().optional(),
-    bank: z.number().optional()
+    th_disc: z.number().default(0).optional(),
+    th_payment_type: z.string().optional(),
+    th_dp: z.number().nullable().optional(),
+    bank: z.number().optional(),
 });
-
 
 type PayloadType = {
     th_type: number;
@@ -85,34 +78,42 @@ type PayloadType = {
         stock_price_buy: number;
         quantity: number;
         disc: number;
+        disc_percent?: number;
+        disc_percent2?: number;
     }[];
-    _method?: 'POST' | 'PUT';
+    _method?: "POST" | "PUT";
 };
-
 
 interface TransactionRow {
     id: number;
+    stock: number;
+    stock_code?: string;
     stock_name: string;
     jumlah_pesanan: number;
     quantity: number;
     stock_price_buy: number;
-    isi_packing: number;
-    satuan: string;
+    unit?: string;
+    conversion_unit?: string;
     subtotal: number;
-    disc?: number; // Diskon dalam Rp
-    disc_percent?: number; // Diskon 1 dalam persen
-    disc_percent2?: number; // Diskon 2 dalam persen
+    disc?: number; // Rp
+    disc_percent?: number; // %
+    disc_percent2?: number; // %
+    th_date?: string;
+    supplier?: number;
+    th_dp?: number;
+    th_total?: number;
+    transaction_id?: number;
 }
 
+// -------------------- Component --------------------
 interface Props {
     tableName: string;
 }
 
 const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const dispatch = useDispatch();
-    const [date, setDate] = React.useState<Date>()
+    const [date, setDate] = useState<Date>();
     const [supplier, setSupplier] = useState<number | null>(null);
-    const [value, setValue] = React.useState("")
     const [isPpnIncluded, setIsPpnIncluded] = useState(true);
     const [submitAction, setSubmitAction] = useState<"simpan" | "bayar" | "harga" | null>(null);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -127,169 +128,79 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchLoading, setSearchLoading] = useState(false);
 
+    const data: TransactionRow[] = useSelector((state: RootState) => state.table[tableName] || []);
+
+    // ---------- Column sizing state (TanStack v8) ----------
+    const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
+    const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
+
     const openPersediaanModalWithStock = (stock: Stock) => {
         setSelectedStock(stock);
         setIsPersediaanOpen(true);
     };
-
     const openPersediaanModal = () => {
         setSelectedStock(null);
         setIsPersediaanOpen(true);
     };
 
-
-    const data = useSelector((state: RootState) => state.table[tableName] || []);
-
-    const [tempInputs, setTempInputs] = useState<
-        { quantity: string; stock_price_buy: string; disc: string; disc_percent: string; disc_percent2: string }[]
-    >(
-        data.map((d) => ({
-            quantity: d.quantity?.toString() || "0",
-            stock_price_buy: d.stock_price_buy?.toString() || "0",
-            disc: d.disc?.toString() || "0",
-            disc_percent: d.disc_percent?.toString() || "0",
-            disc_percent2: d.disc_percent2?.toString() || "0",
-        }))
-    );
-
-    useEffect(() => {
-        setTempInputs(
-            data.map((d) => ({
-                quantity: d.quantity?.toString() || "0",
-                stock_price_buy: d.stock_price_buy?.toString() || "0",
-                disc: d.disc?.toString() || "0",
-                disc_percent: d.disc_percent?.toString() || "0",
-                disc_percent2: d.disc_percent2?.toString() || "0",
-            }))
-        );
-    }, [data]);
-
-
-    const onInputChange = (
-        rowIndex: number,
-        field: "quantity" | "stock_price_buy" | "disc" | "disc_percent" | "disc_percent2",
-        value: string
-    ) => {
-        setTempInputs((prev) => {
-            const copy = [...prev];
-            copy[rowIndex][field] = value;
-            return copy;
-        });
-    };
-
-    const onInputBlur = (rowIndex: number, rowId: number) => {
-        const temp = tempInputs[rowIndex];
-
-        const quantity = parseFloat(temp.quantity) || 0;
-        const price = parseFloat(temp.stock_price_buy) || 0;
-        const discRp = parseFloat(temp.disc) || 0;
-        const discPct = parseFloat(temp.disc_percent) || 0;
-        const discPct2 = parseFloat(temp.disc_percent2) || 0;
-
-        const afterDisc1 = price - discRp;
-        const afterDisc2 = afterDisc1 - afterDisc1 * (discPct / 100);
-        const afterDisc3 = afterDisc2 - afterDisc2 * (discPct2 / 100);
-        const subtotal = quantity * afterDisc3;
-
-        const updatedData = data.map((item, idx) =>
-            item.id === rowId
-                ? {
-                    ...item,
-                    quantity,
-                    stock_price_buy: price,
-                    disc: discRp,
-                    disc_percent: discPct,
-                    disc_percent2: discPct2,
-                    subtotal,
-                }
-                : item
-        );
-
-        dispatch(setTableData({ tableName, data: updatedData }));
-    };
-
-
-
-
-    useEffect(() => {
-        if (data.length > 0) {
-            const firstRow = data[0];
-
-            if (firstRow.th_date && firstRow.supplier) {
-                const parsedDate = new Date(firstRow.th_date);
-                if (!isNaN(parsedDate.getTime())) {
-                    setDate(parsedDate);
-                }
-
-                setSupplier(firstRow.supplier);
-            }
-        }
-    }, [data]);
-
+    // ---------- Form ----------
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             th_date: new Date().toISOString(),
             supplier: undefined,
             th_disc: 0,
-            th_dp: null,
+            th_dp: 0,
             th_payment_type: "CASH",
             bank: 1,
         },
-    })
+    });
 
-    const { trigger, data: review, error, isMutating } = useSWRMutation<any, any, string, PayloadType>(
-        '/api/proxy/api/transactions/calculate_preview/',
+    // ---------- SWR ----------
+    const { trigger, data: review } = useSWRMutation<any, any, string, PayloadType>(
+        "/api/proxy/api/transactions/calculate_preview/",
         fetcherPost
     );
-
-    const { trigger: post, data: tsc, error: tscerror, isMutating: tscmutating } = useSWRMutation<any, any, string, any>(
-        '/api/proxy/api/transactions/',
-        fetcherPost
-    );
-
-    const { trigger: patch, data: tsc2, error: tscerror2, isMutating: tscmutating2 } = useSWRMutation<any, any, string, any>(
-        '/api/proxy/api/transactions',
-        fetcherPatch
-    );
-
-    const { trigger: checkPriceTrigger, data: priceData, error: priceCheckError } = useSWRMutation<any, any, string, any>(
-        '/api/proxy/api/stock/by_ids/',
+    const { trigger: post } = useSWRMutation<any, any, string, any>("/api/proxy/api/transactions/", fetcherPost);
+    const { trigger: patch } = useSWRMutation<any, any, string, any>("/api/proxy/api/transactions", fetcherPatch);
+    const { trigger: checkPriceTrigger, data: priceData } = useSWRMutation<any, any, string, any>(
+        "/api/proxy/api/stock/by_ids/",
         fetcherPost
     );
 
     useEffect(() => {
         if (review) {
-            const th_dp = data?.[0]?.th_dp || 0;
-            const updatedReview = {
-                ...review,
-                th_dp,
-            };
-            setReviewData(updatedReview);
+            const th_dp = toNum(data?.[0]?.th_dp);
+            setReviewData({ ...review, th_dp });
         }
     }, [review, data]);
 
     useEffect(() => {
         if (priceData && data) {
-            console.log("Cek priceItem.id vs item.stock:");
-            console.log("priceData:", priceData);
-            console.log("data:", data);
-
             const updatedPriceData = priceData.map((priceItem: any) => {
-                const matchedItem = data.find(item => item.stock === priceItem.id);
-                console.log(matchedItem)
+                const matchedItem = data.find((item) => item.stock === priceItem.id);
                 return {
                     ...priceItem,
-                    stock_price_buy: matchedItem ? matchedItem.stock_price_buy : null,
+                    stock_price_buy: matchedItem ? toNum(matchedItem.stock_price_buy) : 0,
                 };
             });
             setPricesData(updatedPriceData);
         }
-
-
     }, [priceData, data]);
 
-    const th_disc = form.getValues("th_disc") || 0;
+    useEffect(() => {
+        if (data.length > 0) {
+            const firstRow = data[0];
+            if (firstRow.th_date && firstRow.supplier) {
+                const parsedDate = new Date(firstRow.th_date);
+                if (!isNaN(parsedDate.getTime())) setDate(parsedDate);
+                setSupplier(firstRow.supplier ?? null);
+            }
+        }
+    }, [data]);
+
+    // ---------- Submit ----------
+    const th_disc = toNum(form.getValues("th_disc"));
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         if (!data.length) {
@@ -297,20 +208,21 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
             return;
         }
 
-
         if (submitAction === "bayar") {
             const values2 = form.getValues();
             const id = data?.[0]?.transaction_id;
-            const th_dp = data?.[0]?.th_dp || 0;
-            const th_total = data?.[0]?.th_total || 0;
-            const totalDp = th_dp + values2.th_dp;
-            const paymentType = totalDp < th_total ? "CREDIT" : (values2.th_payment_type || "");
+            const th_dp = toNum(data?.[0]?.th_dp);
+            const th_total = toNum(data?.[0]?.th_total);
+            const addDp = toNum(values2.th_dp);
+            const totalDp = th_dp + addDp;
+            const paymentType = totalDp < th_total ? "CREDIT" : (values2.th_payment_type || "CASH");
+
             const payload2: any = {
                 th_type: 2,
                 th_ppn: isPpnIncluded ? 0 : 11,
                 supplier: values.supplier,
                 cashier: 3,
-                th_disc: values.th_disc,
+                th_disc: toNum(values.th_disc),
                 th_date: values.th_date,
                 th_note: "",
                 th_payment_type: paymentType,
@@ -323,372 +235,266 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                     stock: item.stock,
                     stock_code: item.stock_code || "",
                     stock_name: item.stock_name,
-                    stock_price_buy: item.stock_price_buy,
-                    quantity: item.quantity,
-                    disc: item.disc || 0,
-                    disc_percent: item.disc_percent || 0,
-                    disc_percent2: item.disc_percent2 || 0,
+                    stock_price_buy: toNum(item.stock_price_buy),
+                    quantity: toNum(item.quantity),
+                    disc: toNum(item.disc),
+                    disc_percent: toNum(item.disc_percent),
+                    disc_percent2: toNum(item.disc_percent2),
                 })),
             };
-            console.log(payload2.th_dp)
-
-            console.log(JSON.stringify(payload2, null, 1));
 
             post(payload2)
-                .then((res) => {
-                    console.log("pembayaran")
-                    console.log(res)
-                    toast.success("Pembayaran berhasil");
-                    // dispatch(clearTable({ tableName }));
-                })
-                .catch((err) => {
-                    toast.error(err.message);
-                });
-
+                .then(() => toast.success("Pembayaran berhasil"))
+                .catch((err) => toast.error(err.message));
 
             const payload3: any = {
-                item_ids: review.items.map((item: any) => item.stock_id),
-            }
-            console.log(JSON.stringify(payload3, null, 1));
-            checkPriceTrigger(payload3)
-                .then((res) => {
-                    console.log(res)
-                })
-                .catch((err) => {
-                    toast.error(err.message);
-                });
+                item_ids: (reviewData?.items || review?.items || []).map((item: any) => item.stock_id),
+            };
+            checkPriceTrigger(payload3).catch((err) => toast.error(err.message));
 
             if (id) {
-                const payload: any = {
-                    th_order: false,
-                    th_status: true,
-                };
-
-                // console.log(JSON.stringify(payload2, null, 1));
-
-                patch({ id, data: payload })
-                    .then((res) => {
-                        console.log("ganti order")
-                        console.log(res)
-
-                    })
-                    .catch((err) => {
-                        toast.error(err.message);
-                    });
+                patch({ id, data: { th_order: false, th_status: true } }).catch((err) => toast.error(err.message));
             }
             setSubmitAction("harga");
-        };
-
-
+        }
 
         if (submitAction === "simpan") {
-            const th_dp = data?.[0]?.th_dp;
+            const th_dp_row = toNum(data?.[0]?.th_dp);
             const payload: any = {
                 th_type: 2,
                 th_ppn: isPpnIncluded ? 0 : 11,
                 supplier: values.supplier,
                 cashier: 3,
-                th_disc: values.th_disc,
+                th_disc: toNum(values.th_disc),
                 th_date: values.th_date,
                 th_note: "Test",
                 th_payment_type: "BANK",
-                th_dp: th_dp || 0,
+                th_dp: th_dp_row,
                 bank: undefined,
                 items: data.map((item) => ({
                     stock: item.stock,
                     stock_code: item.stock_code || "",
                     stock_name: item.stock_name,
-                    stock_price_buy: item.stock_price_buy,
-                    quantity: item.quantity,
-                    disc: item.disc || 0,
-                    disc_percent: item.disc_percent || 0,
-                    disc_percent2: item.disc_percent2 || 0,
+                    stock_price_buy: toNum(item.stock_price_buy),
+                    quantity: toNum(item.quantity),
+                    disc: toNum(item.disc),
+                    disc_percent: toNum(item.disc_percent),
+                    disc_percent2: toNum(item.disc_percent2),
                 })),
             };
-            // console.log(JSON.stringify(payload, null, 1));
 
-            trigger(payload)
-                .then((res) => {
-                    console.log("calculate")
-                    console.log(res)
-                })
-                .catch((err) => {
-                    toast.error(err.message);
-                });
+            trigger(payload).catch((err) => toast.error(err.message));
             setSubmitAction("bayar");
-
         }
     }
 
-
+    // ---------- Default column editor ----------
     const defaultColumn: Partial<ColumnDef<TransactionRow>> = {
+        size: 120,
+        minSize: 60,
+        maxSize: 600,
         cell: ({ getValue, row: { index }, column: { id }, table }) => {
-            const initialValue = getValue()
-            const [value, setValue] = React.useState(initialValue)
+            const initialValue = String(toNum(getValue() as any));
+            const [val, setVal] = useState<string>(initialValue);
+            useEffect(() => setVal(String(toNum(getValue() as any))), [getValue]);
 
             const onBlur = () => {
-                table.options.meta?.updateData(index, id, value)
-            }
+                table.options.meta?.updateData(index, id, toNum(val));
+            };
 
-            React.useEffect(() => {
-                setValue(initialValue)
-            }, [initialValue])
-
-            if (id === "stock_name" || id === "total") {
-                return <span>{value as string}</span>
+            if (id === "stock_name" || id === "total" || id === "unit" || id === "conversion_unit" || id === "jumlah_pesanan") {
+                return <span>{id === "stock_name" ? (getValue() as string) : String(toNum(getValue() as any))}</span>;
             }
 
             return (
-                <input
-                    type="number"
-                    value={value as number}
-                    onChange={(e) => setValue(e.target.value)}
-                    onBlur={onBlur}
-                // className="pl-1 text-left bg-gray-100 rounded-sm w-full"
-                className='w-full h-full'
-                />
-            )
+                <div>
+
+                    <input
+                        type="number"
+                        value={val}
+                        onChange={(e) => setVal(e.target.value)}
+                        onBlur={onBlur}
+                        className="w-full h-full no-spinner bg-transparent appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                </div>
+            );
         },
-    }
+    };
 
-
+    // ---------- Columns ----------
     const columns = useMemo<ColumnDef<TransactionRow>[]>(() => [
-        {
-            header: "Produk",
-            accessorKey: "stock_name",
-            size: 240,
-        },
+        { header: "Produk", accessorKey: "stock_name", size: 240, minSize: 140 },
         {
             header: "Satuan",
             accessorKey: "unit",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-            size: 80,
+            cell: (info) => <div className="text-left">{String(info.getValue() ?? "")}</div>,
+            size: 90, minSize: 60,
         },
         {
             header: "Jns Packing",
             accessorKey: "conversion_unit",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-            size: 110
+            cell: (info) => <div className="text-left">{String(info.getValue() ?? "")}</div>,
+            size: 120, minSize: 80,
         },
         {
             header: "Pesanan",
             accessorKey: "jumlah_pesanan",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
-            size: 80
+            cell: (info) => <div className="text-left">{toNum(info.getValue())}</div>,
+            size: 90, minSize: 70,
         },
-        {
-            header: "Jml. Barang",
-            accessorKey: "quantity",
-            size: 80,
-        },
-
-        {
-            header: "Harga Beli",
-            accessorKey: "stock_price_buy",
-            size: 100,
-        },
-        {
-            header: "Diskon (Rp)",
-            accessorKey: "disc",
-            size: 100,
-        },
-        {
-            header: "Diskon (%)",
-            accessorKey: "disc_percent",
-            size: 90,
-        },
-        {
-            header: "Diskon 2 (%)",
-            accessorKey: "disc_percent2",
-            size: 90,
-        },
+        { header: "Jml. Barang", accessorKey: "quantity", size: 110 },
+        { header: "Harga Beli", accessorKey: "stock_price_buy", size: 130 },
+        { header: "Diskon (Rp)", accessorKey: "disc", size: 120 },
+        { header: "Diskon (%)", accessorKey: "disc_percent", size: 110 },
+        { header: "Diskon 2 (%)", accessorKey: "disc_percent2", size: 120 },
         {
             header: "Total",
             cell: ({ row }) => {
-                const price = row.original.stock_price_buy || 0;
-                const qty = row.original.quantity || 0;
-                const disc = row.original.disc || 0;
-                const disc1 = row.original.disc_percent || 0;
-                const disc2 = row.original.disc_percent2 || 0;
-
+                const price = toNum(row.original.stock_price_buy);
+                const qty = toNum(row.original.quantity);
+                const disc = toNum(row.original.disc);
+                const disc1 = toNum(row.original.disc_percent);
+                const disc2 = toNum(row.original.disc_percent2);
                 const afterDisc1 = price - disc;
-                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
-                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1) / 100;
+                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2) / 100;
                 const subtotal = qty * afterDisc3;
-
-                return (
-                    <div className="text-left">
-                        {subtotal.toLocaleString("id-ID", {
-                            maximumFractionDigits: 2,
-                        })}
-                    </div>
-                );
+                return <div className="text-left">{subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>;
             },
-            size: 100
+            size: 140,
         },
-
         {
             header: "Inc. PPN",
             cell: ({ row }) => {
-                const price = row.original.stock_price_buy || 0;
-                const qty = row.original.quantity || 0;
-                const disc = row.original.disc || 0;
-                const disc1 = row.original.disc_percent || 0;
-                const disc2 = row.original.disc_percent2 || 0;
-
+                const price = toNum(row.original.stock_price_buy);
+                const qty = toNum(row.original.quantity);
+                const disc = toNum(row.original.disc);
+                const disc1 = toNum(row.original.disc_percent);
+                const disc2 = toNum(row.original.disc_percent2);
                 const afterDisc1 = price - disc;
-                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
-                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
+                const afterDisc2 = afterDisc1 - (afterDisc1 * disc1) / 100;
+                const afterDisc3 = afterDisc2 - (afterDisc2 * disc2) / 100;
                 const subtotal = qty * afterDisc3;
                 const final = isPpnIncluded ? subtotal : subtotal * 1.11;
-
-                return (
-                    <div className="text-left">
-                        {final.toLocaleString("id-ID", {
-                            maximumFractionDigits: 2,
-                        })}
-                    </div>
-                );
+                return <div className="text-left">{final.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>;
             },
-            size: 100
+            size: 140,
         },
         {
             header: "Action",
             cell: ({ row }) => (
                 <div className="text-center">
-                    <Button
-
-                        onClick={() => handleDelete(row.original.id)}
-                        className="bg-red-500 hover:bg-red-600 size-7"
-                    >
+                    <Button onClick={() => handleDelete(row.original.id)} className="bg-red-500 hover:bg-red-600 size-7">
                         <Trash />
                     </Button>
                 </div>
             ),
-            size: 50,
+            size: 80, minSize: 70, maxSize: 120, enableResizing: true,
         },
-    ], [])
+    ], [isPpnIncluded]);
 
     const table = useReactTable({
         data,
         columns,
         defaultColumn,
         getCoreRowModel: getCoreRowModel(),
+        columnResizeMode: "onChange",
+        state: { columnSizing, columnSizingInfo },
+        onColumnSizingChange: setColumnSizing,
+        onColumnSizingInfoChange: setColumnSizingInfo,
         meta: {
             updateData: (rowIndex, columnId, value) => {
-                dispatch(setTableData({
-                    tableName,
-                    data: data.map((row, index) => {
-                        if (index === rowIndex) {
-                            return {
-                                ...row,
-                                [columnId]: Number(value) || 0,
+                const v = toNum(value);
+                dispatch(
+                    setTableData({
+                        tableName,
+                        data: data.map((row, index) => {
+                            if (index === rowIndex) {
+                                const updated = { ...row, [columnId]: v };
+                                const price = toNum(updated.stock_price_buy);
+                                const qty = toNum(updated.quantity);
+                                const disc = toNum(updated.disc);
+                                const d1 = toNum(updated.disc_percent);
+                                const d2 = toNum(updated.disc_percent2);
+                                const a1 = price - disc;
+                                const a2 = a1 - (a1 * d1) / 100;
+                                const a3 = a2 - (a2 * d2) / 100;
+                                updated.subtotal = qty * a3;
+                                return updated;
                             }
-                        }
-                        return row
+                            return row;
+                        }),
                     })
-                }))
+                );
             },
         },
     });
 
     useEffect(() => {
         if (data.length === 0) {
-            dispatch(
-                setTableData({
-                    tableName: "transaksi",
-                    data: [],
-                })
-            );
+            dispatch(setTableData({ tableName: "transaksi", data: [] }));
         }
+    }, [dispatch, data.length]);
 
-    }, [dispatch]);
+    const handleCheckboxChange = (checked: boolean) => setIsPpnIncluded(!!checked);
 
-    const handleCheckboxChange = (checked: boolean) => {
-        setIsPpnIncluded(!!checked);
-    };
+    // const handleChange = (e: React.ChangeEvent<HTMLInputElement>, rowId: number, field: keyof TransactionRow) => {
+    //     const value = toNum(e.target.value);
+    //     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    //     debounceTimeout.current = setTimeout(() => {
+    //         const updatedData = data.map((item) => {
+    //             if (item.id === rowId) {
+    //                 const u: TransactionRow = { ...item, [field]: value } as TransactionRow;
+    //                 const price = toNum(u.stock_price_buy);
+    //                 const qty = toNum(u.quantity);
+    //                 const disc = toNum(u.disc);
+    //                 const d1 = toNum(u.disc_percent);
+    //                 const d2 = toNum(u.disc_percent2);
+    //                 const a1 = price - disc;
+    //                 const a2 = a1 - (a1 * d1) / 100;
+    //                 const a3 = a2 - (a2 * d2) / 100;
+    //                 u.subtotal = qty * a3;
+    //                 return u;
+    //             }
+    //             return item;
+    //         });
+    //         dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
+    //     }, 200);
+    // };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>, rowId: number, field: string) => {
-        const value = parseFloat(e.target.value) || 0;
-
-        // Clear the previous timeout
-        if (debounceTimeout.current) {
-            clearTimeout(debounceTimeout.current);
-        }
-
-        // Set a new timeout to call handleChange after 500ms delay
-        debounceTimeout.current = setTimeout(() => {
-            const updatedData = data.map((item) => {
-                if (item.id === rowId) {
-                    const updatedItem = { ...item };
-                    if (field === 'quantity') {
-                        updatedItem.quantity = value;
-                    } else if (field === 'stock_price_buy') {
-                        updatedItem.stock_price_buy = value;
-                    } else if (field === 'disc') {
-                        updatedItem.disc = value;
-                    } else if (field === 'disc_percent') {
-                        updatedItem.disc_percent = value;
-                    } else if (field === 'disc_percent2') {
-                        updatedItem.disc_percent2 = value;
-                    }
-                    // Recalculate the subtotal after updating the field
-                    updatedItem.subtotal = updatedItem.quantity * updatedItem.stock_price_buy;
-                    const af_disc1 = updatedItem.stock_price_buy - (updatedItem.disc || 0);
-                    const af_disc2 = af_disc1 - (af_disc1 * updatedItem.disc_percent / 100);
-                    const af_disc3 = af_disc2 - (af_disc2 * updatedItem.disc_percent2 / 100);
-                    updatedItem.subtotal = updatedItem.quantity * af_disc3;
-
-                    return updatedItem;
-                }
-                return item;
-            });
-
-            dispatch(setTableData({ tableName: "transaksi", data: updatedData }));
-        }, 200);
-    };
-
+    // Ringkasan total
     const totalSummary = useMemo(() => {
         const subtotal = data.reduce((acc, item) => {
-            const price = item.stock_price_buy || 0;
-            const qty = item.quantity || 0;
-            const disc = item.disc || 0;
-            const disc1 = item.disc_percent || 0;
-            const disc2 = item.disc_percent2 || 0;
-
+            const price = toNum(item.stock_price_buy);
+            const qty = toNum(item.quantity);
+            const disc = toNum(item.disc);
+            const disc1 = toNum(item.disc_percent);
+            const disc2 = toNum(item.disc_percent2);
             const afterDisc1 = price - disc;
-            const afterDisc2 = afterDisc1 - (afterDisc1 * disc1 / 100);
-            const afterDisc3 = afterDisc2 - (afterDisc2 * disc2 / 100);
-            const subtotalItem = qty * afterDisc3;
-
-            return acc + subtotalItem;
+            const afterDisc2 = afterDisc1 - (afterDisc1 * disc1) / 100;
+            const afterDisc3 = afterDisc2 - (afterDisc2 * disc2) / 100;
+            return acc + qty * afterDisc3;
         }, 0);
 
-        const discNota = form.watch("th_disc") || 0;
+        const discNota = toNum(form.watch("th_disc"));
         const totalPPN = isPpnIncluded ? 0 : subtotal * 0.11;
         const totalAfterPPN = subtotal + totalPPN;
         const totalFinal = Math.max(totalAfterPPN - discNota, 0);
 
-        return {
-            subtotal,
-            totalPPN,
-            totalAfterPPN,
-            totalFinal,
-        };
+        return { subtotal, totalPPN, totalAfterPPN, totalFinal };
     }, [data, isPpnIncluded, form.watch("th_disc")]);
 
-
-
+    // Actions
     const handleDelete = (id: number) => {
         dispatch(deleteRow({ tableName, id }));
         toast.error("Produk berhasil dihapus!");
     };
-
     const handleClear = () => {
         dispatch(clearTable({ tableName }));
         toast.error("Table berhasil dihapus!");
     };
 
+    // Search (Enter)
     const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && searchQuery.trim() !== "") {
             setSearchLoading(true);
@@ -697,9 +503,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                 if (!res || res.length === 0) {
                     toast.error("Produk tidak ditemukan");
                 } else {
-                    if (res.length > 1) {
-                        toast.info(`Ditemukan ${res.length} produk, menambahkan produk pertama.`);
-                    }
+                    if (res.length > 1) toast.info(`Ditemukan ${res.length} produk, menambahkan produk pertama.`);
                     const product = res[0];
                     handleAddProduct({
                         id: product.id,
@@ -720,19 +524,31 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         }
     };
 
+    // Tambah produk
     const handleAddProduct = (product: any) => {
-        const subtotal = (product.jumlah_barang ?? 1) * product.price_buy;
-        const newItem = {
+        const qty = toNum(product.jumlah_barang ?? 1);
+        const price = toNum(product.price_buy);
+        const a1 = price - 0;
+        const a2 = a1 - (a1 * 0) / 100;
+        const a3 = a2 - (a2 * 0) / 100;
+        const subtotal = qty * a3;
+
+        const newItem: TransactionRow = {
+            id: Date.now(),
             stock: product.id,
-            barcode: product.barcode,
             stock_code: product.code,
             stock_name: product.name,
             jumlah_pesanan: 0,
-            quantity: product.jumlah_barang ?? 1,
-            stock_price_buy: product.price_buy,
+            quantity: qty,
+            stock_price_buy: price,
             unit: product.unit_name,
-            conversion_unit: product.conversion_unit
+            conversion_unit: product.conversion_unit,
+            disc: 0,
+            disc_percent: 0,
+            disc_percent2: 0,
+            subtotal,
         };
+
         toast.success(product.name + " Berhasil Ditambahkan");
         dispatch(addRow({ tableName, row: newItem }));
     };
@@ -741,9 +557,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
         <div className="flex flex-col space-y-4">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-
                     <div className="flex justify-between gap-4 mb-2">
-
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex flex-col space-y-2">
                                 <FormField
@@ -758,13 +572,13 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         <Button
                                                             variant="outline"
                                                             className={cn(
-                                                                "w-[150px] h-[30px]  justify-start text-left font-normal",
+                                                                "w-[150px] h-[30px] justify-start text-left font-normal",
                                                                 !field.value && "text-muted-foreground"
                                                             )}
                                                         >
                                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                                             {field.value
-                                                                ? format(new Date(field.value), "d MMMM yyyy", { locale: id })
+                                                                ? format(new Date(field.value), "dd/MM/yyyy", { locale: localeId })
                                                                 : <span>Pilih Tanggal</span>}
                                                         </Button>
                                                     </PopoverTrigger>
@@ -772,19 +586,17 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                         <Calendar
                                                             mode="single"
                                                             selected={field.value ? new Date(field.value) : undefined}
-                                                            onSelect={(date) => {
-                                                                field.onChange(date?.toISOString() ?? "")
-                                                            }}
+                                                            onSelect={(d) => field.onChange(d?.toISOString() ?? new Date().toISOString())}
                                                             initialFocus
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
                                             </FormControl>
-                                            {/* <FormMessage /> */}
                                         </FormItem>
                                     )}
                                 />
                             </div>
+
                             <div className="flex flex-col space-y-2">
                                 <FormField
                                     control={form.control}
@@ -793,22 +605,20 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         <FormItem>
                                             <FormLabel>Supplier</FormLabel>
                                             <FormControl>
-
                                                 <DistributorDD
                                                     value={supplier}
                                                     onChange={(val: number | null, label: string | null) => {
-                                                        setSupplier(val)
-                                                        field.onChange(val)
+                                                        setSupplier(val);
+                                                        field.onChange(val ?? undefined);
                                                         setSupplierName(label || "");
                                                     }}
-
                                                 />
                                             </FormControl>
-                                            {/* <FormMessage /> */}
                                         </FormItem>
                                     )}
                                 />
                             </div>
+
                             <div className="flex flex-col space-y-2">
                                 <FormField
                                     control={form.control}
@@ -819,44 +629,41 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    value={field.value}
-                                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                                    className='bg-gray-100 w-[150px] h-[30px]'
-                                                    placeholder='0%'
+                                                    value={String(toNum(field.value))}
+                                                    onChange={(e) => field.onChange(toNum(e.target.value))}
+                                                    className="bg-gray-100 w-[150px] h-[30px] no-spinner"
+                                                    placeholder="0"
                                                 />
                                             </FormControl>
-                                            {/* <FormMessage /> */}
                                         </FormItem>
                                     )}
                                 />
                             </div>
-                            <div className="flex  gap-2 items-center pb-2">
+
+                            <div className="flex gap-2 items-center pb-2">
                                 <Checkbox
-                                    id="terms"
+                                    id="ppn"
                                     checked={isPpnIncluded}
                                     onCheckedChange={handleCheckboxChange}
                                     className="size-5 items-center"
                                 />
-
-                                <label
-                                    htmlFor="terms"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
+                                <label htmlFor="ppn" className="text-sm font-medium leading-none">
                                     Termasuk PPN
                                 </label>
-
                             </div>
                         </div>
-                        <div className='flex items-end gap-2'>
+
+                        <div className="flex items-end gap-2">
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600'>Pesanan</Button>
+                                    <Button className="font-medium bg-blue-500 hover:bg-blue-600">Pesanan</Button>
                                 </DialogTrigger>
                                 <DialogContent className="w-full max-h-[90vh]">
                                     <TpModal />
                                 </DialogContent>
                             </Dialog>
-                            <Dialog>
+
+                            <Dialog open={isTambahProdukModalOpen} onOpenChange={setIsTambahProdukModalOpe}>
                                 <DialogTrigger asChild>
                                     <Button className="font-medium bg-blue-500 hover:bg-blue-600">Tambah Produk</Button>
                                 </DialogTrigger>
@@ -868,7 +675,6 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         openPersediaanModalWithStock={openPersediaanModalWithStock}
                                         openPersediaanModal={openPersediaanModal}
                                     />
-
                                 </DialogContent>
                             </Dialog>
 
@@ -882,24 +688,31 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     />
                                 </DialogContent>
                             </Dialog>
-                            <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
+
+                            <Button onClick={handleClear} variant="outline" className="font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white">
+                                Batal
+                            </Button>
                         </div>
                     </div>
-                    <div className='flex items-end justify-end'>
-                        <div className='flex items-end'>
-                            <div className={cn(
-                                "w-[297px]",
-                                "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-                            )}>
-                                <Search size={20} style={{ marginRight: '10px' }} />
+
+                    {/* Search */}
+                    <div className="flex items-end justify-end">
+                        <div className="flex items-end">
+                            <div
+                                className={cn(
+                                    "w-[297px]",
+                                    "border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex items-center h-9 min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                                    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                                )}
+                            >
+                                <Search size={20} style={{ marginRight: "10px" }} />
                                 <input
                                     type="text"
                                     placeholder="Cari Produk (ID/Kode)"
-                                    style={{ border: 'none', outline: 'none', flex: '1' }}
+                                    style={{ border: "none", outline: "none", flex: "1" }}
                                     value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleSearchKeyDown}
                                     disabled={searchLoading}
                                 />
@@ -908,30 +721,30 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
+                    {/* Table */}
                     <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
-                        <div className="w-max text-sm border-separate border-spacing-0 min-w-full">
+                        <div className="min-w-full rounded-md border overflow-hidden">
                             <Table>
                                 <TableHeader className="bg-gray-100 sticky top-0 z-10">
                                     {table.getHeaderGroups().map((headerGroup) => (
-                                        <TableRow key={headerGroup.id} className="relative h-[40px]">
+                                        <TableRow key={headerGroup.id} className="h-[40px]">
                                             {headerGroup.headers.map((header) => (
                                                 <TableHead
                                                     key={header.id}
-                                                    style={{
-                                                        position: "absolute",
-                                                        left: header.getStart(),
-                                                        width: header.getSize(),
-                                                    }}
-                                                    className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 overflow-hidden whitespace-nowrap"
+                                                    style={{ width: header.getSize?.() ?? undefined }}
+                                                    className="relative text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 whitespace-nowrap"
                                                 >
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
 
-                                                    {header.column.getCanResize() && (
+                                                    {/* Resize handle */}
+                                                    {header.column.getCanResize?.() && (
                                                         <div
                                                             onMouseDown={header.getResizeHandler()}
                                                             onTouchStart={header.getResizeHandler()}
-                                                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none hover:bg-blue-300"
-                                                            style={{ transform: "translateX(50%)" }}
+                                                            className={cn(
+                                                                "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none",
+                                                                header.column.getIsResizing?.() ? "bg-blue-500" : "bg-transparent",
+                                                            )}
                                                         />
                                                     )}
                                                 </TableHead>
@@ -939,20 +752,16 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         </TableRow>
                                     ))}
                                 </TableHeader>
+
                                 <TableBody>
                                     {table.getRowModel().rows.length ? (
                                         table.getRowModel().rows.map((row) => (
-                                            <TableRow key={row.id} className="relative h-[40px]">
+                                            <TableRow key={row.id} className="h-[40px]">
                                                 {row.getVisibleCells().map((cell) => (
                                                     <TableCell
                                                         key={cell.id}
-                                                        style={{
-                                                            position: "absolute",
-                                                            left: cell.column.getStart(),
-                                                            width: cell.column.getSize(),
-                                                            height: "100%",
-                                                        }}
-                                                        className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden"
+                                                        style={{ width: cell.column.getSize?.() ?? undefined }}
+                                                        className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap"
                                                     >
                                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                     </TableCell>
@@ -967,38 +776,9 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                         </TableRow>
                                     )}
                                 </TableBody>
-                                {/* <TableFooter>
-                                    <TableRow className="bg-white">
-                                        <TableCell colSpan={3} className="text-right font-bold border">
-                                            Total Barang:
-                                        </TableCell>
-                                        <TableCell className="text-left font-bold border">
-                                            {data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0)}
-                                        </TableCell>
 
-                                        <TableCell className="text-left font-bold border">
-                                            {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                        </TableCell>
-                                        <TableCell colSpan={4} className="text-right font-bold border">
-                                            Total:
-                                        </TableCell>
-                                        <TableCell className="text-left font-bold border">
-                                            <span>{totalSummary.subtotal.toLocaleString("id-ID", {
-                                                maximumFractionDigits: 2,
-                                            })}</span>
-                                        </TableCell>
-                                        <TableCell className="text-left font-bold border">
-                                            <span>{totalSummary.totalAfterPPN.toLocaleString("id-ID", {
-                                                maximumFractionDigits: 2,
-                                            })}</span>
-                                        </TableCell>
-                                        <TableCell className="text-left font-bold border">
-
-                                        </TableCell>
-                                    </TableRow>
-                                </TableFooter> */}
                                 <TableFooter className="sticky bg-gray-100 bottom-0 z-10 border-2">
-                                    <TableRow className="relative h-[40px]">
+                                    <TableRow className="h-[40px]">
                                         {table.getHeaderGroups()[0].headers.map((header, index) => {
                                             const column = header.column;
                                             let content: React.ReactNode = "";
@@ -1007,38 +787,25 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                                     content = "Total Barang:";
                                                     break;
                                                 case 3:
-                                                    content = data.reduce((acc, item) => acc + (item.jumlah_pesanan || 0), 0);
+                                                    content = data.reduce((acc, item) => acc + toNum(item.jumlah_pesanan), 0);
                                                     break;
                                                 case 4:
-                                                    content = data.reduce((acc, item) => acc + (item.quantity || 0), 0);
-                                                    break;
-                                                case 7:
-                                                    content = "Total:";
+                                                    content = data.reduce((acc, item) => acc + toNum(item.quantity), 0);
                                                     break;
                                                 case 8:
-                                                    content =
-                                                        totalSummary && totalSummary.subtotal != null
-                                                            ? totalSummary.subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })
-                                                            : "-";
+                                                    content = "Total:";
                                                     break;
                                                 case 9:
-                                                    content =
-                                                        totalSummary && totalSummary.totalAfterPPN != null
-                                                            ? totalSummary.totalAfterPPN.toLocaleString("id-ID", { maximumFractionDigits: 2 })
-                                                            : "-";
+                                                    content = totalSummary.subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 });
                                                     break;
-
+                                                case 10:
+                                                    content = totalSummary.totalAfterPPN.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+                                                    break;
                                             }
-
                                             return (
                                                 <TableCell
                                                     key={column.id}
-                                                    style={{
-                                                        position: "absolute",
-                                                        left: column.getStart(),
-                                                        width: column.getSize(),
-                                                        height: "100%",
-                                                    }}
+                                                    style={{ width: column.getSize?.() ?? undefined }}
                                                     className="text-left font-bold border-b border-r last:border-r-0 whitespace-nowrap p-2 bg-gray-100"
                                                 >
                                                     {content}
@@ -1049,11 +816,14 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 </TableFooter>
                             </Table>
                         </div>
-                        <ScrollBar orientation="horizontal" />
-                        <ScrollBar orientation="vertical" className='z-40' />
-                    </ScrollArea>
-                    <div className='flex justify-end gap-2 mt-4 '>
 
+                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="vertical" className="z-40" />
+                    </ScrollArea>
+
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-2 mt-4">
                         <Dialog open={isBayarModalOpen} onOpenChange={setIsBayarModalOpen}>
                             {data.length > 0 ? (
                                 <DialogTrigger asChild>
@@ -1069,14 +839,12 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                     </Button>
                                 </DialogTrigger>
                             ) : (
-                                <Button
-                                    className='font-medium bg-blue-500 hover:bg-blue-600'
-                                >
+                                <Button className="font-medium bg-blue-500 hover:bg-blue-600" type="button">
                                     Simpan
                                 </Button>
                             )}
 
-                            <DialogContent className="w-1/4 max-h-11/12" onInteractOutside={e => e.preventDefault()}>
+                            <DialogContent className="w-1/4 max-h-11/12" onInteractOutside={(e) => e.preventDefault()}>
                                 <BayarTPModal
                                     review={reviewData}
                                     form={form}
@@ -1091,16 +859,13 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                         </Dialog>
 
                         <Dialog open={isGantiHargaModalOpen} onOpenChange={setIsGantiHargaModalOpen}>
-                            <DialogContent className="w-12/12 h-11/12 max-h-[90vh]" onInteractOutside={e => e.preventDefault()}>
+                            <DialogContent className="w-12/12 h-11/12 max-h-[90vh]" onInteractOutside={(e) => e.preventDefault()}>
                                 <GantiHargaModal priceData={pricesData} onClose={() => setIsGantiHargaModalOpen(false)} />
                             </DialogContent>
                         </Dialog>
-
-
                     </div>
-
                 </form>
-            </Form >
+            </Form>
         </div>
     );
 };

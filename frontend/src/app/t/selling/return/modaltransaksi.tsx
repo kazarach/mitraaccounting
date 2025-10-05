@@ -66,7 +66,7 @@ const TpModalReturnSelling: React.FC<TpModalReturnSellingProps> = ({ onCustomerS
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&customer=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_type=1&th_order=false&th_return=false${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`/api/proxy/api/transactions/?th_type=1&th_order=false&th_return=false${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 

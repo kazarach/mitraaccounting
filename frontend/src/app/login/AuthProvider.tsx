@@ -1,47 +1,50 @@
 "use client";
-import { createContext, useContext, useState, Dispatch, SetStateAction, useEffect } from 'react';
-import useSWR, { KeyedMutator } from 'swr';
-import { useRouter } from 'next/navigation';
-import { ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from "react";
+import useSWR from "swr";
+import { usePathname, useRouter } from "next/navigation";
 
-interface AuthContextType {
+type AuthContextType = {
   user: any;
-  mutate: KeyedMutator<any>;
-  accessToken: string | null;
-  setAccessToken: Dispatch<SetStateAction<string | null>>;
-}
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
+  mutate: ReturnType<typeof useSWR>["mutate"];
+  loading: boolean;
+};
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const router = useRouter();
+const fetcher = async (url: string) => {
+  const res = await fetch(url, { credentials: "include" }); // penting
+  if (!res.ok) {
+    const err: any = new Error("Fetch failed");
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+};
 
-  const { data: user, error, mutate } = useSWR(accessToken ? '/api/me' : null, async (url) => {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) throw new Error('Unauthorized');
-    return res.json();
-  });
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const { data: user, error, isLoading, mutate } = useSWR(
+    "/api/proxy/api/users/me/",
+    fetcher,
+    { shouldRetryOnError: false }
+  );
 
   useEffect(() => {
-    if (error) router.push('/login');
-  }, [error]);
+    if (error?.status === 401 && pathname !== "/login") {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+    }
+  }, [error, pathname, router]);
 
   return (
-    <AuthContext.Provider value={{ user, mutate, accessToken, setAccessToken }}>
+    <AuthContext.Provider value={{ user, mutate, loading: isLoading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 };

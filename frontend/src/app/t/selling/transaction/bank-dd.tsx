@@ -28,7 +28,6 @@ type BankDDTSProps = {
 };
 
 const BankDDTS: React.FC<BankDDTSProps> = ({ value, onChange }) => {
-  useAuthGuard();
   const [open, setOpen] = React.useState(false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL!;
   const { data = [], error, isLoading } = useSWR<Bank[]>(`/api/proxy/api/banks/`, fetcher);

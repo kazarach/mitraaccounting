@@ -67,7 +67,7 @@ const TpModalSelling: React.FC<TpModalSellingProps> = ({ onCustomerSelect }) => 
       const endParam = end ? `&end_date=${end}` : "";
       const supplierParam = distributor.length > 0 ? `&customer=${distributor.join(",")}` : "";
       const operatorParam = operator.length > 0 ? `&cashier=${operator.join(",")}` : "";
-      return fetcher(`${API_URL}api/transactions/?th_order=true&th_type=11${startParam}${endParam}${supplierParam}${operatorParam}`);
+      return fetcher(`/api/proxy/api/transactions/?th_order=true&th_type=11${startParam}${endParam}${supplierParam}${operatorParam}`);
     }
   );
 

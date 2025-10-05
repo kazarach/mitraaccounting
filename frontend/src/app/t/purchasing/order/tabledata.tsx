@@ -48,6 +48,7 @@ import { id } from 'date-fns/locale';
 import BayarTPModal from '@/components/modal/tp-bayar-modal';
 import useSWRMutation from 'swr/mutation';
 import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 declare module "@tanstack/react-table" {
     interface TableMeta<TData extends RowData> {
@@ -55,6 +56,10 @@ declare module "@tanstack/react-table" {
     }
 }
 
+const toNum = (v: unknown): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
 
 const formSchema = z.object({
     th_date: z.string({ required_error: "Pilih Tanggal!" }).datetime({ message: "Pilih Tanggal!" }),
@@ -99,6 +104,8 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
     const [supplier_name, setSupplierName] = useState<string>("");
     const [isBayarModalOpen, setIsBayarModalOpen] = useState(false);
     const [isGantiHargaModalOpen, setIsGantiHargaModalOpen] = useState(false);
+    const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
+    const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -208,36 +215,69 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
         };
     }
 
-    const columns = useMemo<ColumnDef<any>[]>(() => [
-        {
-            header: "Produk",
-            accessorKey: "stock_name",
-        },
-        {
-            header: "Barang",
+    const defaultColumn: Partial<ColumnDef<any>> = {
+        size: 120,
+        minSize: 60,
+        maxSize: 600,
+        cell: ({ getValue, row: { index }, column: { id }, table }) => {
+            const initialValue = String(toNum(getValue() as any));
+            const [val, setVal] = useState<string>(initialValue);
+            useEffect(() => setVal(String(toNum(getValue() as any))), [getValue]);
 
-            cell: ({ row }) => {
-                const jumlahBarang = row.original.quantity || 0;
+            const onBlur = () => {
+                table.options.meta?.updateData(index, id, toNum(val));
+            };
 
-                return (
+            if (id === "stock_name" || id === "total" || id === "unit" || id === "conversion_unit" || id === "stock_price_buy") {
+                return <span>{id === "stock_name" ? (getValue() as string) : String(toNum(getValue() as any))}</span>;
+            }
+
+            return (
+                <div>
+
                     <input
                         type="number"
-                        defaultValue={jumlahBarang}
-                        onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
-                        className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-                        placeholder="0"
+                        value={val}
+                        onChange={(e) => setVal(e.target.value)}
+                        onBlur={onBlur}
+                        className="w-full h-full no-spinner bg-transparent appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
-                );
-            },
+                </div>
+            );
         },
+    };
+
+    const columns = useMemo<ColumnDef<any>[]>(() => [
+        { header: "Produk", accessorKey: "stock_name", size: 240, minSize: 140 },
+        { header: "Jml. Barang", accessorKey: "quantity", size: 110 },
+        // {
+        //     header: "Barang",
+
+        //     cell: ({ row }) => {
+        //         const jumlahBarang = row.original.quantity || 0;
+
+        //         return (
+        //             <input
+        //                 type="number"
+        //                 defaultValue={jumlahBarang}
+        //                 onBlur={(e) => handleChange(e, row.original.id, 'quantity')}
+        //                 className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+        //                 placeholder="0"
+        //             />
+        //         );
+        //     },
+        // },
         {
             header: "Satuan",
             accessorKey: "unit",
+            cell: (info) => <div className="text-left">{String(info.getValue() ?? "")}</div>,
+            size: 90, minSize: 60,
         },
         {
             header: "Jns Packing",
             accessorKey: "conversion_unit",
-            cell: (info) => <div className="text-left">{info.getValue<number>()}</div>,
+            cell: (info) => <div className="text-left">{String(info.getValue() ?? "")}</div>,
+            size: 120, minSize: 80,
         },
         {
             header: "Harga Beli Terakhir",
@@ -271,13 +311,45 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                 </div>
             ),
         },
-    ], [])
+    ], []);
 
     const table = useReactTable({
         data,
         columns,
+        defaultColumn,
         getCoreRowModel: getCoreRowModel(),
+        columnResizeMode: "onChange",
+        state: { columnSizing, columnSizingInfo },
+        onColumnSizingChange: setColumnSizing,
+        onColumnSizingInfoChange: setColumnSizingInfo,
+
+        meta: {
+            updateData: (rowIndex: number, columnId: string, value: unknown) => {
+                const next = data.map((row: any, idx: number) => {
+                    if (idx !== rowIndex) return row;
+                    const v =
+                        typeof value === "string" && value.trim() === ""
+                            ? 0
+                            : Number.isFinite(Number(value))
+                                ? Number(value)
+                                : value;
+
+                    return {
+                        ...row,
+                        [columnId]: v,
+                        subtotal:
+                            columnId === "quantity" || columnId === "stock_price_buy"
+                                ? (columnId === "quantity" ? Number(v) : row.quantity || 0) *
+                                (columnId === "stock_price_buy" ? Number(v) : row.stock_price_buy || 0)
+                                : row.subtotal,
+                    };
+                });
+
+                dispatch(setTableData({ tableName, data: next }));
+            },
+        },
     });
+
 
     useEffect(() => {
         if (data.length === 0) {
@@ -377,7 +449,7 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                                                         >
                                                             <CalendarIcon className="mr-2 h-4 w-4" />
                                                             {field.value
-                                                                ? format(new Date(field.value), "d MMMM yyyy", { locale: id })
+                                                                ? format(new Date(field.value), "dd/MM/yyyy", { locale: id })
                                                                 : <span>Pilih Tanggal</span>}
                                                         </Button>
                                                     </PopoverTrigger>
@@ -437,87 +509,114 @@ const OrderTransTable: React.FC<Props> = ({ tableName }) => {
                         </div>
                     </div>
 
-                    <div className="rounded-md border overflow-auto">
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead key={header.id} className="text-left">
-                                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody>
-                                {table.getRowModel().rows.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow key={row.id}>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id} className="text-left p-2 border-b border-r last:border-r-0">
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
+                    <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+                        <div className="min-w-full">
+                            <Table>
+                                <TableHeader className="bg-gray-100 sticky top-0 z-10">
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id} className="h-[40px]">
+                                            {headerGroup.headers.map((header) => (
+                                                <TableHead
+                                                    key={header.id}
+                                                    style={{ width: header.getSize?.() ?? undefined }}
+                                                    className="relative text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 whitespace-nowrap"
+                                                >
+                                                    {flexRender(header.column.columnDef.header, header.getContext())}
+
+                                                    {/* Resize handle */}
+                                                    {header.column.getCanResize?.() && (
+                                                        <div
+                                                            onMouseDown={header.getResizeHandler()}
+                                                            onTouchStart={header.getResizeHandler()}
+                                                            className={cn(
+                                                                "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none",
+                                                                header.column.getIsResizing?.() ? "bg-blue-500" : "bg-transparent",
+                                                            )}
+                                                        />
+                                                    )}
+                                                </TableHead>
                                             ))}
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200 ">
-                                            Belum menambahkan produk
+                                    ))}
+                                </TableHeader>
+
+                                <TableBody>
+                                    {table.getRowModel().rows.length ? (
+                                        table.getRowModel().rows.map((row) => (
+                                            <TableRow key={row.id} className="h-[40px]">
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell
+                                                        key={cell.id}
+                                                        style={{ width: cell.column.getSize?.() ?? undefined }}
+                                                        className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap"
+                                                    >
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
+                                                Belum menambahkan produk
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow className="bg-white">
+                                        <TableCell colSpan={1} className="text-right font-bold border">
+                                            Total Barang:
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+                                            {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
+                                        </TableCell>
+                                        <TableCell colSpan={3} className="text-right font-bold border">
+                                            Total:
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+                                            <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                                maximumFractionDigits: 2,
+                                            })}</span>
+                                        </TableCell>
+                                        <TableCell className="text-left font-bold border">
+
                                         </TableCell>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-white">
-                                    <TableCell colSpan={1} className="text-right font-bold border">
-                                        Total Barang:
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
-                                        {data.reduce((acc, item) => acc + (item.quantity || 0), 0)}
-                                    </TableCell>
-                                    <TableCell colSpan={3} className="text-right font-bold border">
-                                        Total:
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
-                                        <span>{totalSummary.subtotal.toLocaleString("id-ID", {
-                                            maximumFractionDigits: 2,
-                                        })}</span>
-                                    </TableCell>
-                                    <TableCell className="text-left font-bold border">
+                                </TableFooter>
+                             </Table>
+                        </div>
 
-                                    </TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </div>
-                    <div className='flex justify-end gap-2 mt-4 '>
-                        <Dialog open={open} onOpenChange={setOpen}>
-                            {data.length > 0 ? (
-                                <DialogTrigger asChild>
-                                    <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
+                        <ScrollBar orientation="horizontal" />
+                        <ScrollBar orientation="vertical" className="z-40" />
+                    </ScrollArea>
+                        
+                        <div className='flex justify-end gap-2 mt-4 '>
+                            <Dialog open={open} onOpenChange={setOpen}>
+                                {data.length > 0 ? (
+                                    <DialogTrigger asChild>
+                                        <Button className='font-medium bg-blue-500 hover:bg-blue-600' type='submit' onClick={() => setSubmitAction("simpan")}>
+                                            Simpan
+                                        </Button>
+                                    </DialogTrigger>
+                                ) : (
+                                    <Button
+                                        className='font-medium bg-blue-500 hover:bg-blue-600'
+                                        onClick={() => toast.success("mantap")}
+                                    >
                                         Simpan
                                     </Button>
-                                </DialogTrigger>
-                            ) : (
-                                <Button
-                                    className='font-medium bg-blue-500 hover:bg-blue-600'
-                                    onClick={() => toast.success("mantap")}
-                                >
-                                    Simpan
-                                </Button>
-                            )}
-                            <DialogContent className="w-1/4 max-h-11/12">
-                                <BayarTPModal
-                                    review={review}
-                                    supplier_name={supplier_name}
-                                    onClose={() => setOpen(false)}
-                                />
-                            </DialogContent>
-                        </Dialog>
+                                )}
+                                <DialogContent className="w-1/4 max-h-11/12">
+                                    <BayarTPModal
+                                        review={review}
+                                        supplier_name={supplier_name}
+                                        onClose={() => setOpen(false)}
+                                    />
+                                </DialogContent>
+                            </Dialog>
 
-                    </div>
+                        </div>
                 </form>
             </Form >
         </div>

@@ -11,7 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
 import { toast } from 'sonner';
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from '@tanstack/react-table';
 import { CalendarIcon, Trash } from 'lucide-react';
 import BayarTPModal from './bayarModal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,9 +23,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import useSWRMutation from 'swr/mutation';
 import DistributorDD from '@/components/dropdown-normal/distributor_dd';
 import PembelianModal from './pembelianModal';
-import TambahProdukModal from '@/components/modal/tambahProduk-modal';
 import TambahProdukModalret from './tambahProdukModal';
 import useSWR from 'swr';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
+declare module "@tanstack/react-table" {
+    interface TableMeta<TData extends RowData> {
+        updateData: (rowIndex: number, columnId: string, value: unknown) => void
+    }
+}
+
+const toNum = (v: unknown): number => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
 
 interface Props {
     tableName: string;
@@ -36,71 +47,77 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const [date, setDate] = useState<Date>(new Date());
     const [isPpnIncluded, setIsPpnIncluded] = useState(true);
     const data = useSelector((state: RootState) => state.table[tableName] || []);
-    const [returnQTYMap, setReturnQTYMap] = useState<{ [key: number]: number }>({});
     const [reviewData, setReviewData] = useState<any>(null);
     const [supplier, setSupplier] = useState<number | null>(null);
     const [supplierName, setSupplierName] = useState<string>("");
+    const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
+    const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
 
-   
-
+    // Pastikan setiap row memiliki returnQty (default 0) dan subtotal terhitung
     useEffect(() => {
-        if (data.length > 0) {
-            setReturnQTYMap(prev => {
-                const newMap = { ...prev };
-                data.forEach(item => {
-                    if (!(item.id in newMap)) {
-                        newMap[item.id] = typeof item.returnQty === "number" ? item.returnQty : 1;
-                    }
-                });
-                Object.keys(newMap).forEach(key => {
-                    if (!data.find(item => item.id === Number(key))) {
-                        delete newMap[Number(key)];
-                    }
-                });
-                return newMap;
-            });
-        } else {
-            setReturnQTYMap({});
+        if (!data?.length) return;
+        let changed = false;
+        const normalized = data.map((row: any) => {
+            const rq = typeof row.returnQty === "number" ? row.returnQty : 0;
+            const price = Number(row.stock_price_buy ?? 0);
+            const newSubtotal = rq * price;
+            if (row.returnQty !== rq || row.subtotal !== newSubtotal) {
+                changed = true;
+                return { ...row, returnQty: rq, subtotal: newSubtotal };
+            }
+            return row;
+        });
+        if (changed) {
+            dispatch(setTableData({ tableName, data: normalized }));
         }
-    }, [data]);
-
-
-
-    const handleReturnQTYChange = (id: number, value: number) => {
-        setReturnQTYMap(prev => ({
-            ...prev,
-            [id]: value
-        }));
-    };
+    }, [data, dispatch, tableName]);
 
     const handleCheckboxChange = (checked: boolean) => {
         setIsPpnIncluded(!!checked);
     };
 
-    const columns: ColumnDef<any>[] = [
+    const defaultColumn: Partial<ColumnDef<any>> = {
+        size: 120,
+        minSize: 60,
+        maxSize: 600,
+        cell: ({ getValue, row: { index }, column, table }) => {
+            const raw = getValue() as any;
+            const isEditable = (column.columnDef as any)?.meta?.editable === true;
+
+            if (!isEditable) {
+                return <span className="text-gray-700">{typeof raw === "number" ? String(toNum(raw)) : String(raw ?? "")}</span>;
+            }
+
+            const initialValue = String(toNum(raw));
+            const [val, setVal] = React.useState<string>(initialValue);
+            useEffect(() => setVal(String(toNum(getValue() as any))), [getValue]);
+
+            const onBlur = () => table.options.meta?.updateData(index, column.id, toNum(val));
+
+            return (
+                <div className=" rounded px-1 py-0.5 focus-within:ring-2 focus-within:ring-gray-300">
+                    <input
+                        type="number"
+                        value={val}
+                        onChange={(e) => setVal(e.target.value)}
+                        onBlur={onBlur}
+                        className="w-full h-full bg-transparent outline-none no-spinner appearance-none
+                     [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                </div>
+            );
+        },
+    };
+
+
+    const columns = useMemo<ColumnDef<any>[]>(() => [
         { header: "Produk", accessorKey: "stock_name" },
         { header: "Jumlah barang", accessorKey: "quantity" },
         {
             header: "Jumlah Return",
-            cell: ({ row }) => {
-                const id = row.original.id;
-                const value = returnQTYMap[id] ?? 0;
-                // const value = row.original.returnQty ?? 0;
-                return (
-                    <input
-                        type="number"
-                        min={0}
-                        defaultValue={value}
-                        className="pl-1 text-left bg-gray-100 rounded-sm w-24"
-                        onBlur={e => {
-                            let newValue = Number(e.target.value);
-                            if (newValue < 0) newValue = 0;
-                            handleReturnQTYChange(id, newValue);
-                        }}
-                    />
-                );
-            },
-            size: 80,
+            accessorKey: "returnQty",
+            size: 100,
+            meta: { editable: true },
         },
         {
             header: "Satuan",
@@ -115,30 +132,21 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
         },
         { header: "Harga Beli", accessorKey: "stock_price_buy" },
         {
-            header: "Total",
-            cell: ({ row }) => {
-                const id = row.original.id;
-                const qty = returnQTYMap[id] ?? 0;
-                const price = row.original.stock_price_buy || 0;
-                const total = qty * price;
-                return `Rp${total.toLocaleString("id-ID")}`;
-            }
+            header: "Subtotal",
+            accessorKey: "subtotal",
+            cell: ({ row }) => `Rp${Number(row.original.subtotal ?? 0).toLocaleString("id-ID")}`
         },
         {
             header: "Inc. PPN",
+            id: "inc_ppn",
             cell: ({ row }) => {
-                const id = row.original.id;
-                const price = row.original.stock_price_buy || 0;
-                const qty = returnQTYMap[id] || 0;
-
+                const qty = Number(row.original.returnQty ?? 0);
+                const price = Number(row.original.stock_price_buy ?? 0);
                 const subtotal = qty * price;
                 const final = isPpnIncluded ? subtotal : subtotal * 1.11;
-
                 return (
                     <div className="text-left">
-                        {final.toLocaleString("id-ID", {
-                            maximumFractionDigits: 2,
-                        })}
+                        {final.toLocaleString("id-ID", { maximumFractionDigits: 2 })}
                     </div>
                 );
             },
@@ -155,66 +163,90 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                 </Button>
             ),
         },
-    ];
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+    ], []);
 
     const { trigger, data: review } = useSWRMutation<any, any, string, any>(
         `/api/proxy/api/transactions/calculate_preview/`,
         fetcherPost
     );
 
-    const { data : me, error, isLoading, mutate } = useSWR(`/api/proxy/api/users/me/`, fetcher);
-    
+    const { data: me } = useSWR(`/api/proxy/api/users/me/`, fetcher);
 
     const onSubmit = async () => {
         const payload = {
             th_type: 2,
-            cashier: me.id,
-            th_date: date.toISOString() || "",
+            cashier: me?.id, // aman bila me belum ready
+            th_date: date?.toISOString() || "",
             th_note: "",
             th_payment_type: "CASH",
-            items: data.map(item => ({
+            items: data.map((item: any) => ({
                 stock: item.stock,
                 stock_code: item.stock_code || "",
                 stock_name: item.stock_name,
                 stock_price_buy: item.stock_price_buy,
-                quantity: returnQTYMap[item.id] ?? 0,
+                quantity: Number(item.returnQty ?? 0), // gunakan returnQty
                 disc: item.disc || 0,
                 disc_percent: item.disc_percent || 0,
                 disc_percent2: item.disc_percent2 || 0,
             }))
         };
-        console.log(JSON.stringify(payload, null, 1));
-        trigger(payload)
-            .then((res) => {
-                console.log(res);
-            })
-            .catch((err) => {
-                toast.error(err.message);
-            });
+        try {
+            await trigger(payload);
+        } catch (err: any) {
+            toast.error(err?.message ?? "Gagal menghitung preview transaksi");
+        }
     };
 
     useEffect(() => {
         if (review) {
             const th_dp = data?.[0]?.th_dp || 0;
-            const updatedReview = {
+            setReviewData({
                 ...review,
                 th_dp,
                 date,
-                returnQTYMap,
                 isPpnIncluded,
                 supplier,
-                
-            };
-            setReviewData(updatedReview);
+            });
         }
-    }, [review, data]);
+    }, [review, data, date, isPpnIncluded, supplier]);
 
     const table = useReactTable({
         data,
         columns,
+        defaultColumn,
         getCoreRowModel: getCoreRowModel(),
+        columnResizeMode: "onChange",
+        state: { columnSizing, columnSizingInfo },
+        onColumnSizingChange: setColumnSizing,
+        onColumnSizingInfoChange: setColumnSizingInfo,
+        meta: {
+            updateData: (rowIndex: number, columnId: string, value: unknown) => {
+                const next = data.map((row: any, idx: number) => {
+                    if (idx !== rowIndex) return row;
+
+                    const v =
+                        typeof value === "string" && value.trim() === ""
+                            ? 0
+                            : Number.isFinite(Number(value))
+                                ? Number(value)
+                                : value;
+
+                    const currentQty = Number(row.returnQty ?? 0);
+                    const currentPrice = Number(row.stock_price_buy ?? 0);
+
+                    const newReturnQty = columnId === "returnQty" ? Number(v) : currentQty;
+                    const newPrice = columnId === "stock_price_buy" ? Number(v) : currentPrice;
+
+                    return {
+                        ...row,
+                        [columnId]: v,
+                        subtotal: newReturnQty * newPrice, // subtotal retur
+                    };
+                });
+
+                dispatch(setTableData({ tableName, data: next }));
+            },
+        },
     });
 
     useEffect(() => {
@@ -227,13 +259,13 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     }, [dispatch, data.length, tableName]);
 
     const totalSummary = useMemo(() => {
-        const subtotal = data.reduce((acc, item) => {
-            const qty = returnQTYMap[item.id] ?? 0;
-            const price = item.stock_price_buy || 0;
+        const subtotal = data.reduce((acc: number, item: any) => {
+            const qty = Number(item.returnQty ?? 0);
+            const price = Number(item.stock_price_buy ?? 0);
             return acc + (qty * price);
         }, 0);
         return { subtotal };
-    }, [data, returnQTYMap]);
+    }, [data]);
 
     const handleDelete = (id: number) => {
         dispatch(deleteRow({ tableName, id }));
@@ -243,11 +275,6 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const handleClear = () => {
         dispatch(clearTable({ tableName }));
         toast.error("Table berhasil dihapus!");
-    };
-
-    const handleInputClick = () => {
-        toast.success("Produk berhasil diinput!");
-        dispatch(clearTable({ tableName }));
     };
 
     return (
@@ -267,7 +294,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {date
-                                        ? format(date, "d MMMM yyyy", { locale: id })
+                                        ? format(date, "dd/MM/yyyy", { locale: id })
                                         : <span>Pilih Tanggal</span>}
                                 </Button>
                             </PopoverTrigger>
@@ -326,52 +353,87 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                     <Button onClick={handleClear} variant={"outline"} className='font-medium border-red-500 text-red-500 hover:bg-red-500 hover:text-white '>Batal</Button>
                 </div>
             </div>
-            <div className="rounded-md border overflow-auto">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className="text-left">
-                                        {flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="text-left">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
+
+            <ScrollArea className="relative z-0 h-[calc(100vh-300px)] w-full overflow-x-auto overflow-y-auto max-w-screen">
+                <div className="min-w-full">
+                    <Table>
+                        <TableHeader className="bg-gray-100 sticky top-0 z-10">
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <TableRow key={headerGroup.id} className="h-[40px]">
+                                    {headerGroup.headers.map((header) => (
+                                        <TableHead
+                                            key={header.id}
+                                            style={{ width: (header as any).getSize?.() ?? undefined }}
+                                            className="relative text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 whitespace-nowrap"
+                                        >
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+
+                                            {/* Resize handle */}
+                                            {header.column.getCanResize?.() && (
+                                                <div
+                                                    onMouseDown={header.getResizeHandler()}
+                                                    onTouchStart={header.getResizeHandler()}
+                                                    className={cn(
+                                                        "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none",
+                                                        header.column.getIsResizing?.() ? "bg-blue-500" : "bg-transparent",
+                                                    )}
+                                                />
+                                            )}
+                                        </TableHead>
                                     ))}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
-                                    Belum menambahkan produk
+                            ))}
+                        </TableHeader>
+
+                        <TableBody>
+                            {table.getRowModel().rows.length ? (
+                                table.getRowModel().rows.map((row) => (
+                                    <TableRow key={row.id} className="h-[40px]">
+                                        {row.getVisibleCells().map((cell) => {
+                                            const isEditableCol = (cell.column.columnDef as any)?.meta?.editable === true;
+                                            return (
+                                                <TableCell
+                                                    key={cell.id}
+                                                    style={{ width: (cell.column as any).getSize?.() ?? undefined }}
+                                                    className={cn(
+                                                        "text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap",
+                                                        isEditableCol && "bg-gray-100"
+                                                    )}
+                                                >
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={columns.length} className="text-center text-gray-400 bg-gray-200">
+                                        Belum menambahkan produk
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+
+                        <TableFooter>
+                            <TableRow className="bg-white">
+                                <TableCell colSpan={7} className="text-right font-bold">
+                                    Total:
+                                </TableCell>
+                                <TableCell className="text-left font-bold">
+                                    <span>{totalSummary.subtotal.toLocaleString("id-ID", {
+                                        maximumFractionDigits: 2,
+                                    })}</span>
                                 </TableCell>
                             </TableRow>
-                        )}
-                    </TableBody>
-                    <TableFooter>
-                        <TableRow className="bg-white">
-                            <TableCell colSpan={6} className="text-right font-bold">
-                                Total:
-                            </TableCell>
-                            <TableCell className="text-left font-bold">
-                                <span>{totalSummary.subtotal.toLocaleString("id-ID", {
-                                    maximumFractionDigits: 2,
-                                })}</span>
-                            </TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
+                        </TableFooter>
+                    </Table>
+                </div>
+
+                <ScrollBar orientation="horizontal" />
+                <ScrollBar orientation="vertical" className="z-40" />
+            </ScrollArea>
+
             <div className='flex justify-end gap-2 mt-4 '>
                 <Dialog>
                     {data.length > 0 ? (

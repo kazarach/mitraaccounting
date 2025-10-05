@@ -1,13 +1,7 @@
-import { AuthProvider } from "./AuthProvider";
-import { ReactNode } from 'react';
+// app/login/layout.tsx
+import type { ReactNode } from "react";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-
-  return (
-    <html lang="en">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
-    </html>
-  );
+export default function LoginLayout({ children }: { children: ReactNode }) {
+  // Boleh bungkus pakai <div> / <section>, tapi BUKAN <html>/<body>
+  return <>{children}</>;
 }
