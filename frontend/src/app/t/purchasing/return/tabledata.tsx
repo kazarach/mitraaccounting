@@ -53,7 +53,6 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
     const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
 
-    // Pastikan setiap row memiliki returnQty (default 0) dan subtotal terhitung
     useEffect(() => {
         if (!data?.length) return;
         let changed = false;
@@ -175,7 +174,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
     const onSubmit = async () => {
         const payload = {
             th_type: 2,
-            cashier: me?.id, // aman bila me belum ready
+            cashier: me?.id, 
             th_date: date?.toISOString() || "",
             th_note: "",
             th_payment_type: "CASH",
@@ -184,7 +183,7 @@ const ReturTransTable: React.FC<Props> = ({ tableName }) => {
                 stock_code: item.stock_code || "",
                 stock_name: item.stock_name,
                 stock_price_buy: item.stock_price_buy,
-                quantity: Number(item.returnQty ?? 0), // gunakan returnQty
+                quantity: Number(item.returnQty ?? 0),
                 disc: item.disc || 0,
                 disc_percent: item.disc_percent || 0,
                 disc_percent2: item.disc_percent2 || 0,

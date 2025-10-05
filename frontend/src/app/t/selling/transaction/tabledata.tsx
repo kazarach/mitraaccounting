@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   Table,
@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { deleteRow, setTableData, clearTable } from '@/store/features/tableSlicer';
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { ColumnDef, flexRender, getCoreRowModel, RowData, useReactTable } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { z } from "zod"
 import { id } from 'date-fns/locale'
@@ -34,6 +34,17 @@ import TpModalSelling from './modalpesanan';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import useSWR from 'swr';
 import BayarTPModalJual from './previewmodal';
+
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData extends RowData> {
+    updateData: (rowIndex: number, columnId: string, value: unknown) => void
+  }
+}
+
+const toNum = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
 
 type Customer = {
   id: number;
@@ -93,6 +104,9 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
   const [thDp, setThDp] = useState(0);
   const [cashierId, setCashierId] = useState<number | null>(null);
   const data = useSelector((state: RootState) => state.table[tableName] || []);
+  const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
+  const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     defaultValues: {
@@ -118,43 +132,79 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     dispatch(setTableData({ tableName, data: updated }));
   };
 
-  const columns: ColumnDef<TransactionRow>[] = [
+  const defaultColumn: Partial<ColumnDef<any>> = {
+    size: 120,
+    minSize: 60,
+    maxSize: 600,
+    cell: ({ getValue, row: { index }, column, table }) => {
+      const raw = getValue() as any;
+      const isEditable = (column.columnDef as any)?.meta?.editable === true;
+
+      if (!isEditable) {
+        return <span className="text-gray-700">{typeof raw === "number" ? String(toNum(raw)) : String(raw ?? "")}</span>;
+      }
+
+      const initialValue = String(toNum(raw));
+      const [val, setVal] = React.useState<string>(initialValue);
+      useEffect(() => setVal(String(toNum(getValue() as any))), [getValue]);
+
+      const onBlur = () => table.options.meta?.updateData(index, column.id, toNum(val));
+
+      return (
+        <div className=" rounded px-1 py-0.5 focus-within:ring-2 focus-within:ring-gray-300">
+          <input
+            type="number"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={onBlur}
+            className="w-full h-full bg-transparent outline-none no-spinner appearance-none
+                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        </div>
+      );
+    },
+  };
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
     { header: "Produk", accessorKey: "stock_name" },
     {
       header: "Jumlah Barang",
-      cell: ({ row }) => {
-        const initialQty = row.original.quantity ?? 0;
-        const [localQty, setLocalQty] = useState(initialQty);
+      accessorKey: "quantity",
+      meta: { editable: true },
+      // cell: ({ row }) => {
+      //   const initialQty = row.original.quantity ?? 0;
+      //   const [localQty, setLocalQty] = useState(initialQty);
 
-        const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-          const value = e.target.value;
-          const parsed = parseFloat(value);
-          setLocalQty(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
-        };
+      //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      //     const value = e.target.value;
+      //     const parsed = parseFloat(value);
+      //     setLocalQty(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
+      //   };
 
-        const handleBlur = () => {
-          handleChange(
-            { target: { value: localQty.toString() } } as React.ChangeEvent<HTMLInputElement>,
-            row.original.id,
-            "quantity"
-          );
-        };
+      //   const handleBlur = () => {
+      //     handleChange(
+      //       { target: { value: localQty.toString() } } as React.ChangeEvent<HTMLInputElement>,
+      //       row.original.id,
+      //       "quantity"
+      //     );
+      //   };
 
-        return (
-          <input
-            type="number"
-            value={localQty}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
-            placeholder="0"
-          />
-        );
-      },
+      //   return (
+      //     <input
+      //       type="number"
+      //       value={localQty}
+      //       onChange={handleInputChange}
+      //       onBlur={handleBlur}
+      //       className="pl-1 text-left w-24 bg-gray-100 rounded-sm"
+      //       placeholder="0"
+      //     />
+      //   );
+      // },
     },
     { header: "Satuan", accessorKey: "unit" },
     {
       header: "Harga Jual",
+
       cell: ({ row }) => {
         const stock_price_sell = row.original.stock_price_sell || 0;
         return (
@@ -166,35 +216,37 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
     },
     {
       header: "Diskon (Rp)",
-      cell: ({ row }) => {
-        const initialDisc = row.original.discount ?? 0;
-        const [localDisc, setLocalDisc] = useState(initialDisc);
+      accessorKey: "discount",
+      meta: { editable: true },
+      // cell: ({ row }) => {
+      //   const initialDisc = row.original.discount ?? 0;
+      //   const [localDisc, setLocalDisc] = useState(initialDisc);
 
-        const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-          const value = e.target.value;
-          const parsed = parseFloat(value);
-          setLocalDisc(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
-        };
+      //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      //     const value = e.target.value;
+      //     const parsed = parseFloat(value);
+      //     setLocalDisc(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
+      //   };
 
-        const handleBlur = () => {
-          handleChange(
-            { target: { value: localDisc.toString() } } as React.ChangeEvent<HTMLInputElement>,
-            row.original.id,
-            "discount"
-          );
-        };
+      //   const handleBlur = () => {
+      //     handleChange(
+      //       { target: { value: localDisc.toString() } } as React.ChangeEvent<HTMLInputElement>,
+      //       row.original.id,
+      //       "discount"
+      //     );
+      //   };
 
-        return (
-          <input
-            type="number"
-            value={localDisc}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-            placeholder="Rp0"
-          />
-        );
-      },
+      //   return (
+      //     <input
+      //       type="number"
+      //       value={localDisc}
+      //       onChange={handleInputChange}
+      //       onBlur={handleBlur}
+      //       className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
+      //       placeholder="Rp0"
+      //     />
+      //   );
+      // },
     },
     {
       header: "Total",
@@ -233,20 +285,33 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         </div>
       ),
     },
-  ];
+  ], [isPpnIncluded]);
 
   const table = useReactTable({
     data,
     columns,
+    defaultColumn,
     getCoreRowModel: getCoreRowModel(),
     columnResizeMode: "onChange",
-    columnResizeDirection: "ltr",
-    defaultColumn: {
-      size: 150,
-      minSize: 50,
-      maxSize: 600,
-      enableResizing: true,
-    },
+    state: { columnSizing, columnSizingInfo },
+    onColumnSizingChange: setColumnSizing,
+    onColumnSizingInfoChange: setColumnSizingInfo,
+    meta: {
+      updateData: (rowIndex, columnId, value) => {
+        const next = [...(data as TransactionRow[])];
+        const row = { ...(next[rowIndex] as TransactionRow) };
+
+        if (columnId === "quantity") row.quantity = toNum(value);
+        if (columnId === "stock_price_sell") row.stock_price_sell = toNum(value);
+        if (columnId === "discount") row.discount = toNum(value);
+
+        row.subtotal = ((row.stock_price_sell ?? 0)  * (row.quantity ?? 0))- (row.discount ?? 0);
+        next[rowIndex] = row;
+
+        dispatch(setTableData({ tableName, data: next }));
+      }
+    }
+
   });
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -344,17 +409,17 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         th_ppn: th_ppn,
         th_payment_type: th_payment_type,
         th_dp: thDp,
-        cashier: me?.id, 
+        cashier: me?.id,
         ...(transactionId && { id: transactionId }),
         items,
       };
 
       const response = await fetch(`/api/proxy/api/transactions/calculate_preview/`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const text = await response.text();
