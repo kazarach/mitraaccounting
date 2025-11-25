@@ -67,11 +67,12 @@ const TambahProdukReturnSelling: React.FC<TambahProdukModalProps> = ({ tableName
     stock_code: product.code,
     stock_name: product.name,
     jumlah_pesanan: quantity,
-    quantity: quantity,
+    quantity: "-",
     stock_price_buy: parseFloat(product.price_buy),
     stock_price_sell: selectedPrice ? parseFloat(selectedPrice.price_sell) : 0,
     unit: product.unit_name,
     prices: product.prices, 
+    return_quantity: quantity,
   };
     
     toast.success(product.name + " Berhasil Ditambahkan");

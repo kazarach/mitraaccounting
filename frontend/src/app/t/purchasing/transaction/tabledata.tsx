@@ -129,7 +129,7 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
     const [searchLoading, setSearchLoading] = useState(false);
 
     const data: TransactionRow[] = useSelector((state: RootState) => state.table[tableName] || []);
-
+    console.log("🟡 data dari Redux:", data);
     // ---------- Column sizing state (TanStack v8) ----------
     const [columnSizing, setColumnSizing] = useState<Record<string, number>>({});
     const [columnSizingInfo, setColumnSizingInfo] = useState<any>({});
@@ -727,24 +727,25 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                             <Table>
                                 <TableHeader className="bg-gray-100 sticky top-0 z-10">
                                     {table.getHeaderGroups().map((headerGroup) => (
-                                        <TableRow key={headerGroup.id} className="h-[40px]">
+                                        <TableRow key={headerGroup.id} className="relative h-[40px]">
                                             {headerGroup.headers.map((header) => (
                                                 <TableHead
                                                     key={header.id}
-                                                    style={{ width: header.getSize?.() ?? undefined }}
-                                                    className="relative text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 whitespace-nowrap"
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: header.getStart(),
+                                                        width: header.getSize(),
+                                                    }}
+                                                    className="text-left font-bold text-black p-2 border-b border-r last:border-r-0 bg-gray-100 overflow-hidden whitespace-nowrap"
                                                 >
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
 
-                                                    {/* Resize handle */}
-                                                    {header.column.getCanResize?.() && (
+                                                    {header.column.getCanResize() && (
                                                         <div
                                                             onMouseDown={header.getResizeHandler()}
                                                             onTouchStart={header.getResizeHandler()}
-                                                            className={cn(
-                                                                "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none",
-                                                                header.column.getIsResizing?.() ? "bg-blue-500" : "bg-transparent",
-                                                            )}
+                                                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none hover:bg-blue-300"
+                                                            style={{ transform: "translateX(50%)" }}
                                                         />
                                                     )}
                                                 </TableHead>
@@ -756,15 +757,24 @@ const TransactionTable: React.FC<Props> = ({ tableName }) => {
                                 <TableBody>
                                     {table.getRowModel().rows.length ? (
                                         table.getRowModel().rows.map((row) => (
-                                            <TableRow key={row.id} className="h-[40px]">
+                                            <TableRow key={row.id} className="relative h-[40px]">
                                                 {row.getVisibleCells().map((cell) => (
                                                     <TableCell
                                                         key={cell.id}
-                                                        style={{ width: cell.column.getSize?.() ?? undefined }}
-                                                        className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap"
+                                                        style={{
+                                                            position: "absolute",
+                                                            left: cell.column.getStart(),
+                                                            width: cell.column.getSize(),
+                                                            height: "100%",
+                                                        }}
+                                                        className={cn(
+                                                            "text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden",
+                                                            (cell.column.columnDef as any)?.meta?.editable ? "bg-gray-50" : "bg-white"
+                                                        )}
                                                     >
                                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                     </TableCell>
+
                                                 ))}
                                             </TableRow>
                                         ))

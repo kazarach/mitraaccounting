@@ -218,35 +218,6 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
       header: "Diskon (Rp)",
       accessorKey: "discount",
       meta: { editable: true },
-      // cell: ({ row }) => {
-      //   const initialDisc = row.original.discount ?? 0;
-      //   const [localDisc, setLocalDisc] = useState(initialDisc);
-
-      //   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      //     const value = e.target.value;
-      //     const parsed = parseFloat(value);
-      //     setLocalDisc(value === "" ? 0 : isNaN(parsed) ? 0 : parsed);
-      //   };
-
-      //   const handleBlur = () => {
-      //     handleChange(
-      //       { target: { value: localDisc.toString() } } as React.ChangeEvent<HTMLInputElement>,
-      //       row.original.id,
-      //       "discount"
-      //     );
-      //   };
-
-      //   return (
-      //     <input
-      //       type="number"
-      //       value={localDisc}
-      //       onChange={handleInputChange}
-      //       onBlur={handleBlur}
-      //       className="pl-1 text-left w-20 bg-gray-100 rounded-sm"
-      //       placeholder="Rp0"
-      //     />
-      //   );
-      // },
     },
     {
       header: "Total",
@@ -254,7 +225,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         const harga = row.original.stock_price_sell || 0;
         const quantity = row.original.quantity || 0;
         const disc = row.original.discount || 0;
-        const subtotal = (harga - disc) * quantity;
+        const subtotal = (harga * quantity) - disc;
         return <div>{subtotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>;
       },
     },
@@ -264,7 +235,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         const harga = row.original.stock_price_sell || 0;
         const quantity = row.original.quantity || 0;
         const disc = row.original.discount || 0;
-        const subtotal = (harga - disc) * quantity;
+        const subtotal = (harga * quantity) - disc;
         const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
         return <div className="text-left">{finalTotal.toLocaleString("id-ID", { maximumFractionDigits: 2 })}</div>;
       },
@@ -274,6 +245,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
       cell: ({ row }) => (
         <div className="text-left">
           <Button
+          type="button" 
             onClick={() => {
               handleDelete(row.original.id);
               toast.error("Produk berhasil dihapus!");
@@ -305,7 +277,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
         if (columnId === "stock_price_sell") row.stock_price_sell = toNum(value);
         if (columnId === "discount") row.discount = toNum(value);
 
-        row.subtotal = ((row.stock_price_sell ?? 0)  * (row.quantity ?? 0))- (row.discount ?? 0);
+        row.subtotal = ((row.stock_price_sell ?? 0) * (row.quantity ?? 0)) - (row.discount ?? 0);
         next[rowIndex] = row;
 
         dispatch(setTableData({ tableName, data: next }));
@@ -339,7 +311,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
       }
 
       const totalHarga = (updatedItem.stock_price_sell ?? 0) - (updatedItem.discount ?? 0);
-      updatedItem.subtotal = (updatedItem.quantity ?? 0) * totalHarga;
+      updatedItem.subtotal = (updatedItem.quantity ?? 0) * (updatedItem.stock_price_sell ?? 0) - (updatedItem.discount ?? 0);
 
       return updatedItem;
     });
@@ -530,7 +502,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                   name="th_disc"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Diskon Nota (%)</FormLabel>
+                      <FormLabel>Diskon Nota</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -542,7 +514,7 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             setThDisc(parsed);
                           }}
                           className='bg-gray-100 w-[150px] h-[30px]'
-                          placeholder='0%'
+                          placeholder='0'
                         />
                       </FormControl>
                     </FormItem>
@@ -673,10 +645,14 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                               width: cell.column.getSize(),
                               height: "100%",
                             }}
-                            className="text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden"
+                            className={cn(
+                              "text-left p-2 border-b border-r last:border-r-0 whitespace-nowrap overflow-hidden",
+                              (cell.column.columnDef as any)?.meta?.editable ? "bg-gray-50" : "bg-white"
+                            )}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                           </TableCell>
+
                         ))}
                       </TableRow>
                     ))
@@ -710,9 +686,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             const harga = item.stock_price_sell || 0;
                             const disc = item.discount || 0;
                             const quantity = item.quantity || 0;
-                            const subtotal = (harga - disc) * quantity;
-                            const setelahDiskonNota = subtotal * (1 - th_disc / 100);
-                            return acc + setelahDiskonNota;
+                            const subtotal = (harga * quantity) - disc;
+                            return acc + subtotal;
                           }, 0).toLocaleString("id-ID", { maximumFractionDigits: 2 });
                           break;
                         case 6:
@@ -720,9 +695,8 @@ const TransactionSellingTable: React.FC<Props> = ({ tableName }) => {
                             const harga = item.stock_price_sell || 0;
                             const disc = item.discount || 0;
                             const quantity = item.quantity || 0;
-                            const subtotal = (harga - disc) * quantity;
-                            const setelahDiskonNota = subtotal * (1 - th_disc / 100);
-                            const finalTotal = isPpnIncluded ? setelahDiskonNota : setelahDiskonNota * 1.11;
+                            const subtotal = (harga * quantity) - disc;
+                            const finalTotal = isPpnIncluded ? subtotal : subtotal * 1.11;
                             return acc + finalTotal;
                           }, 0).toLocaleString("id-ID", { maximumFractionDigits: 2 });
                           break;
